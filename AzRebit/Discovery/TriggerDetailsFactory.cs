@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 
 using AzRebit.Triggers.BlobTriggered.Model;
+using AzRebit.Triggers.HttpTriggered.Model;
 using AzRebit.Utilities;
 
 using Microsoft.Azure.Functions.Worker;
@@ -26,6 +27,9 @@ internal static class TriggerDetailsFactory
                 var triggerDetails = CreateBlobTriggerDetails(attributeParamInfo);
                 //add more trigger types here in future
                 return triggerDetails;
+            case TriggerType.Http:
+                var triggerDetailsHttp = CreateHttpTriggerDetails(attributeParamInfo);
+                return triggerDetailsHttp;
             default:
                 return null;
         }
@@ -39,6 +43,13 @@ internal static class TriggerDetailsFactory
         triggerDetails.ConnectionString = blobFuncTriggerInfo.Connection;
         triggerDetails.ContainerName = Utility.BlobHelpers.ExtractContainerNameFromBlobPath(blobFuncTriggerInfo.BlobPath);
         triggerDetails.TriggerPath = blobFuncTriggerInfo.BlobPath;
+        return triggerDetails;
+    }
+    private static HttpTriggerDetails CreateHttpTriggerDetails(ParameterInfo paramData)
+    {
+        HttpTriggerAttribute httpFuncTriggerInfo = paramData.GetCustomAttribute<HttpTriggerAttribute>()!;
+        var triggerDetails = new HttpTriggerDetails();
+        triggerDetails.Route = httpFuncTriggerInfo.Route ?? string.Empty;
         return triggerDetails;
     }
 }

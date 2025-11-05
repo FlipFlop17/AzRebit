@@ -12,7 +12,6 @@ namespace AzRebit.Endpoints.Resubmit;
 
 internal class ResubmitEndpoint
 {
-    private readonly IOptions<ResubmitOptions> _options;
     private readonly IReadOnlyCollection<AzFunction> _functionDetails;
     private readonly IEnumerable<ITriggerHandler> _triggerHandlers;
     private readonly ILogger<ResubmitEndpoint> _logger;
@@ -22,7 +21,6 @@ internal class ResubmitEndpoint
         IEnumerable<ITriggerHandler> triggerHandlers,
         ILogger<ResubmitEndpoint> logger)
     {
-        _options = options;
         _functionDetails = functionNames;
         _triggerHandlers = triggerHandlers;
         _logger = logger;

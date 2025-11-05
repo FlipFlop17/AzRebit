@@ -86,7 +86,7 @@ public static class ResubmitExtension
     internal static IEnumerable<AzFunction> CollectFunctionDetails()
     {
         var functionDetails = new HashSet<AzFunction>();
-        var internalFunctions = new[] { "ResubmitHandler" };
+        var internalFunctions = new[] { "ResubmitHandler", "CleanupSavedResubmits" };
 
         // Loop through all loaded assemblies
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
