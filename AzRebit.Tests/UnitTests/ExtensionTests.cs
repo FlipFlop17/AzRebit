@@ -2,7 +2,7 @@
 
 using AwesomeAssertions;
 
-using AzRebit.BlobTriggered.Model;
+using AzRebit.Triggers.BlobTriggered.Model;
 
 using static AzRebit.Shared.Model.TriggerTypes;
 

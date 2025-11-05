@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-using AzRebit.BlobTriggered.Model;
+using AzRebit.Triggers.BlobTriggered.Model;
 using AzRebit.Utilities;
 
 using Microsoft.Azure.Functions.Worker;

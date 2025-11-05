@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using AzRebit.Extensions;
-using AzRebit.Utilities;
+﻿using AzRebit.Extensions;
 
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
@@ -14,7 +7,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Middleware;
 using Microsoft.Extensions.Logging;
 
-namespace AzRebit.BlobTriggered.Middleware;
+namespace AzRebit.Triggers.BlobTriggered.Middleware;
 
 /// <summary>
 /// Middleware to handle automatic saving of blob trigger invocations for resubmission

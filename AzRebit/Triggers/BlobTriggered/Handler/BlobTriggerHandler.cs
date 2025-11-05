@@ -1,13 +1,13 @@
-﻿using AzRebit.BlobTriggered.Model;
-using AzRebit.Extensions;
+﻿using AzRebit.Extensions;
 using AzRebit.Shared;
+using AzRebit.Triggers.BlobTriggered.Model;
 
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
 
 using static AzRebit.Shared.Model.TriggerTypes;
 
-namespace AzRebit.BlobTriggered.Handler;
+namespace AzRebit.Triggers.BlobTriggered.Handler;
 internal class BlobTriggerHandler : ITriggerHandler
 
 {
@@ -32,6 +32,10 @@ internal class BlobTriggerHandler : ITriggerHandler
         BlobContainerClient resubmitContainerClient = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"), BlobResubmitContainerName);
 
         BlobClient? blobForResubmitClient = await resubmitContainerClient.PickUpBlobForResubmition(invocationId);
+        if (blobForResubmitClient is null)
+        {
+            throw new InvalidOperationException($"No blob found for invocation id {invocationId} in container {BlobResubmitContainerName}");
+        }
         var existingTagsResponse = await blobForResubmitClient.GetTagsAsync();
         //upload the blob to the azure function trigger container which will trigger the logic app
         BlobContainerClient inputContainer = new BlobContainerClient(blobDetails.ConnectionString, blobDetails.ContainerName);

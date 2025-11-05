@@ -5,7 +5,7 @@ using Azure.Storage.Blobs;
 
 using static AzRebit.Shared.Model.TriggerTypes;
 
-namespace AzRebit.HttpTriggered.Handler;
+namespace AzRebit.Triggers.HttpTriggered.Handler;
 
 internal class HttpTriggerHandler:ITriggerHandler
 {

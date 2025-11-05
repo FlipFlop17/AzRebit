@@ -1,13 +1,14 @@
 ﻿using System.Reflection;
 
-using AzRebit.BlobTriggered.Handler;
-using AzRebit.BlobTriggered.Middleware;
-using AzRebit.CleanUp;
 using AzRebit.Discovery;
-using AzRebit.HttpTriggered.Handler;
-using AzRebit.HttpTriggered.Middleware;
+using AzRebit.Endpoints.CleanUp;
+using AzRebit.Endpoints.Resubmit;
 using AzRebit.Shared;
 using AzRebit.Shared.Model;
+using AzRebit.Triggers.BlobTriggered.Handler;
+using AzRebit.Triggers.BlobTriggered.Middleware;
+using AzRebit.Triggers.HttpTriggered.Handler;
+using AzRebit.Triggers.HttpTriggered.Middleware;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,6 +1,6 @@
 ﻿using static AzRebit.Shared.Model.TriggerTypes;
 
-namespace AzRebit.BlobTriggered.Model;
+namespace AzRebit.Triggers.BlobTriggered.Model;
 
 internal class BlobTriggerDetails
 {

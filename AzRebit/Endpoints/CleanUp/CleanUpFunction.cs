@@ -8,9 +8,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using static AzRebit.ResubmitExtension;
-using static AzRebit.Shared.Model.TriggerTypes;
 
-namespace AzRebit.CleanUp;
+namespace AzRebit.Endpoints.CleanUp;
 
 /// <summary>
 /// runs on a timer to clean up old resubmit requests

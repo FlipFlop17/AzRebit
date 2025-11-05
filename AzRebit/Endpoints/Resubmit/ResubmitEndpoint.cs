@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 using static AzRebit.ResubmitExtension;
 
-namespace AzRebit;
+namespace AzRebit.Endpoints.Resubmit;
 
 internal class ResubmitEndpoint
 {

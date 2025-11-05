@@ -12,7 +12,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 
 using Moq;
-using AzRebit.BlobTriggered.Handler;
+using AzRebit.Triggers.BlobTriggered.Handler;
 
 namespace AzFunctionResubmit.Tests.IntegrationTests;
 

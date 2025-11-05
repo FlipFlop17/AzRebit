@@ -1,16 +1,15 @@
 ﻿using System.Text;
 using System.Text.Json;
 
-using AzRebit.BlobTriggered.Handler;
-using AzRebit.HttpTriggered.Handler;
-using AzRebit.HttpTriggered.Model;
+using AzRebit.Triggers.HttpTriggered.Handler;
+using AzRebit.Triggers.HttpTriggered.Model;
 
 using Azure.Storage.Blobs;
 
 using Microsoft.Azure.Functions.Worker.Http;
 
 namespace AzRebit.Extensions;
-public static class HttpExtensions
+public static class AzRebitHttpExtensions
 {
 
     /// <summary>

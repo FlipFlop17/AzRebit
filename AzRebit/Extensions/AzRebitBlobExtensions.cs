@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-using AzRebit.BlobTriggered.Handler;
+using AzRebit.Triggers.BlobTriggered.Handler;
 
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
