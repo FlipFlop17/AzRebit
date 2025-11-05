@@ -14,8 +14,9 @@ public static class HttpExtensions
     /// Container name where the http requests are saved for resubmiting
     /// </summary>
     public const string HttpResubmitContainerName = "http-resubmits";
+
     /// <summary>
-    /// Saves the request details for future resubmission
+    /// Saves the request details for future resubmission. Requests are saved as blobs in Azure Blob Storage of the function app.
     /// </summary>
     /// <param name="req">incoming request</param>
     /// <param name="id">the unique id of the run, usually extracted from FunctionContext</param>

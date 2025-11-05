@@ -91,7 +91,7 @@ After configuring all functions with listed trigger atributes will automatically
 
 ### Recommendation
 
-The function is using `DaysToKeepRequests` counter after which it will clean up requests older than specified days. Since the resubmition is best used just for failed requests, keeping successfull runs might increase storage size. You can delete the saved request manually from your function in case of a successfull execution.
+The function is using `DaysToKeepRequests` counter after which it will clean up requests older than specified days. Since the resubmition is best used just for failed requests, keeping successfull runs might increase storage size. You can delete the saved request within your function by using the provided `DeleteSavedBlobAsync()` method in case of a successfull execution.
 
 ```csharp
 //optional - delete the save request. Usually you would want this iy your function runned successfuly
