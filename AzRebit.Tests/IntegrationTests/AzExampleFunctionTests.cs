@@ -12,6 +12,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 
 using Moq;
+using AzRebit.BlobTriggered.Handler;
 
 namespace AzFunctionResubmit.Tests.IntegrationTests;
 
@@ -40,7 +41,7 @@ public class AzExampleFunctionTests
         {
             var containerClient = new BlobContainerClient(
                 AzuriteConnectionString, 
-                AzRebitBlobExtensions.BlobResubmitContainerName);
+               BlobTriggerHandler.BlobResubmitContainerName);
             
             if (await containerClient.ExistsAsync())
             {
@@ -109,7 +110,7 @@ public class AzExampleFunctionTests
         // Assert - Verify resubmission container exists
         var resubmitContainerClient = new BlobContainerClient(
             AzuriteConnectionString, 
-            AzRebitBlobExtensions.BlobResubmitContainerName);
+           BlobTriggerHandler.BlobResubmitContainerName);
         
         var containerExists = await resubmitContainerClient.ExistsAsync();
         containerExists.Value.Should().BeTrue("the resubmission container should be created automatically");
@@ -126,9 +127,9 @@ public class AzExampleFunctionTests
 
         // Assert - Verify blob has correct tags
         var tagsResponse = await savedBlobClient.GetTagsAsync();
-        tagsResponse.Value.Tags.Should().ContainKey(AzRebitBlobExtensions.BlobInputTagName,
+        tagsResponse.Value.Tags.Should().ContainKey(BlobTriggerHandler.BlobInputTagName,
             "blob should have the input-RunId tag");
-        tagsResponse.Value.Tags[AzRebitBlobExtensions.BlobInputTagName].Should().Be(testRunId,
+        tagsResponse.Value.Tags[BlobTriggerHandler.BlobInputTagName].Should().Be(testRunId,
             "tag value should match the runId");
 
         // Assert - Verify logging occurred
@@ -174,7 +175,7 @@ public class AzExampleFunctionTests
 
         var resubmitContainerClient = new BlobContainerClient(
             AzuriteConnectionString, 
-            AzRebitBlobExtensions.BlobResubmitContainerName);
+           BlobTriggerHandler.BlobResubmitContainerName);
         
         var savedBlobClient = resubmitContainerClient.GetBlobClient(testRunId);
         var blobExists = await savedBlobClient.ExistsAsync();
@@ -217,7 +218,7 @@ public class AzExampleFunctionTests
 
         var resubmitContainerClient = new BlobContainerClient(
             AzuriteConnectionString, 
-            AzRebitBlobExtensions.BlobResubmitContainerName);
+           BlobTriggerHandler.BlobResubmitContainerName);
         
         var savedBlobClient = resubmitContainerClient.GetBlobClient(testRunId);
         var blobExists = await savedBlobClient.ExistsAsync();
@@ -225,7 +226,7 @@ public class AzExampleFunctionTests
 
         // Verify original blob name is preserved in tags
         var tagsResponse = await savedBlobClient.GetTagsAsync();
-        tagsResponse.Value.Tags.Should().ContainKey(AzRebitBlobExtensions.BlobInputTagName);
+        tagsResponse.Value.Tags.Should().ContainKey(BlobTriggerHandler.BlobInputTagName);
         
         // The blob is saved with runId as name, but original path should be in metadata
         var downloadedContent = await savedBlobClient.DownloadContentAsync();

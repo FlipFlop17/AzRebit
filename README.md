@@ -5,11 +5,7 @@
   <h1 style="font-size: 3.5em; margin: 0.2em 0;">AzRebit</h1>
   
   ### 🔄 A powerful NuGet package for Azure Functions request resubmission
-  
-  [![NuGet](https://img.shields.io/badge/NuGet-AzFunctionResubmit-blue?style=flat-square&logo=nuget)](https://www.nuget.org/packages/AzFunctionResubmit)
-  [![Azure Functions](https://img.shields.io/badge/Azure%20Functions-Isolated%20Worker-0078d4?style=flat-square&logo=microsoft-azure)](https://docs.microsoft.com/en-us/azure/azure-functions/)
-  [![.NET](https://img.shields.io/badge/.NET-8.0-512bd4?style=flat-square&logo=dotnet)](https://dotnet.microsoft.com/)
-  
+
   *Easily integrate request resubmission capability into your Azure Functions applications with minimal configuration*
   
 </div>
@@ -73,6 +69,7 @@ builder.AddResubmitEndpoint();
 builder.AddResubmitEndpoint(options =>
 {
     options.DaysToKeepRequests = "10"; // function will automatically delete stored request to save on storage space: defaults to "3"
+    options.AddCleanUpFunction= false; //enable the automatic cleanup function if you dont want to handle cleanup on your own. defaults to false
 });
 
 
@@ -91,12 +88,17 @@ After configuring all functions with listed trigger atributes will automatically
 
 ### Recommendation
 
-The function is using `DaysToKeepRequests` counter after which it will clean up requests older than specified days. Since the resubmition is best used just for failed requests, keeping successfull runs might increase storage size. You can delete the saved request within your function by using the provided `DeleteSavedBlobAsync()` method in case of a successfull execution.
+When enabled you can add the cleanup function that is using `DaysToKeepRequests` counter after which it will clean up requests older than specified days. 
+>We recommed to enable this only if you are not handling cleanup on your own which is suggested.  
+
+Since the resubmition is best used just for failed requests, keeping successfull runs might increase storage size. You can delete the saved request within your function by using the provided `DeleteSavedBlobAsync()` method in case of a successfull execution.
 
 ```csharp
 //optional - delete the save request. Usually you would want this iy your function runned successfuly
 await AzRebitBlobExtensions.DeleteSavedBlobAsync(funcContext.InvocationId.ToString());
 ```
+
+Additionaly you can setup a Lifecycle Management policy on your storage account to automatically delete blobs older than a certain number of days.
 
 ## How It Works
 

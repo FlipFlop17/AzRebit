@@ -1,6 +1,8 @@
 ﻿using System.Text;
 using System.Text.Json;
 
+using AzRebit.BlobTriggered.Handler;
+using AzRebit.HttpTriggered.Handler;
 using AzRebit.HttpTriggered.Model;
 
 using Azure.Storage.Blobs;
@@ -10,10 +12,6 @@ using Microsoft.Azure.Functions.Worker.Http;
 namespace AzRebit.Extensions;
 public static class HttpExtensions
 {
-    /// <summary>
-    /// Container name where the http requests are saved for resubmiting
-    /// </summary>
-    public const string HttpResubmitContainerName = "http-resubmits";
 
     /// <summary>
     /// Saves the request details for future resubmission. Requests are saved as blobs in Azure Blob Storage of the function app.
@@ -47,14 +45,14 @@ public static class HttpExtensions
         var json = JsonSerializer.Serialize(requestDtoToSave);
 
         BlobServiceClient blobServiceClient = new BlobServiceClient(blobConnectionString);
-        var container=blobServiceClient.GetBlobContainerClient(HttpResubmitContainerName);
+        var container=blobServiceClient.GetBlobContainerClient(HttpTriggerHandler.HttpResubmitContainerName);
         await container.CreateIfNotExistsAsync();
         BlobClient blobClient = container.GetBlobClient(id+".json");
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(json));
         await blobClient.UploadAsync(ms);
         await blobClient.SetTagsAsync(new Dictionary<string, string>
         {
-            { AzRebitBlobExtensions.BlobInputTagName, id }
+            { HttpTriggerHandler.HttpInputTagName, id }
         });
     }
 

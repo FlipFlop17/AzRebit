@@ -2,6 +2,7 @@
 
 using AzRebit.BlobTriggered.Handler;
 using AzRebit.BlobTriggered.Middleware;
+using AzRebit.CleanUp;
 using AzRebit.Discovery;
 using AzRebit.HttpTriggered.Handler;
 using AzRebit.HttpTriggered.Middleware;
@@ -26,6 +27,10 @@ public static class ResubmitExtension
         /// Automatic cleanup of saved requests older than specified days.
         /// </summary>
         public int DaysToKeepRequests { get; set; } = 4;
+        /// <summary>
+        /// If true adds a new cleanup function that runs once a day at 01 (not configurable) to delete all saved requests older than 'DaysToKeepRequests'
+        /// </summary>
+        public bool AddCleanUpFunction { get; set; } = false;
 
     }
     public static IFunctionsWorkerApplicationBuilder AddResubmitEndpoint(this IFunctionsWorkerApplicationBuilder builder)
@@ -55,11 +60,11 @@ public static class ResubmitExtension
 
         // register the resubmit endpoint function
         builder.Services.AddSingleton<ResubmitEndpoint>();
-        //TODO: Since httprequests are saved loccaly, add a cleanup task on each run that will clean up saved request older than 3 days but leave it open for modification so user can set if they want more or less thatn that
-        //implementation plan:
-        //for all incoming http requests
-        //TODO: The extension will need a storage account where it needs to find blobs if they are in a different storage. we need to be able to search where the blob are if we are to resubmit according to blob
-        
+        if (options.AddCleanUpFunction)
+        {
+            builder.Services.AddSingleton<CleanUpFunction>();
+        }
+
         return builder;
     }
     /// <summary>

@@ -10,6 +10,10 @@ namespace AzRebit.Shared;
 
 internal interface ITriggerHandler
 {
+    /// <summary>
+    /// Name of the blob container used to store resubmit requests for this trigger type.
+    /// </summary>
+    string ContainerName { get; }
     TriggerType HandlerType { get; }
     internal Task HandleResubmitAsync<T>(T triggerDetails, string invocationId);
 }
