@@ -12,8 +12,7 @@ builder.Services
     .AddApplicationInsightsTelemetryWorkerService()
     .ConfigureFunctionsApplicationInsights();
 
-builder.AddResubmitEndpoint()
-    .UseResubmitMiddleware();
+builder.AddResubmitEndpoint();
 
 
 builder.Build().Run();

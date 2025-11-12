@@ -7,7 +7,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-using static AzRebit.ResubmitExtension;
+using static AzRebit.ResubmitFunctionWorkerExtension;
 
 namespace AzRebit.Endpoints.CleanUp;
 

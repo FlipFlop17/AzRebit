@@ -1,4 +1,4 @@
-﻿using AzRebit.Extensions;
+﻿using AzRebit.HelperExtensions;
 using AzRebit.Shared;
 using AzRebit.Triggers.BlobTriggered.Model;
 
@@ -8,7 +8,12 @@ using Azure.Storage.Blobs.Specialized;
 using static AzRebit.Shared.Model.TriggerTypes;
 
 namespace AzRebit.Triggers.BlobTriggered.Handler;
-internal class BlobTriggerHandler : ITriggerHandler
+
+
+/// <summary>
+/// The handler for blob triggered resubmissions. Does the work of copying the blob from the resubmit container to the input container
+/// </summary>
+internal class BlobResubmitHandler : ITriggerHandler
 
 {
     /// <summary>
@@ -19,14 +24,11 @@ internal class BlobTriggerHandler : ITriggerHandler
     /// the name of the container where blobs for resubmition are stored
     /// </summary>
     public const string BlobResubmitContainerName = "blob-resubmits";
-    public string ContainerName => BlobResubmitContainerName;
     public TriggerType HandlerType => TriggerType.Blob;
-    public async Task HandleResubmitAsync<T>(T triggerDetails,string invocationId)
+
+    public async Task<bool> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
     {
-        if (triggerDetails is not BlobTriggerDetails blobDetails)
-        {
-            throw new ArgumentException($"Expected {nameof(BlobTriggerDetails)} but received {triggerDetails?.GetType().Name}", nameof(triggerDetails));
-        }
+        BlobTriggerAttributeMetadata blobTriggerAttributeMetadata = (BlobTriggerAttributeMetadata)triggerAttributeMetadata!;
         IDictionary<string, string> tags = new Dictionary<string, string>();
 
         BlobContainerClient resubmitContainerClient = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"), BlobResubmitContainerName);
@@ -34,11 +36,13 @@ internal class BlobTriggerHandler : ITriggerHandler
         BlobClient? blobForResubmitClient = await resubmitContainerClient.PickUpBlobForResubmition(invocationId);
         if (blobForResubmitClient is null)
         {
-            throw new InvalidOperationException($"No blob found for invocation id {invocationId} in container {BlobResubmitContainerName}");
+            throw new InvalidOperationException($"No blob found for invocation id {invocationId} in container {blobTriggerAttributeMetadata.ContainerName}");
         }
         var existingTagsResponse = await blobForResubmitClient.GetTagsAsync();
         //upload the blob to the azure function trigger container which will trigger the logic app
-        BlobContainerClient inputContainer = new BlobContainerClient(blobDetails.ConnectionString, blobDetails.ContainerName);
+        //TODO: trebas skuziti kako spremiti naziv blob input containera za blob. 
+        //Blob trigger moze imati Connection parametar koji referencira Environment varijablu ali i ne mora imati, ako nema onda se koristi default connection string - tj. storage account od funkcije. Takoder mozes imati i [StorageAccount] atribut na klasi. to mozda kasnije ubaci kao feature
+        BlobContainerClient inputContainer = new BlobContainerClient(blobTriggerAttributeMetadata.Connection, blobTriggerAttributeMetadata.ContainerName);
         AppendBlobClient inputBlob= inputContainer.GetAppendBlobClient(blobForResubmitClient.GetBlobName());
         await inputBlob.StartCopyFromUriAsync(blobForResubmitClient.Uri);
 
@@ -46,5 +50,10 @@ internal class BlobTriggerHandler : ITriggerHandler
         {
             await inputBlob.SetTagsAsync(existingTagsResponse.Value.Tags);
         }
+        return true;
     }
+
+  
+
+
 }

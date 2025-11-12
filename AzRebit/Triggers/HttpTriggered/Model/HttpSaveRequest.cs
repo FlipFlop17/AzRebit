@@ -1,6 +1,4 @@
-﻿using static AzRebit.Shared.Model.TriggerTypes;
-
-namespace AzRebit.Triggers.HttpTriggered.Model;
+﻿namespace AzRebit.Triggers.HttpTriggered.Model;
 
 internal record HttpSaveRequest(string Id, 
     string Method,
@@ -10,9 +8,3 @@ internal record HttpSaveRequest(string Id,
     string Body, 
     DateTime TimestampUtc
     );
-
-internal class HttpTriggerDetails
-{
-    public TriggerType TypeOfTriger { get; } = TriggerType.Http;
-    public string Route { get; set; } = string.Empty;
-}

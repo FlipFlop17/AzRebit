@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using AzRebit.Triggers.BlobTriggered.Model;
 
 using static AzRebit.Shared.Model.TriggerTypes;
 
@@ -10,10 +6,14 @@ namespace AzRebit.Shared;
 
 internal interface ITriggerHandler
 {
+    public TriggerType HandlerType { get; }
     /// <summary>
-    /// Name of the blob container used to store resubmit requests for this trigger type.
+    /// Attempts to resubmit a previously triggered invocation using the specified invocation identifier and trigger
+    /// attribute metadata.
     /// </summary>
-    string ContainerName { get; }
-    TriggerType HandlerType { get; }
-    internal Task HandleResubmitAsync<T>(T triggerDetails, string invocationId);
+    /// <param name="invocationId">The unique identifier of the invocation to be resubmitted. Cannot be null or empty.</param>
+    /// <param name="triggerAttributeMetadata">The metadata associated with the trigger attribute for the invocation. Can be null since some triggers like HTTP are dynaamic</param>
+    /// <returns>A task that represents the asynchronous operation. The task result is <see langword="true"/> if the resubmission
+    /// was successful; otherwise, <see langword="false"/>.</returns>
+    public Task<bool> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata);
 }

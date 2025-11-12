@@ -59,4 +59,14 @@ public class GetCats
         _logger.LogInformation("incoming payload saved");
         return new OkObjectResult("I was triggered by a BlobTrigger! - This request is automatically saved in this function storage account and ready for resubmition");
     }
+
+
+    //[Function("GetDogs")]
+    //public async Task<IActionResult> RunAdd(
+    //    [QueueTrigger("my-container/{blobPath}", Connection = "AzureWebJobsStorage")] BlobClient blobClient, string blobPath,
+    //    FunctionContext funcContext)
+    //{
+    //    _logger.LogInformation("incoming payload saved");
+    //    return new OkObjectResult("I was triggered by a BlobTrigger! - This request is automatically saved in this function storage account and ready for resubmition");
+    //}
 }

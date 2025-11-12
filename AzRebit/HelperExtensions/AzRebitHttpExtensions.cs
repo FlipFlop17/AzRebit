@@ -8,7 +8,7 @@ using Azure.Storage.Blobs;
 
 using Microsoft.Azure.Functions.Worker.Http;
 
-namespace AzRebit.Extensions;
+namespace AzRebit.HelperExtensions;
 public static class AzRebitHttpExtensions
 {
 
@@ -44,14 +44,14 @@ public static class AzRebitHttpExtensions
         var json = JsonSerializer.Serialize(requestDtoToSave);
 
         BlobServiceClient blobServiceClient = new BlobServiceClient(blobConnectionString);
-        var container=blobServiceClient.GetBlobContainerClient(HttpTriggerHandler.HttpResubmitContainerName);
+        var container=blobServiceClient.GetBlobContainerClient(HttpResubmitHandler.HttpResubmitContainerName);
         await container.CreateIfNotExistsAsync();
         BlobClient blobClient = container.GetBlobClient(id+".json");
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(json));
         await blobClient.UploadAsync(ms);
         await blobClient.SetTagsAsync(new Dictionary<string, string>
         {
-            { HttpTriggerHandler.HttpInputTagName, id }
+            { HttpResubmitHandler.HttpInputTagName, id }
         });
     }
 

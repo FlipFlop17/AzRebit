@@ -1,5 +1,4 @@
 ﻿using static AzRebit.Shared.Model.TriggerTypes;
-using static AzRebit.Utilities.Utility;
 
 namespace AzRebit.Shared.Model;
 
@@ -8,12 +7,15 @@ namespace AzRebit.Shared.Model;
 /// </summary>
 /// <param name="name"></param>
 /// <param name="triggerType"></param>
-/// <param name="triggerDetails"></param>
-internal sealed class AzFunction(string name,TriggerType triggerType,object triggerDetails)
+/// <param name="triggerDetails">Trigger metadata like connection strings, const params etc.</param>
+internal sealed class AzFunction(string name,TriggerType triggerType,object? triggerDetails)
 {
     internal TriggerType TriggerType => triggerType;
-    internal string Name => name;   
-    internal object TriggerDetails => triggerDetails;
+    internal string Name => name;
+    /// <summary>
+    /// Holds trigger-specific metadata
+    /// </summary>
+    internal object? TriggerMetadata => triggerDetails;
 }
 
 

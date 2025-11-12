@@ -6,13 +6,13 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-using static AzRebit.ResubmitExtension;
+using static AzRebit.ResubmitFunctionWorkerExtension;
 
 namespace AzRebit.Endpoints.Resubmit;
 
 internal class ResubmitEndpoint
 {
-    private readonly IReadOnlyCollection<AzFunction> _functionDetails;
+    private readonly IReadOnlyCollection<AzFunction> _availableFunctions;
     private readonly IEnumerable<ITriggerHandler> _triggerHandlers;
     private readonly ILogger<ResubmitEndpoint> _logger;
     public ResubmitEndpoint(
@@ -21,7 +21,7 @@ internal class ResubmitEndpoint
         IEnumerable<ITriggerHandler> triggerHandlers,
         ILogger<ResubmitEndpoint> logger)
     {
-        _functionDetails = functionNames;
+        _availableFunctions = functionNames;
         _triggerHandlers = triggerHandlers;
         _logger = logger;
 
@@ -71,17 +71,18 @@ internal class ResubmitEndpoint
         }
     }
 
+    //TODO: add a return result pattern OperationResult ? 
     private async Task HandleResubmit(string functionName,string invocationId)
     {
+        var functionForResubmit = _availableFunctions.First(fn => fn.Name.Equals(functionName));
+        var functionsTriggerMetadata = functionForResubmit.TriggerMetadata;
+        //find the handler for this type of trigger
         ITriggerHandler handler = _triggerHandlers.FirstOrDefault(h =>
         {
-            var function = _functionDetails.First(fn => fn.Name.Equals(functionName));
-            return h.HandlerType == function.TriggerType;
-        }) ?? throw new InvalidOperationException($"No trigger handler found for function '{functionName}'");
+            return h.HandlerType == functionForResubmit.TriggerType;
+        }) ?? throw new InvalidOperationException($"No trigger handler found for function '{functionName}' with the trigger type {functionForResubmit.TriggerType}");
 
-        await handler.HandleResubmitAsync(
-            _functionDetails.First(fn => fn.Name.Equals(functionName)).TriggerDetails,
-            invocationId);
+        await handler.HandleResubmitAsync(invocationId, functionsTriggerMetadata);
     }
 
     private bool ValidateRequest(string? functionName, string? invocationId)
@@ -100,7 +101,7 @@ internal class ResubmitEndpoint
         }
 
         // Validate function exists
-        if (!_functionDetails.Any(fn => fn.Name.Equals(functionName)))
+        if (!_availableFunctions.Any(fn => fn.Name.Equals(functionName)))
         {
             _logger.LogWarning("Validation failed: Function '{FunctionName}' not found", functionName);
             return false;

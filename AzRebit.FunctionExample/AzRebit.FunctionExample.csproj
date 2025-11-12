@@ -19,6 +19,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.5.3" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Tables" Version="1.5.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.5" />
+    <InternalsVisibleTo Include="AzRebit.Tests" />
   </ItemGroup>
 
   <ItemGroup>
