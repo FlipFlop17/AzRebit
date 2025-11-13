@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace AzRebit.Triggers.BlobTriggered.Model;
+﻿namespace AzRebit.Triggers.BlobTriggered.Model;
 
 internal class BlobTriggerAttributeMetadata
 {

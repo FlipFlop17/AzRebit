@@ -29,7 +29,6 @@ internal class BlobMiddlewareHandler:IMiddlewareHandler
 
         BlobBaseClient? incomingBlobClient = null;
         string? blobName = null;
-        string? connectionName = null;
 
         // Try to extract blob client from binding data
         // Order matters: try most specific types first, then fall back to base types

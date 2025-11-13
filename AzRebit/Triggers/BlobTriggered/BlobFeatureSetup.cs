@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Reflection;
 
 using AzRebit.Shared;
 using AzRebit.Triggers.BlobTriggered.Handler;
@@ -12,6 +7,7 @@ using AzRebit.Triggers.BlobTriggered.Model;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
+
 using static AzRebit.Shared.Model.TriggerTypes;
 
 namespace AzRebit.Triggers.BlobTriggered;
@@ -22,7 +18,7 @@ internal class BlobFeatureSetup:IFeatureSetup
     public Type TriggerAttribute => typeof(BlobTriggerAttribute);
     public object CreateTriggerMetadata(ParameterInfo parameter)
     {
-        var blobAttr = parameter.GetCustomAttribute<BlobTriggerAttribute>();
+        var blobAttr = parameter.GetCustomAttribute<BlobTriggerAttribute>()!;
         // Parse blob path to extract container and path pattern
         var blobPath = blobAttr.BlobPath ?? string.Empty;
         var pathParts = blobPath.Split('/', 2);

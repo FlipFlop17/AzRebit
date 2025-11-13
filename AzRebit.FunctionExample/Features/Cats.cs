@@ -11,11 +11,11 @@ namespace AzRebit.FunctionExample.Features;
 /// <summary>
 /// Examples on how to use the resubmit feature inside Azure Functions
 /// </summary>
-public class GetCats
+public class Cats
 {
-    private readonly ILogger<GetCats> _logger;
+    private readonly ILogger<Cats> _logger;
 
-    public GetCats(ILogger<GetCats> logger)
+    public Cats(ILogger<Cats> logger)
     {
         _logger = logger;
     }
@@ -51,10 +51,14 @@ public class GetCats
     /// <returns></returns>
     [Function("AddCat")]
     public async Task<IActionResult> RunAdd(
-        [BlobTrigger("my-container/{blobPath}",Connection ="AzureWebJobsStorage")] BlobClient blobClient,string blobPath,
+        [BlobTrigger("cats-container/{blobPath}",Connection ="AzureWebJobsStorage")] BlobClient blobClient,string blobPath,
         FunctionContext funcContext)
     {
         _logger.LogInformation("incoming payload saved");
+        
+        //optionall - if processing was successfull
+        await AzRebitBlobExtensions.DeleteSavedBlobAsync(funcContext.InvocationId.ToString());
+
         return new OkObjectResult("I was triggered by a BlobTrigger! - This request is automatically saved in this function storage account and ready for resubmition");
     }
 

@@ -3,7 +3,6 @@ using System.Reflection;
 
 using AzRebit.Shared;
 using AzRebit.Shared.Model;
-using AzRebit.Triggers.BlobTriggered;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
@@ -74,6 +73,7 @@ internal static class AssemblyDiscovery
             try
             {
                 var featureInstance = Activator.CreateInstance(feature) as IFeatureSetup;
+                if (featureInstance is null) continue;
                 var triggerAttributeType = featureInstance.TriggerAttribute;
                 var triggerType = featureInstance.TriggerSupport;
 
