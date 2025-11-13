@@ -131,7 +131,7 @@ public static class AzRebitBlobExtensions
     /// <summary>
     /// Deletes a saved blob from the resubmission container
     /// </summary>
-    public static async Task DeleteSavedBlobAsync(string invocationId)
+    public static async Task DeleteSavedResubmitionBlobAsync(string invocationId)
     {
         var containerClient = new BlobContainerClient(
             Environment.GetEnvironmentVariable("AzureWebJobsStorage"),

@@ -35,8 +35,8 @@ public class Cats
 
         // ... some important work
 
-        //optionall - if processing was successfull
-        await AzRebitBlobExtensions.DeleteSavedBlobAsync(funcContext.InvocationId.ToString());
+        //optional - if processing was successfull
+        //await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
         await response.WriteStringAsync("I was triggered by a Http request - This request is automatically saved in this function storage account and ready for resubmition");
         
@@ -57,7 +57,7 @@ public class Cats
         _logger.LogInformation("incoming payload saved");
         
         //optionall - if processing was successfull
-        await AzRebitBlobExtensions.DeleteSavedBlobAsync(funcContext.InvocationId.ToString());
+        //await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
         return new OkObjectResult("I was triggered by a BlobTrigger! - This request is automatically saved in this function storage account and ready for resubmition");
     }
