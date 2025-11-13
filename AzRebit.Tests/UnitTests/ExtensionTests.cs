@@ -21,7 +21,7 @@ public sealed class ExtensionTests
         var exampleAssembly = Assembly.Load("AzFunctionResubmit.Example");
 
         // Act
-        var functions = ResubmitFunctionWorkerExtension.CollectFunctionDetails();
+        var functions = AssemblyDiscovery.DiscoverAzFunctions();
 
         functions.Should().HaveCountGreaterThan(0);
 
@@ -48,7 +48,7 @@ public sealed class ExtensionTests
         var exampleAssembly = Assembly.Load("AzFunctionResubmit.Example");
 
         // Act
-        var functions = ResubmitFunctionWorkerExtension.CollectFunctionDetails();
+        var functions = AssemblyDiscovery.DiscoverAzFunctions();
 
         functions.Should().HaveCountGreaterThan(0);
 
