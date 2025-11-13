@@ -12,11 +12,13 @@ using AzRebit.Triggers.BlobTriggered.Model;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
+using static AzRebit.Shared.Model.TriggerTypes;
 
 namespace AzRebit.Triggers.BlobTriggered;
 
-internal class Setup:IFeatureSetup
+internal class BlobFeatureSetup:IFeatureSetup
 {
+    public TriggerType TriggerSupport => TriggerType.Blob;
     public Type TriggerAttribute => typeof(BlobTriggerAttribute);
     public object CreateTriggerMetadata(ParameterInfo parameter)
     {

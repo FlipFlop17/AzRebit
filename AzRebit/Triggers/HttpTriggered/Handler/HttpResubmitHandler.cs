@@ -20,11 +20,8 @@ internal class HttpResubmitHandler:ITriggerHandler
     /// </summary>
     public const string HttpResubmitContainerName = "http-resubmits";
     public TriggerType HandlerType => TriggerType.Http;
-    public Type TriggerAttribute => typeof(HttpTriggerAttribute);
-    public string ContainerName => HttpResubmitContainerName;
-    private HttpTriggerAttribute _triggerAttributeMetadata { get; set; }
 
-    public async Task<bool> HandleResubmitAsync(string invocationId)
+    public async Task<bool> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
     {
         BlobContainerClient httpContainer = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"), HttpResubmitContainerName);
         var blobForResubmit = await httpContainer.PickUpBlobForResubmition(invocationId);

@@ -49,7 +49,7 @@ internal static class AssemblyDiscovery
             catch (Exception ex)
             {
                 // Skip assemblies that can't be loaded
-                Debug.WriteLine($"Could not load types from assembly {assembly.FullName}: {ex.Message}");
+                Debug.WriteLine($"Could not discover functions from assembly {assembly.FullName}: {ex.Message}");
             }
         }
 
@@ -68,26 +68,29 @@ internal static class AssemblyDiscovery
     /// <param name="allParams">An array of all parameters for the function, used to search for trigger attributes.</param>
     private static void AddAzFuncTriggerMetadata(string funcName, HashSet<AzFunction> functions, ParameterInfo[] allParams)
     {
-        var supportedTriggers = DiscoverSupportedTriggerTypes(); //we only search for triggers supported by this project
+        ICollection<Type> supportedTriggers = DiscoverSupportedTriggerTypes().ToList(); //we only search for triggers supported by this project
         foreach (var feature in supportedTriggers)
         {
             try
             {
-                var featureTriggerAttribute = feature.GetProperty(nameof(IFeatureSetup.TriggerAttribute), BindingFlags.Public | BindingFlags.Static);
-                //check if this attribute is on the function parameters
-                var functionsTriggerAttribute = allParams.FirstOrDefault(p => p.GetCustomAttributes());
+                var featureInstance = Activator.CreateInstance(feature) as IFeatureSetup;
+                var triggerAttributeType = featureInstance.TriggerAttribute;
+                var triggerType = featureInstance.TriggerSupport;
 
-                if (functionsTriggerAttribute is not null)
+                // Check if any parameter has this trigger attribute
+                var functionsTriggerParameter = allParams.FirstOrDefault(p =>p.GetCustomAttribute(triggerAttributeType) != null);
+
+                if (functionsTriggerParameter is not null)
                 {
-                    var triggerDetails = feature.CreateTriggerMetadata();//;
-                    functions.Add(new AzFunction(funcName, triggerType,triggerDetails!));
+                    //each trigger feature knows how to create its own metadata from the parameter info
+                    var triggerDetails = featureInstance.CreateTriggerMetadata(functionsTriggerParameter);
+                    functions.Add(new AzFunction(funcName, triggerType, triggerDetails!));
                     return;
-                    
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Could not process trigger handler {handler.Name}: {ex.Message}");
+                Debug.WriteLine($"Could not resolve the TriggerMetadata {feature}: {ex.Message}");
             }
         }
     }
@@ -135,7 +138,7 @@ internal static class AssemblyDiscovery
     /// <remarks>When adding a new trigger feature this interface is used to recognize it and to be automaticalyy added in DI</remarks>
     internal static void RegisterAllFeatures(IServiceCollection services)
     {
-        var featureModuleType = typeof(IFeatureSetup);
+        var featureSetupClass = typeof(IFeatureSetup);
 
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
@@ -148,7 +151,7 @@ internal static class AssemblyDiscovery
             {
                 var moduleTypes = assembly.GetTypes()
                     .Where(t => t is { IsClass: true, IsAbstract: false }
-                        && featureModuleType.IsAssignableFrom(t));
+                        && featureSetupClass.IsAssignableFrom(t));
 
                 foreach (var moduleType in moduleTypes)
                 {
@@ -163,7 +166,7 @@ internal static class AssemblyDiscovery
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Could not load feature modules from assembly {assembly.FullName}: {ex.Message}");
+                Debug.WriteLine($"Could not load feature setup class from assembly {assembly.FullName}: {ex.Message}");
             }
         }
     }

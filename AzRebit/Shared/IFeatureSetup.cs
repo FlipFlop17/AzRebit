@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Microsoft.Extensions.DependencyInjection;
+using static AzRebit.Shared.Model.TriggerTypes;
 
 namespace AzRebit.Shared;
 
@@ -14,8 +15,9 @@ namespace AzRebit.Shared;
 /// </summary>
 internal interface IFeatureSetup
 {
+    TriggerType TriggerSupport { get;}
     Type TriggerAttribute { get; }
     static abstract void RegisterServices(IServiceCollection services);
 
-     object CreateTriggerMetadata(ParameterInfo parameter);
+     object? CreateTriggerMetadata(ParameterInfo parameter);
 }
