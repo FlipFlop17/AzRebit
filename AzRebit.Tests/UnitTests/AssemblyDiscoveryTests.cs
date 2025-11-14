@@ -5,6 +5,8 @@ using AwesomeAssertions;
 using AzRebit.Shared.Model;
 using AzRebit.Triggers.BlobTriggered.Model;
 
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
 namespace AzRebit.Tests.UnitTests;
 
 [TestClass]
@@ -29,6 +31,12 @@ public sealed class AssemblyDiscoveryTests
         addCatBlobFunc.TriggerMetadata.As<BlobTriggerAttributeMetadata>().ContainerName.Should().Be("cats-container", because:"that is the container defined in the example function");
 
         //check getcats function trigger metadata
+
+    }
+
+    [TestMethod]
+    public void MyTestMethod()
+    {
 
     }
 

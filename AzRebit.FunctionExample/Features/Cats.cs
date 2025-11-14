@@ -43,13 +43,30 @@ public class Cats
         
         return response;
     }
+    /// <summary>
+    /// Timer trigger example
+    /// </summary>
+    /// <param name="req"></param>
+    /// <returns></returns>
+    [Function("CheckCats")]
+    public async Task<IActionResult> RunTimerCats(
+        [TimerTrigger("")] FunctionContext funcContext)
+    {
+        _logger.LogInformation("incoming payload saved");
+
+        //optionall - if processing was successfull
+        //await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+
+        return new OkObjectResult("I was triggered by a TimerTrigger! - This request is automatically saved in this function storage account and ready for resubmition");
+    }
+
 
     /// <summary>
     /// Blob trigger example
     /// </summary>
     /// <param name="req"></param>
     /// <returns></returns>
-    [Function("AddCat")]
+    [Function("TransferCats")]
     public async Task<IActionResult> RunAdd(
         [BlobTrigger("cats-container/{blobPath}",Connection ="AzureWebJobsStorage")] BlobClient blobClient,string blobPath,
         FunctionContext funcContext)

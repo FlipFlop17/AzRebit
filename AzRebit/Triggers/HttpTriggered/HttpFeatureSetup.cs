@@ -1,17 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Reflection;
+
 using AzRebit.Shared;
 using AzRebit.Shared.Model;
 using AzRebit.Triggers.HttpTriggered.Handler;
 using AzRebit.Triggers.HttpTriggered.Middleware;
+
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AzRebit.Triggers.HttpTriggered;
+
+/// <summary>
+/// Setup is needed for the assembly discovery process to find and register this feature
+/// </summary>
 internal class HttpFeatureSetup : IFeatureSetup
 {
     public TriggerTypes.TriggerType TriggerSupport => TriggerTypes.TriggerType.Http;

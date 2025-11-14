@@ -12,6 +12,9 @@ using static AzRebit.Shared.Model.TriggerTypes;
 
 namespace AzRebit.Triggers.BlobTriggered;
 
+/// <summary>
+/// Setup is needed for the assembly discovery process to find and register this feature
+/// </summary>
 internal class BlobFeatureSetup:IFeatureSetup
 {
     public TriggerType TriggerSupport => TriggerType.Blob;
