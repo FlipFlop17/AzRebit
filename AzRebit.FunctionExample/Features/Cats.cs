@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 using AzRebit.HelperExtensions;
 using Azure.Storage.Blobs;
 
@@ -14,7 +16,8 @@ namespace AzRebit.FunctionExample.Features;
 public class Cats
 {
     private readonly ILogger<Cats> _logger;
-
+    private readonly List<string> _cats=new List<string> { "Tom", "Garfield", "Sylvester" };
+    private bool deleteResumitionFile = Environment.GetEnvironmentVariable("DELETE_RESUBMITION_FILE") == "true";
     public Cats(ILogger<Cats> logger)
     {
         _logger = logger;
@@ -30,17 +33,17 @@ public class Cats
     HttpRequestData req,FunctionContext funcContext)
     {
         var response=req.CreateResponse();
-        _logger.LogInformation("incoming payload saved");
         response.StatusCode = System.Net.HttpStatusCode.OK;
 
         // ... some important work
 
-        //optional - if processing was successfull
-        //await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+        //cleanup
+        //optional but recommended - if processing was successfull
+        if (deleteResumitionFile)
+            await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
-        await response.WriteStringAsync("I was triggered by a Http request - This request is automatically saved in this function storage account and ready for resubmition");
-        
-        
+        JsonSerializer.Serialize(response.Body, _cats);
+
         return response;
     }
     /// <summary>
@@ -50,12 +53,12 @@ public class Cats
     /// <returns></returns>
     [Function("CheckCats")]
     public async Task<IActionResult> RunTimerCats(
-        [TimerTrigger("")] FunctionContext funcContext)
+        [TimerTrigger("* * 1 * * *")] FunctionContext funcContext)
     {
-        _logger.LogInformation("incoming payload saved");
 
-        //optionall - if processing was successfull
-        //await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+        //optional - if processing was successfull
+        if (deleteResumitionFile)
+            await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
         return new OkObjectResult("I was triggered by a TimerTrigger! - This request is automatically saved in this function storage account and ready for resubmition");
     }
@@ -72,9 +75,10 @@ public class Cats
         FunctionContext funcContext)
     {
         _logger.LogInformation("incoming payload saved");
-        
+
         //optionall - if processing was successfull
-        //await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+        if (deleteResumitionFile)
+            await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
         return new OkObjectResult("I was triggered by a BlobTrigger! - This request is automatically saved in this function storage account and ready for resubmition");
     }

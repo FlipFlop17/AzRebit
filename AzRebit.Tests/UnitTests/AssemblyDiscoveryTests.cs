@@ -1,11 +1,7 @@
-﻿using System.Reflection;
-
-using AwesomeAssertions;
+﻿using AwesomeAssertions;
 
 using AzRebit.Shared.Model;
 using AzRebit.Triggers.BlobTriggered.Model;
-
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AzRebit.Tests.UnitTests;
 
@@ -13,7 +9,7 @@ namespace AzRebit.Tests.UnitTests;
 public sealed class AssemblyDiscoveryTests
 {
     private const int NumberOfExampleAzFunctions= 2;
-
+    public TestContext? TestContext { get; set; }
 
     [TestMethod]
     public void DiscoverAzFunctions_DiscoverAzFunctionInTheProject_ShouldDiscoverAllAzFunctions()
@@ -31,12 +27,6 @@ public sealed class AssemblyDiscoveryTests
         addCatBlobFunc.TriggerMetadata.As<BlobTriggerAttributeMetadata>().ContainerName.Should().Be("cats-container", because:"that is the container defined in the example function");
 
         //check getcats function trigger metadata
-
-    }
-
-    [TestMethod]
-    public void MyTestMethod()
-    {
 
     }
 

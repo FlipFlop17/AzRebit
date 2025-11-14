@@ -1,6 +1,17 @@
 ﻿namespace AzRebit.Triggers.HttpTriggered.Model;
 
-internal record HttpSaveRequest(string Id, 
+
+/// <summary>
+/// Model of HTTP request to be saved
+/// </summary>
+/// <param name="Id"></param>
+/// <param name="Method"></param>
+/// <param name="Url"></param>
+/// <param name="QueryString"></param>
+/// <param name="Headers"></param>
+/// <param name="Body"></param>
+/// <param name="TimestampUtc"></param>
+public record HttpSaveRequest(string Id, 
     string Method,
     string Url,
     string QueryString, 
