@@ -27,7 +27,7 @@ public static class AzRebitHttpExtensions
         
         using StreamReader reader = new StreamReader(req.Body);
         var requestPayload = await reader.ReadToEndAsync();
-        var headers =req.Headers.Any() ?  req.Headers.ToDictionary(h => h.Key, h => h.Value.ToString()):default;
+        var headers = req.Headers.Any() ? req.Headers.ToDictionary(h => h.Key, h => string.Join(", ", h.Value)) : default;
         string path = req.Url?.AbsolutePath ?? string.Empty;
         string queryString = req.Url?.Query ?? string.Empty;
         HttpSaveRequest requestDtoToSave = new

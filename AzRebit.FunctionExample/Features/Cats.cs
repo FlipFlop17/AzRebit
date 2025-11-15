@@ -29,7 +29,7 @@ public class Cats
     /// <param name="req"></param>
     /// <returns></returns>
     [Function("GetCats")]
-    public async Task<HttpResponseData> RunGet([HttpTrigger(AuthorizationLevel.Anonymous, "get")] 
+    public async Task<HttpResponseData> RunGet([HttpTrigger(AuthorizationLevel.Anonymous, "get","post")] 
     HttpRequestData req,FunctionContext funcContext)
     {
         var response=req.CreateResponse();
@@ -42,7 +42,7 @@ public class Cats
         if (deleteResumitionFile)
             await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
-        await JsonSerializer.SerializeAsync(response.Body,_cats);
+        await response.WriteAsJsonAsync(_cats);
 
         return response;
     }

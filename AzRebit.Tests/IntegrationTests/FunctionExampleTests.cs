@@ -1,4 +1,13 @@
+using System.Text.Json;
+
+using AwesomeAssertions;
+
+using AzRebit.Triggers.HttpTriggered.Middleware;
+using AzRebit.Triggers.HttpTriggered.Model;
+
 using Azure.Storage.Blobs;
+
+using Microsoft.AspNetCore.HttpsPolicy;
 
 namespace AzRebit.Tests.IntegrationTests;
 
@@ -26,17 +35,44 @@ public class FunctionExampleTests
     }
 
     [TestMethod]
-    public async Task GetCats_WhenGetCatsIsCalled_ShouldReturnHttpResponseDataWithAllAvailableCats()
+    public async Task GetCats_WhenGetCatsIsCalledWithGetMethod_ShouldReturnOkWithSavedRequest()
     {
         //arrange
         HttpClient client=FunctionHostStarter.GetHttpClient()!;
-
-        var response = await client.GetAsync("/api/GetCats");
+        var customKey=Guid.NewGuid().ToString();
+        client.DefaultRequestHeaders.Add(HttpMiddlewareHandler.HeaderInvocationId, customKey);
         //act
-        TestContext.WriteLine(await response.Content.ReadAsStringAsync());
+        var response = await client.GetAsync("/api/GetCats");
+        
         //assert
-        //check response data
-        //assert --check saved request
+        response.IsSuccessStatusCode.Should().BeTrue();
+        var savedResubmisionBlob = _blobContainerHtttp.GetBlobClient(customKey+".json");
+        var checkblob=await savedResubmisionBlob.ExistsAsync();
+        checkblob.Value.Should().BeTrue(because:"a incoming request {0} should be saved by the middleware",customKey);
+        // check body
+        var blobContent = await savedResubmisionBlob.DownloadContentAsync();
+        var resubmitData = JsonSerializer.Deserialize<HttpSaveRequest>(blobContent.Value.Content.ToString());
+        resubmitData.Id.Should().Be(customKey);
+    }
+    [TestMethod]
+    public async Task GetCats_WhenGetCatsIsCalledWithPostMethod_ShouldReturnOkWithSavedRequest()
+    {
+        //arrange
+        HttpClient client = FunctionHostStarter.GetHttpClient()!;
+        var customKey = Guid.NewGuid().ToString();
+        client.DefaultRequestHeaders.Add(HttpMiddlewareHandler.HeaderInvocationId, customKey);
+        var requestBody = new StringContent("Requesting to show me all available cats you have");
+        //act
+        var response = await client.PostAsync("/api/GetCats",requestBody);
 
+        //assert
+        response.IsSuccessStatusCode.Should().BeTrue();
+        var savedResubmisionBlob = _blobContainerHtttp.GetBlobClient(customKey + ".json");
+        var checkblob = await savedResubmisionBlob.ExistsAsync();
+        checkblob.Value.Should().BeTrue(because: "a incoming request {0} should be saved by the middleware", customKey);
+        // check blob content
+        var blobContent = await savedResubmisionBlob.DownloadContentAsync();
+        var resubmitData = JsonSerializer.Deserialize<HttpSaveRequest>(blobContent.Value.Content.ToString());
+        resubmitData.Body.Should().Be(await requestBody.ReadAsStringAsync());
     }
 }

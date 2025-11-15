@@ -29,6 +29,7 @@ internal class BlobMiddlewareHandler:IMiddlewareHandler
 
         BlobBaseClient? incomingBlobClient = null;
         string? blobName = null;
+        string invocationId = context.InvocationId;
 
         // Try to extract blob client from binding data
         // Order matters: try most specific types first, then fall back to base types
@@ -87,7 +88,7 @@ internal class BlobMiddlewareHandler:IMiddlewareHandler
             }
         }
 
-        string invocationId = context.InvocationId;
+       
 
         // If we found a blob client, use the existing method
         if (incomingBlobClient != null && !string.IsNullOrEmpty(blobName))

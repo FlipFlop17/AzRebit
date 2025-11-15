@@ -58,8 +58,6 @@ public class FunctionHostStarter
 
                 if (response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine("Azure Functions host is ready!");
-                 
                     return;
                 }
             }

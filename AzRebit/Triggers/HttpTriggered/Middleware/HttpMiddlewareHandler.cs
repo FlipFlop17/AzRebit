@@ -16,17 +16,19 @@ internal class HttpMiddlewareHandler:IMiddlewareHandler
     }
 
     public string BindingName => "httpTrigger";
-
+    public const string HeaderInvocationId = "x-azrebit-invocationid";
     public async Task SaveIncomingRequest(FunctionContext context)
     {
-
-        // Get the HttpRequestData from the invocation
         var httpRequestData = await context.GetHttpRequestDataAsync();
 
         if (httpRequestData != null)
         {
             string invocationId = context.InvocationId;
-
+            httpRequestData.Headers.TryGetValues(HeaderInvocationId, out var functionKeyHeader);
+            if (functionKeyHeader != null)
+            {
+                invocationId = functionKeyHeader.First();
+            }
             _logger.LogInformation(
                 "Auto-saving HTTP request for resubmission with invocationId: {invocationId}",
                 invocationId);
