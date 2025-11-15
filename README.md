@@ -24,7 +24,6 @@ This package adds a `/resubmit` HTTP endpoint to your Azure Functions applicatio
 - **Invocation Tracking** - Track resubmissions using invocation IDs
 - **Isolated Worker Compatible** - Seamless integration with Azure Functions isolated worker model
 - **Zero Configuration** - Works out of the box with sensible defaults
-- **Configurable** - Customize storage cleanup days etc.
 
 ## Requirements
 
@@ -66,11 +65,7 @@ builder.ConfigureFunctionsWebApplication();
 //just add without configuration:
 builder.AddResubmitEndpoint();
 //optionally add this if you want to configure
-builder.AddResubmitEndpoint(options =>
-{
-    options.DaysToKeepRequests = "10"; // function will automatically delete stored request to save on storage space: defaults to "3"
-    options.AddCleanUpFunction= false; //enable the automatic cleanup function if you dont want to handle cleanup on your own. defaults to false
-});
+builder.AddResubmitEndpoint();
 
 
 //then add the middleware
@@ -88,37 +83,35 @@ After configuring all functions with listed trigger atributes will automatically
 
 ### Recommendation
 
-When enabled you can add the cleanup function that is using `DaysToKeepRequests` counter after which it will clean up requests older than specified days. 
->We recommed to enable this only if you are not handling cleanup on your own which is suggested.  
-
 Since the resubmition is best used just for failed requests, keeping successfull runs might increase storage size. You can delete the saved request within your function by using the provided `DeleteSavedBlobAsync()` method in case of a successfull execution.
 
 ```csharp
 //optional - delete the save request. Usually you would want this iy your function runned successfuly
 await AzRebitBlobExtensions.DeleteSavedBlobAsync(funcContext.InvocationId.ToString());
 ```
-
 Additionaly you can setup a Lifecycle Management policy on your storage account to automatically delete blobs older than a certain number of days.
 
 ## How It Works
 
 1. **Function Discovery** - On startup, the package automatically scans assemblies and discovers all methods decorated with the `[Function]` attribute
 2. **Registration** - Discovered function names alonside its trigger data are cached
-3. **Middleware** - Before your function starts a middleware will save the incoming request to a local storage account and tag it with the unique (InvocationId) derived the function context.
+3. **Middleware** - Before your function starts, middleware ``IFunctionsWorkerMiddleware`` will be invoked to save the incoming request to a local storage account and tag it with the unique (InvocationId) derived the function context.
 4. **Resubmit Handling** - Incoming requests to `/resubmit` are crossreferenced with the triggers we support and accordingly the payload is pulled from its saved location and sent again to the Function's trigger.
 
 ## Making a Resubmit Request
 
-Making a resubmit request depends on two important parameters:
-**functionName** and \***\*invocationId**
+Making a resubmit request depends on two important query params:
+**functionName** and **invocationId**
 
 `functionName` --> Name of Azure function as defined inside `[Function()]`  
-`invocationId` -->Each function run has a uniqueuId which the package is using to tag and locate the payload to resubmit.
-To locate what is the unique id of you run you need to inspect your logs and search for InvocationId. [InvocationIdProperty](https://learn.microsoft.com/en-us/dotnet/api/microsoft.azure.functions.worker.functioncontext.invocationid?view=azure-dotnet)
+`invocationId` -->Each function run has a uniqueId coming from the ``FunctionContext``. That Id is used to tag and locate the payload to resubmit.
+To locate what is the unique id of you run you need to inspect your logs and search for InvocationId property. [InvocationIdProperty](https://learn.microsoft.com/en-us/dotnet/api/microsoft.azure.functions.worker.functioncontext.invocationid?view=azure-dotnet)
 
 ```bash
 curl -X POST "http://localhost:7071/api/resubmit?functionName=MyFunction&invocationId=abc-123-def-456" \
 ```
+
+>In case of HTTP triggers the invocationid can be a custom. If you add a header ``x-azrebit-invocationid`` with a custom value that value will be used as invocationId.
 
 ## API Reference
 
