@@ -14,8 +14,8 @@
 public record HttpSaveRequest(string Id, 
     string Method,
     string Url,
-    string QueryString, 
+    string? QueryString, 
     IDictionary<string, string?>? Headers, 
-    string Body, 
+    string? Body, 
     DateTime TimestampUtc
     );

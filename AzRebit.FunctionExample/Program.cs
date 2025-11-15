@@ -14,6 +14,8 @@ builder.Services
     .ConfigureFunctionsApplicationInsights();
 
 builder.AddResubmitEndpoint();
-builder.Logging.AddSeq();
-
+if(builder.Environment.IsDevelopment())
+{
+    builder.Logging.AddSeq();
+}
 builder.Build().Run();

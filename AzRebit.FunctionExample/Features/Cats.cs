@@ -42,7 +42,7 @@ public class Cats
         if (deleteResumitionFile)
             await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
-        JsonSerializer.Serialize(response.Body, _cats);
+        await JsonSerializer.SerializeAsync(response.Body,_cats);
 
         return response;
     }

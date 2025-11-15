@@ -1,16 +1,6 @@
-using System.Text.Json;
-
-using AzRebit.FunctionExample.Features;
-using AzRebit.Tests.UnitTests;
-
 using Azure.Storage.Blobs;
 
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-
-using NSubstitute;
-
-namespace AzRebit.Tests;
+namespace AzRebit.Tests.IntegrationTests;
 
 [TestClass]
 public class FunctionExampleTests
@@ -20,21 +10,30 @@ public class FunctionExampleTests
     public TestContext? TestContext { get; set; }
 
     [ClassInitialize]
-    public static void ClassInitialize(TestContext context)
+    public static async Task ClassInitialize(TestContext context)
     {
-        //Environment.SetEnvironmentVariable("AzureWebJobsStorage", "UseDevelopmentStorage=true");
+        Environment.SetEnvironmentVariable("AzureWebJobsStorage", "UseDevelopmentStorage=true");
         _blobContainerBlob = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, "blob-resubmits");
         _blobContainerHtttp = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, "http-resubmits");
+        await FunctionHostStarter.StartFunctionHost();
         //start the server
     }
 
+    [ClassCleanup]
+    public static async Task ClassCleanup()
+    {
+        FunctionHostStarter.Dispose();
+    }
+
     [TestMethod]
-    public async Task GetCats_GetAllAvailableCats_ShouldReturnHttpResponseDataWithAllAvailableCats()
+    public async Task GetCats_WhenGetCatsIsCalled_ShouldReturnHttpResponseDataWithAllAvailableCats()
     {
         //arrange
+        HttpClient client=FunctionHostStarter.GetHttpClient()!;
 
+        var response = await client.GetAsync("/api/GetCats");
         //act
-
+        TestContext.WriteLine(await response.Content.ReadAsStringAsync());
         //assert
         //check response data
         //assert --check saved request
