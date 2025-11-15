@@ -1,7 +1,9 @@
-﻿using System.Text.Json;
+﻿using System.ClientModel.Primitives;
+using System.Text.Json;
 
 using AzRebit.HelperExtensions;
 using AzRebit.Shared;
+using AzRebit.Shared.Model;
 using AzRebit.Triggers.HttpTriggered.Middleware;
 using AzRebit.Triggers.HttpTriggered.Model;
 
@@ -32,14 +34,14 @@ internal class HttpResubmitHandler:ITriggerHandler
 
     public TriggerType HandlerType => TriggerType.Http;
 
-    public async Task<bool> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
+    public async Task<ActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
     {
         BlobContainerClient httpContainer = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"), HttpResubmitContainerName);
         var blobForResubmit = await httpContainer.PickUpBlobForResubmition(invocationId);
 
         if (blobForResubmit is null)
         {
-            return false;
+            return ActionResult.Failure();
         }
         var downloadResponse = await blobForResubmit.DownloadAsync();
         using var streamReader = new StreamReader(downloadResponse.Value.Content);
@@ -62,6 +64,7 @@ internal class HttpResubmitHandler:ITriggerHandler
       
 
         var response = await client.SendAsync(httpRequestMessage);
-        return response.IsSuccessStatusCode;
+
+        return response.IsSuccessStatusCode ? ActionResult.Success() : ActionResult.Failure();
     }
 }
