@@ -41,7 +41,7 @@ internal class ResubmitEndpoint
         if(!ValidateRequest(functionName, invocationId))
         {
             var badRequestResponse = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-            await badRequestResponse.WriteAsJsonAsync(new { error = "Invalid request parameters" });
+            await badRequestResponse.WriteAsJsonAsync(new { Error = "Invalid request parameters" });
             return badRequestResponse;
         }
 
@@ -49,9 +49,11 @@ internal class ResubmitEndpoint
         {
             _logger.LogInformation("Resubmit request received for function: {FunctionName} with invocationId: {InvocationId}", functionName, invocationId);
 
-            var response = req.CreateResponse(System.Net.HttpStatusCode.Accepted);
-
             var resubmitResult=await HandleResubmit(functionName!, invocationId!);
+            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
+
+            if (!resubmitResult.IsSuccess)
+                response.StatusCode = System.Net.HttpStatusCode.InternalServerError;
             
             await response.WriteAsJsonAsync(new
             {
@@ -67,12 +69,11 @@ internal class ResubmitEndpoint
         {
             _logger.LogError(ex, "Error processing resubmit request for function: {FunctionName} with invocationId: {InvocationId}", functionName, invocationId);
             var errorResponse = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
-            await errorResponse.WriteAsJsonAsync(new { error = "Internal server error" });
+            await errorResponse.WriteAsJsonAsync(new { Error = "Internal server error" });
             return errorResponse;
         }
     }
 
-    //TODO: add a return result pattern OperationResult ? 
     private async Task<ActionResult> HandleResubmit(string functionName,string invocationId)
     {
         var functionForResubmit = _availableFunctions.First(fn => fn.Name.Equals(functionName));

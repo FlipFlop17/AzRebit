@@ -90,6 +90,6 @@ public class FunctionExample_Http
         var resubmitResponse=await client.PostAsync($"/api/resubmit?functionName=GetCats&invocationId={customKey}", new StringContent("Requesting to resubmit the previous request"));
         resubmitResponse.EnsureSuccessStatusCode();
         //asssert
-        resubmitResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.Accepted);
+        resubmitResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
     }
 }
