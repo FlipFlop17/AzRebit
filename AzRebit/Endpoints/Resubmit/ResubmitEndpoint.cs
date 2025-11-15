@@ -51,14 +51,15 @@ internal class ResubmitEndpoint
 
             var response = req.CreateResponse(System.Net.HttpStatusCode.Accepted);
 
-            await HandleResubmit(functionName!, invocationId!);
+            var resubmitResult=await HandleResubmit(functionName!, invocationId!);
             
             await response.WriteAsJsonAsync(new
             {
-                message = $"Resubmit request queued for function '{functionName}'",
-                functionName,
-                invocationId,
-                timestamp = DateTime.UtcNow
+                resubmitResult.IsSuccess,
+                resubmitResult.Message,
+                FunctionName=functionName,
+                InvocationId=invocationId,
+                Timestamp = DateTime.UtcNow
             });
             return response;
         }
@@ -72,7 +73,7 @@ internal class ResubmitEndpoint
     }
 
     //TODO: add a return result pattern OperationResult ? 
-    private async Task HandleResubmit(string functionName,string invocationId)
+    private async Task<ActionResult> HandleResubmit(string functionName,string invocationId)
     {
         var functionForResubmit = _availableFunctions.First(fn => fn.Name.Equals(functionName));
         var functionsTriggerMetadata = functionForResubmit.TriggerMetadata;
@@ -82,7 +83,9 @@ internal class ResubmitEndpoint
             return h.HandlerType == functionForResubmit.TriggerType;
         }) ?? throw new InvalidOperationException($"No trigger handler found for function '{functionName}' with the trigger type {functionForResubmit.TriggerType}");
 
-        await handler.HandleResubmitAsync(invocationId, functionsTriggerMetadata);
+        var handlerResponse= await handler.HandleResubmitAsync(invocationId, functionsTriggerMetadata);
+
+        return handlerResponse;
     }
 
     private bool ValidateRequest(string? functionName, string? invocationId)

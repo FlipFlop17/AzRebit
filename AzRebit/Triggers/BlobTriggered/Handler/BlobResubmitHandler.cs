@@ -1,5 +1,6 @@
 ﻿using AzRebit.HelperExtensions;
 using AzRebit.Shared;
+using AzRebit.Shared.Model;
 using AzRebit.Triggers.BlobTriggered.Model;
 
 using Azure.Storage.Blobs;
@@ -26,7 +27,7 @@ internal class BlobResubmitHandler : ITriggerHandler
     public const string BlobResubmitContainerName = "blob-resubmits";
     public TriggerType HandlerType => TriggerType.Blob;
 
-    public async Task<bool> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
+    public async Task<ActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
     {
         BlobTriggerAttributeMetadata blobTriggerAttributeMetadata = (BlobTriggerAttributeMetadata)triggerAttributeMetadata!;
         IDictionary<string, string> tags = new Dictionary<string, string>();
@@ -36,7 +37,7 @@ internal class BlobResubmitHandler : ITriggerHandler
         BlobClient? blobForResubmitClient = await resubmitContainerClient.PickUpBlobForResubmition(invocationId);
         if (blobForResubmitClient is null)
         {
-            throw new InvalidOperationException($"No blob found for invocation id {invocationId} in container {blobTriggerAttributeMetadata.ContainerName}");
+            return ActionResult.Failure($"No blob found for invocation id {invocationId} in container {blobTriggerAttributeMetadata.ContainerName}");
         }
         var existingTagsResponse = await blobForResubmitClient.GetTagsAsync();
         //upload the blob to the azure function trigger container which will trigger the logic app
@@ -50,7 +51,7 @@ internal class BlobResubmitHandler : ITriggerHandler
         {
             await inputBlob.SetTagsAsync(existingTagsResponse.Value.Tags);
         }
-        return true;
+        return ActionResult.Success();
     }
 
   

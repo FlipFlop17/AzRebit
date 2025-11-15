@@ -17,14 +17,29 @@ public class ActionResult
     public bool IsSuccess { get; init; }
 
     /// <summary>
+    /// Optional message describing the result
+    /// </summary>
+    public string? Message { get; init; }
+
+    /// <summary>
     /// Creates a successful operation result
     /// </summary>
     public static ActionResult Success() => new() { IsSuccess = true };
 
     /// <summary>
+    /// Creates a successful operation result with a message
+    /// </summary>
+    public static ActionResult Success(string message) => new() { IsSuccess = true, Message = message };
+
+    /// <summary>
     /// Creates a failed operation result
     /// </summary>
     public static ActionResult Failure() => new() { IsSuccess = false };
+
+    /// <summary>
+    /// Creates a failed operation result with a message
+    /// </summary>
+    public static ActionResult Failure(string message) => new() { IsSuccess = false, Message = message };
 }
 
 /// <summary>
@@ -48,14 +63,34 @@ public class OperationResult<T> : ActionResult
     };
 
     /// <summary>
+    /// Creates a successful operation result with data and message
+    /// </summary>
+    public static OperationResult<T> Success(T data, string message) => new()
+    {
+        IsSuccess = true,
+        Data = data,
+        Message = message
+    };
+
+    /// <summary>
     /// Creates a successful operation result without data
     /// </summary>
     public static new OperationResult<T> Success() => new() { IsSuccess = true };
 
     /// <summary>
+    /// Creates a successful operation result without data but with message
+    /// </summary>
+    public static new OperationResult<T> Success(string message) => new() { IsSuccess = true, Message = message };
+
+    /// <summary>
     /// Creates a failed operation result
     /// </summary>
     public static new OperationResult<T> Failure() => new() { IsSuccess = false };
+
+    /// <summary>
+    /// Creates a failed operation result with a message
+    /// </summary>
+    public static new OperationResult<T> Failure(string message) => new() { IsSuccess = false, Message = message };
 
     /// <summary>
     /// Implicit conversion from the data type to a successful operation result

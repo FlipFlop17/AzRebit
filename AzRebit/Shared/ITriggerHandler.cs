@@ -1,4 +1,5 @@
-﻿using AzRebit.Triggers.BlobTriggered.Model;
+﻿using AzRebit.Shared.Model;
+using AzRebit.Triggers.BlobTriggered.Model;
 
 using static AzRebit.Shared.Model.TriggerTypes;
 
@@ -15,5 +16,5 @@ internal interface ITriggerHandler
     /// <param name="triggerAttributeMetadata">The metadata associated with the trigger attribute for the invocation. Can be null since some triggers like HTTP are dynaamic</param>
     /// <returns>A task that represents the asynchronous operation. The task result is <see langword="true"/> if the resubmission
     /// was successful; otherwise, <see langword="false"/>.</returns>
-    public Task<bool> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata);
+    public Task<ActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata);
 }
