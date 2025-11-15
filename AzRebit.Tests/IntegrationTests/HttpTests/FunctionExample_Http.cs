@@ -10,11 +10,12 @@ using AzRebit.Triggers.HttpTriggered.Model;
 using Azure.Storage.Blobs;
 
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace AzRebit.Tests.IntegrationTests;
+namespace AzRebit.Tests.IntegrationTests.HttpTests;
 
 [TestClass]
-public class FunctionExampleTests
+public class FunctionExample_Http
 {
     public static BlobContainerClient _blobContainerHtttp { get; set; }
     public static BlobContainerClient _blobContainerBlob { get; set; }
@@ -76,5 +77,19 @@ public class FunctionExampleTests
         var blobContent = await savedResubmisionBlob.DownloadContentAsync();
         var resubmitData = JsonSerializer.Deserialize<HttpSaveRequest>(blobContent.Value.Content.ToString());
         resubmitData.Body.Should().Be(await requestBody.ReadAsStringAsync());
+    }
+
+    [TestMethod]
+    public async Task Resubmit_WhenResubmitIsRequest_ShouldSuccesfullyResubmitTheRequest()
+    {
+        //arrange
+        string customKey = "b3cf7082-31cc-4223-8aad-fb3632ecd8f5";
+        HttpClient client = FunctionHostStarter.GetHttpClient()!;
+
+        //act
+        var resubmitResponse=await client.PostAsync($"/api/resubmit?functionName=GetCats&invocationId={customKey}", new StringContent("Requesting to resubmit the previous request"));
+        resubmitResponse.EnsureSuccessStatusCode();
+        //asssert
+        resubmitResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.Accepted);
     }
 }

@@ -1,5 +1,9 @@
-﻿using AzRebit.HelperExtensions;
+﻿using System.Text.Json;
+
+using AzRebit.HelperExtensions;
 using AzRebit.Shared;
+using AzRebit.Triggers.HttpTriggered.Middleware;
+using AzRebit.Triggers.HttpTriggered.Model;
 
 using Azure.Storage.Blobs;
 
@@ -11,6 +15,11 @@ namespace AzRebit.Triggers.HttpTriggered.Handler;
 
 internal class HttpResubmitHandler:ITriggerHandler
 {
+
+    public HttpResubmitHandler(IHttpClientFactory httpFact)
+    {
+        _httpFact = httpFact;
+    }
     /// <summary>
     /// The name of the tag that is used to mark the blob file
     /// </summary>
@@ -19,6 +28,8 @@ internal class HttpResubmitHandler:ITriggerHandler
     /// Container name where the http requests are saved for resubmiting
     /// </summary>
     public const string HttpResubmitContainerName = "http-resubmits";
+    private readonly IHttpClientFactory _httpFact;
+
     public TriggerType HandlerType => TriggerType.Http;
 
     public async Task<bool> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
@@ -26,15 +37,31 @@ internal class HttpResubmitHandler:ITriggerHandler
         BlobContainerClient httpContainer = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"), HttpResubmitContainerName);
         var blobForResubmit = await httpContainer.PickUpBlobForResubmition(invocationId);
 
-        if (blobForResubmit is not null)
+        if (blobForResubmit is null)
         {
-            var downloadResponse = await blobForResubmit.DownloadAsync();
-            using var streamReader = new StreamReader(downloadResponse.Value.Content);
-            var httpRequestContent = await streamReader.ReadToEndAsync();
+            return false;
         }
+        var downloadResponse = await blobForResubmit.DownloadAsync();
+        using var streamReader = new StreamReader(downloadResponse.Value.Content);
+        var httpRequestContent =JsonSerializer.Deserialize<HttpSaveRequest>(await streamReader.ReadToEndAsync());
+        HttpClient client = _httpFact.CreateClient();
+        var httpRequestMessage = new HttpRequestMessage(new HttpMethod(httpRequestContent!.Method), httpRequestContent.Url + httpRequestContent.QueryString);
+        var newInvocationId = Guid.NewGuid().ToString();
+        if (httpRequestContent.Body is not null)
+        {
+            httpRequestMessage.Content = new StringContent(httpRequestContent.Body);
+        }
+        if (httpRequestContent.Headers is not null)
+        {
+            foreach (var header in httpRequestContent.Headers)
+            {
+                if (header.Key.Equals(HttpMiddlewareHandler.HeaderInvocationId))
+                    httpRequestMessage.Headers.TryAddWithoutValidation(header.Key, newInvocationId);
+            }
+        }
+      
 
-        //TODO: Implement the actual resubmit logic here, the POST request to the function endpoint with the saved request data
-
-        return true;
+        var response = await client.SendAsync(httpRequestMessage);
+        return response.IsSuccessStatusCode;
     }
 }

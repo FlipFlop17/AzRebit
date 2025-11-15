@@ -23,4 +23,8 @@
     <ProjectReference Include="..\AzRebit\AzRebit.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="IntegrationTests\BlobTests\" />
+  </ItemGroup>
+
 </Project>
