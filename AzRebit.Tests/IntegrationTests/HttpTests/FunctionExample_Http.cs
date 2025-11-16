@@ -84,7 +84,7 @@ public class FunctionExample_Http
     public async Task Resubmit_WhenResubmitIsRequest_ShouldSuccesfullyResubmitTheRequest()
     {
         //arrange
-        string invocationId = "b3cf7082-31cc-4223-8aad-fb3632ecd8f5";
+        string invocationId = "03fb1530-63d1-43a5-aa47-1f4985c260a6";
         HttpClient client = FunctionHostStarter.GetHttpClient()!;
 
         //act

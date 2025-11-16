@@ -25,7 +25,7 @@ public static class AzRebitHttpExtensions
     {
         if (req.Headers.Contains(HttpResubmitHandler.HttpResubmitOriginalFileId))
         {
-            await ProcessResubmitRequest(req,contextId);
+            await ProcessResubmitRequest(req);
             return;
         }
 
@@ -61,20 +61,23 @@ public static class AzRebitHttpExtensions
         
     }
 
-    private static async Task ProcessResubmitRequest(HttpRequestData req, string contextId)
+    private static async Task ProcessResubmitRequest(HttpRequestData req)
     {
         string resubmitCountTag = "ResubmitCount";
-        string resubmitFileName = $"{contextId}.json";
-        req.Headers.TryGetValues(resubmitCountTag, out var resubmitFlag);
-        //received a resubmit request - we dont need to save it just iterate the retry count
-        int resubmitTryCount = resubmitFlag is not null ? int.Parse(resubmitFlag.First()) : resubmitTryCount = 0;
         req.Headers.TryGetValues(HttpResubmitHandler.HttpResubmitOriginalFileId, out var resubmitOriginalId);
-        resubmitFileName = $"{resubmitOriginalId?.First()}.json";
+        var resubmitFileName = $"{resubmitOriginalId?.First()}.json";
         BlobServiceClient blobServiceClient = new BlobServiceClient(blobConnectionString);
         var container = blobServiceClient.GetBlobContainerClient(HttpMiddlewareHandler.HttpResubmitContainerName);
         BlobClient resubmitClient = container.GetBlobClient(resubmitFileName);
+        //raise the resubmit count
+        var resubmitCurrentCount = await resubmitClient.GetTagsAsync();
+        if (!resubmitCurrentCount.Value.Tags.TryGetValue(resubmitCountTag, out var resubmitCountValue))
+        {
+            resubmitCountValue = "0";
+        }
+        
         //update blob count tag
-        await resubmitClient.UpdateBlobTag(resubmitCountTag, (resubmitTryCount + 1).ToString());
+        await resubmitClient.UpdateBlobTag(resubmitCountTag, (int.Parse(resubmitCountValue) + 1).ToString());
 
     }
 }
