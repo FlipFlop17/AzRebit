@@ -3,6 +3,7 @@ using System.Text.Json;
 using AwesomeAssertions;
 
 using AzRebit.Triggers.BlobTriggered.Handler;
+using AzRebit.Triggers.BlobTriggered.Middleware;
 using AzRebit.Triggers.HttpTriggered.Handler;
 using AzRebit.Triggers.HttpTriggered.Middleware;
 using AzRebit.Triggers.HttpTriggered.Model;
@@ -25,8 +26,8 @@ public class FunctionExample_Http
     public static async Task ClassInitialize(TestContext context)
     {
         Environment.SetEnvironmentVariable("AzureWebJobsStorage", "UseDevelopmentStorage=true");
-        _blobContainerBlob = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, BlobResubmitHandler.BlobResubmitContainerName);
-        _blobContainerHtttp = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, HttpResubmitHandler.HttpResubmitContainerName);
+        _blobContainerBlob = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, BlobMiddlewareHandler.BlobResubmitContainerName);
+        _blobContainerHtttp = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, HttpMiddlewareHandler.HttpResubmitContainerName);
         await FunctionHostStarter.StartFunctionHost();
         //start the server
     }

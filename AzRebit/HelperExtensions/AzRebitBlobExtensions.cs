@@ -1,6 +1,8 @@
 ﻿using System.Text;
 
+using AzRebit.Shared;
 using AzRebit.Triggers.BlobTriggered.Handler;
+using AzRebit.Triggers.BlobTriggered.Middleware;
 
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -25,13 +27,13 @@ public static class AzRebitBlobExtensions
         {
             tags = existingTagsResponse.Value.Tags;
         }
-        BlobContainerClient localContainer = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"), BlobResubmitHandler.BlobResubmitContainerName);
+        BlobContainerClient localContainer = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"), BlobMiddlewareHandler.BlobResubmitContainerName);
         await localContainer.CreateIfNotExistsAsync();
         BlobClient destinationClient= localContainer.GetBlobClient(id);
         var operation=await destinationClient.StartCopyFromUriAsync(blobClient.Uri);
         await operation.WaitForCompletionAsync();
         //set tags
-        tags[BlobResubmitHandler.BlobInputTagName] = id;
+        tags[IMiddlewareHandler.BlobTagInvocationId] = id;
         await destinationClient.SetTagsAsync(tags);
     }
 
@@ -52,7 +54,7 @@ public static class AzRebitBlobExtensions
     {
         BlobContainerClient localContainer = new BlobContainerClient(
             Environment.GetEnvironmentVariable("AzureWebJobsStorage"),
-            BlobResubmitHandler.BlobResubmitContainerName);
+            BlobMiddlewareHandler.BlobResubmitContainerName);
 
         await localContainer.CreateIfNotExistsAsync();
 
@@ -76,7 +78,7 @@ public static class AzRebitBlobExtensions
         // Set tags with original blob name and run ID
         var tags = new Dictionary<string, string>
         {
-            [BlobResubmitHandler.BlobInputTagName] = id,
+            [IMiddlewareHandler.BlobTagInvocationId] = id,
             ["OriginalBlobName"] = blobName
         };
 
@@ -115,9 +117,7 @@ public static class AzRebitBlobExtensions
     /// <returns>null if not blob is found</returns>
     internal static async Task<BlobClient?> PickUpBlobForResubmition(this BlobContainerClient container,string id)
     {
-        // Use tag filtering for more efficient search
-        string tagFilter = $"\"{BlobResubmitHandler.BlobInputTagName}\" = '{id}'";
-
+        string tagFilter = $"\"InvocationId\" = '{id}'";
 
         await foreach (TaggedBlobItem taggedBlob in container.FindBlobsByTagsAsync(tagFilter))
         {
@@ -135,7 +135,7 @@ public static class AzRebitBlobExtensions
     {
         var containerClient = new BlobContainerClient(
             Environment.GetEnvironmentVariable("AzureWebJobsStorage"),
-            BlobResubmitHandler.BlobResubmitContainerName);
+            BlobMiddlewareHandler.BlobResubmitContainerName);
 
         if (!await containerClient.ExistsAsync())
         {

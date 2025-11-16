@@ -9,10 +9,7 @@ namespace AzRebit.Triggers.HttpTriggered.Middleware;
 internal class HttpMiddlewareHandler:IMiddlewareHandler
 {
     private readonly ILogger<HttpMiddlewareHandler> _logger;
-    /// <summary>
-    /// The name of the tag that is used to mark the blob file
-    /// </summary>
-    public const string HttpInputTagName = "input-InvocationId";
+
     /// <summary>
     /// Container name where the http requests are saved for resubmiting
     /// </summary>

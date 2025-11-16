@@ -17,7 +17,7 @@ public class Cats
 {
     private readonly ILogger<Cats> _logger;
     private readonly List<string> _cats=new List<string> { "Tom", "Garfield", "Sylvester" };
-    private bool deleteResumitionFile = Environment.GetEnvironmentVariable("DELETE_RESUBMITION_FILE") == "true";
+    private bool deleteResubmitionFile = Environment.GetEnvironmentVariable("AZREBIT_DELETE_RESUBMITION_FILE") == "true";
     public Cats(ILogger<Cats> logger)
     {
         _logger = logger;
@@ -38,8 +38,8 @@ public class Cats
         // ... some important work
 
         //cleanup
-        //optional but recommended - if processing was successfull
-        if (deleteResumitionFile)
+        //optionaly (recommended) delete the save request- if processing was successfull
+        if (deleteResubmitionFile)
             await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
         await response.WriteAsJsonAsync(_cats);
@@ -57,7 +57,7 @@ public class Cats
     {
 
         //optional - if processing was successfull
-        if (deleteResumitionFile)
+        if (deleteResubmitionFile)
             await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
         return new OkObjectResult("I was triggered by a TimerTrigger! - This request is automatically saved in this function storage account and ready for resubmition");
@@ -77,7 +77,7 @@ public class Cats
         _logger.LogInformation("incoming payload saved");
 
         //optionall - if processing was successfull
-        if (deleteResumitionFile)
+        if (deleteResubmitionFile)
             await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
         return new OkObjectResult("I was triggered by a BlobTrigger! - This request is automatically saved in this function storage account and ready for resubmition");

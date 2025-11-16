@@ -1,6 +1,7 @@
 ﻿using AzRebit.HelperExtensions;
 using AzRebit.Shared;
 using AzRebit.Shared.Model;
+using AzRebit.Triggers.BlobTriggered.Middleware;
 using AzRebit.Triggers.BlobTriggered.Model;
 
 using Azure.Storage.Blobs;
@@ -17,14 +18,7 @@ namespace AzRebit.Triggers.BlobTriggered.Handler;
 internal class BlobResubmitHandler : ITriggerHandler
 
 {
-    /// <summary>
-    /// The name of the tag that is used to mark the blob file
-    /// </summary>
-    public const string BlobInputTagName = "input-InvocationId";
-    /// <summary>
-    /// the name of the container where blobs for resubmition are stored
-    /// </summary>
-    public const string BlobResubmitContainerName = "blob-resubmits";
+
     public TriggerType HandlerType => TriggerType.Blob;
 
     public async Task<ActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
@@ -32,7 +26,7 @@ internal class BlobResubmitHandler : ITriggerHandler
         BlobTriggerAttributeMetadata blobTriggerAttributeMetadata = (BlobTriggerAttributeMetadata)triggerAttributeMetadata!;
         IDictionary<string, string> tags = new Dictionary<string, string>();
 
-        BlobContainerClient resubmitContainerClient = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"), BlobResubmitContainerName);
+        BlobContainerClient resubmitContainerClient = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"), BlobMiddlewareHandler.BlobResubmitContainerName);
 
         BlobClient? blobForResubmitClient = await resubmitContainerClient.PickUpBlobForResubmition(invocationId);
         if (blobForResubmitClient is null)

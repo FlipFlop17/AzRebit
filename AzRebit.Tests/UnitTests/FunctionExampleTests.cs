@@ -10,6 +10,7 @@ using AwesomeAssertions;
 
 using AzRebit.FunctionExample.Features;
 using AzRebit.Triggers.HttpTriggered.Handler;
+using AzRebit.Triggers.HttpTriggered.Middleware;
 
 using Azure.Storage.Blobs;
 
@@ -42,7 +43,7 @@ public sealed class FunctionExampleTests
         var getCatsRequestMock = Utils.CreateRequestData(functionContextMock);
         var loggerMock = Substitute.For<ILogger<Cats>>();
         var catsClass = new Cats(loggerMock);
-        var blobContainer = HttpResubmitHandler.HttpResubmitContainerName;
+        var blobContainer = HttpMiddlewareHandler.HttpResubmitContainerName;
         var blobStorage=new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, blobContainer);
         //act
         var getCatsResult = await catsClass.RunGet(getCatsRequestMock, functionContextMock);

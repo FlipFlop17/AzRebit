@@ -16,7 +16,10 @@ namespace AzRebit.Triggers.BlobTriggered.Middleware;
 internal class BlobMiddlewareHandler:IMiddlewareHandler
 {
     private readonly ILogger<BlobMiddlewareHandler> _logger;
-
+    /// <summary>
+    /// the name of the container where blobs for resubmition are stored
+    /// </summary>
+    public const string BlobResubmitContainerName = "blob-resubmits";
     public BlobMiddlewareHandler(ILogger<BlobMiddlewareHandler> logger)
     {
         _logger = logger;

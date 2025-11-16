@@ -24,6 +24,12 @@ internal class ResubmitMiddleware : IFunctionsWorkerMiddleware
     {
         try
         {
+            //skip if resubmit endpoint
+            if (context.FunctionDefinition.Name.Equals("ResubmitHandler", StringComparison.OrdinalIgnoreCase))
+            {
+                await next(context);
+                return;
+            }
             var functionDefinition = context.FunctionDefinition;
             // Loop through all input bindings to find matching middleware handlers
             foreach (var binding in functionDefinition.InputBindings.Values)

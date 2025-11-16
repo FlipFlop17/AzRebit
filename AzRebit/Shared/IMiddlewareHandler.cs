@@ -10,6 +10,7 @@ namespace AzRebit.Shared;
 
 internal interface IMiddlewareHandler
 {
+    public const string BlobTagInvocationId = "InvocationId";
     public string BindingName { get; }
     public Task SaveIncomingRequest(FunctionContext context);
 }
