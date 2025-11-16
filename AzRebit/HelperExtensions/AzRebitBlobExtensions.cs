@@ -254,4 +254,25 @@ public static class AzRebitBlobExtensions
         return string.Join("/", segments.Where(s => !string.IsNullOrEmpty(s)));
     }
 
+    /// <summary>
+    /// Updates or adds a tag to the blob
+    /// </summary>
+    /// <param name="blobClient"></param>
+    /// <param name="tagKey"></param>
+    /// <param name="tagValue"></param>
+    /// <returns></returns>
+    public static async Task<IDictionary<string,string>> UpdateBlobTag(this BlobClient blobClient,string tagKey,string tagValue)
+    {
+        // Get existing tags
+        var existingTags = await blobClient.GetTagsAsync();
+        var allTags= existingTags.Value.Tags;
+        // Update or add tags as needed
+        allTags[tagKey] = tagValue;
+
+        // Set the updated tags
+        await blobClient.SetTagsAsync(allTags);
+
+        return allTags;
+    }
+
 }

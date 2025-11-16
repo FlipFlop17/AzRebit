@@ -55,7 +55,7 @@ public class FunctionExample_Http
         // check body
         var blobContent = await savedResubmisionBlob.DownloadContentAsync();
         var resubmitData = JsonSerializer.Deserialize<HttpSaveRequest>(blobContent.Value.Content.ToString());
-        resubmitData.Id.Should().Be(customKey);
+        resubmitData?.Id.Should().Be(customKey);
     }
     [TestMethod]
     public async Task GetCats_WhenGetCatsIsCalledWithPostMethod_ShouldReturnOkWithSavedRequest()
@@ -76,20 +76,21 @@ public class FunctionExample_Http
         // check blob content
         var blobContent = await savedResubmisionBlob.DownloadContentAsync();
         var resubmitData = JsonSerializer.Deserialize<HttpSaveRequest>(blobContent.Value.Content.ToString());
-        resubmitData.Body.Should().Be(await requestBody.ReadAsStringAsync());
+        resubmitData?.Body.Should().Be(await requestBody.ReadAsStringAsync());
     }
 
     [TestMethod]
     public async Task Resubmit_WhenResubmitIsRequest_ShouldSuccesfullyResubmitTheRequest()
     {
         //arrange
-        string customKey = "b3cf7082-31cc-4223-8aad-fb3632ecd8f5";
+        string invocationId = "b3cf7082-31cc-4223-8aad-fb3632ecd8f5";
         HttpClient client = FunctionHostStarter.GetHttpClient()!;
 
         //act
-        var resubmitResponse=await client.PostAsync($"/api/resubmit?functionName=GetCats&invocationId={customKey}", new StringContent("Requesting to resubmit the previous request"));
+        var resubmitResponse=await client.PostAsync($"/api/resubmit?functionName=GetCats&invocationId={invocationId}", new StringContent("Requesting to resubmit the previous request"));
         resubmitResponse.EnsureSuccessStatusCode();
         //asssert
         resubmitResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        TestContext.WriteLine(await resubmitResponse.Content.ReadAsStringAsync());
     }
 }
