@@ -11,6 +11,7 @@ namespace AzRebit.Shared;
 internal interface IMiddlewareHandler
 {
     public const string BlobTagInvocationId = "InvocationId";
+    public const string BlobTagResubmitCount = "ResubmitCount";
     public string BindingName { get; }
     public Task SaveIncomingRequest(FunctionContext context);
 }

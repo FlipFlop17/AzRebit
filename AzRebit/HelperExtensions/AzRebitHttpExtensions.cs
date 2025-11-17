@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.Json;
 
 using AzRebit.Shared;
@@ -21,7 +22,7 @@ public static class AzRebitHttpExtensions
     /// <param name="contextId">the unique id of the run, usually extracted from FunctionContext</param>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="NotImplementedException"></exception>
-    public static async Task SaveRequestForResubmitionAsync(this HttpRequestData req, string contextId)
+    public static async Task SaveRequestForResubmitionAsync(this HttpRequestData req,string contextId)
     {
         if (req.Headers.Contains(HttpResubmitHandler.HttpResubmitOriginalFileId))
         {
@@ -63,21 +64,12 @@ public static class AzRebitHttpExtensions
 
     private static async Task ProcessResubmitRequest(HttpRequestData req)
     {
-        string resubmitCountTag = "ResubmitCount";
         req.Headers.TryGetValues(HttpResubmitHandler.HttpResubmitOriginalFileId, out var resubmitOriginalId);
         var resubmitFileName = $"{resubmitOriginalId?.First()}.json";
         BlobServiceClient blobServiceClient = new BlobServiceClient(blobConnectionString);
         var container = blobServiceClient.GetBlobContainerClient(HttpMiddlewareHandler.HttpResubmitContainerName);
         BlobClient resubmitClient = container.GetBlobClient(resubmitFileName);
-        //raise the resubmit count
-        var resubmitCurrentCount = await resubmitClient.GetTagsAsync();
-        if (!resubmitCurrentCount.Value.Tags.TryGetValue(resubmitCountTag, out var resubmitCountValue))
-        {
-            resubmitCountValue = "0";
-        }
-        
-        //update blob count tag
-        await resubmitClient.UpdateBlobTag(resubmitCountTag, (int.Parse(resubmitCountValue) + 1).ToString());
+        await resubmitClient.RaiseResubmitCount();
 
     }
 }

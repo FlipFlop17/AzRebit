@@ -1,5 +1,8 @@
-﻿using System.Text;
+﻿using System.Collections.Immutable;
+using System.Security.Cryptography;
+using System.Text;
 
+using AzRebit.Middleware;
 using AzRebit.Shared;
 using AzRebit.Triggers.BlobTriggered.Handler;
 using AzRebit.Triggers.BlobTriggered.Middleware;
@@ -7,6 +10,8 @@ using AzRebit.Triggers.BlobTriggered.Middleware;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
+
+using Microsoft.IdentityModel.Abstractions;
 
 namespace AzRebit.HelperExtensions;
 public static class AzRebitBlobExtensions
@@ -18,19 +23,19 @@ public static class AzRebitBlobExtensions
     /// <param name="blobClient"></param>
     /// <param name="id"></param>
     /// <returns></returns>
-    public static async Task SaveBlobForResubmitionAsync(this BlobBaseClient blobClient,string id)
+    public static async Task SaveBlobForResubmitionAsync(this BlobBaseClient blobClient, string id)
     {
         var existingTagsResponse = await blobClient.GetTagsAsync();
-        IDictionary<string, string> tags=new Dictionary<string,string>();
-        
+        IDictionary<string, string> tags = new Dictionary<string, string>();
+
         if (existingTagsResponse.Value is not null)
         {
             tags = existingTagsResponse.Value.Tags;
         }
         BlobContainerClient localContainer = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"), BlobMiddlewareHandler.BlobResubmitContainerName);
         await localContainer.CreateIfNotExistsAsync();
-        BlobClient destinationClient= localContainer.GetBlobClient(id);
-        var operation=await destinationClient.StartCopyFromUriAsync(blobClient.Uri);
+        BlobClient destinationClient = localContainer.GetBlobClient(id);
+        var operation = await destinationClient.StartCopyFromUriAsync(blobClient.Uri);
         await operation.WaitForCompletionAsync();
         //set tags
         tags[IMiddlewareHandler.BlobTagInvocationId] = id;
@@ -115,9 +120,9 @@ public static class AzRebitBlobExtensions
     /// </summary>
     /// <param name="id">Unique id usually extracted from FunctionContext.FunctionId</param>
     /// <returns>null if not blob is found</returns>
-    internal static async Task<BlobClient?> PickUpBlobForResubmition(this BlobContainerClient container,string id)
+    internal static async Task<BlobClient?> PickUpBlobForResubmition(this BlobContainerClient container, string id)
     {
-        string tagFilter = $"\"InvocationId\" = '{id}'";
+        string tagFilter = $"\"{IMiddlewareHandler.BlobTagInvocationId}\" = '{id}'";
 
         await foreach (TaggedBlobItem taggedBlob in container.FindBlobsByTagsAsync(tagFilter))
         {
@@ -126,6 +131,62 @@ public static class AzRebitBlobExtensions
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Tries to get the current resubmit count from blob tag named ResubmitCount
+    /// </summary>
+    /// <param name="client"></param>
+    /// <returns>null or int</returns>
+    internal static async Task<int?> GetCurrentResubmitCount(this BlobClient client)
+    {
+        string tagKey = IMiddlewareHandler.BlobTagResubmitCount;
+        var existingTags = await client.GetTagsAsync();
+        if (existingTags.Value is null || existingTags.Value.Tags is null)
+            return null;
+
+        if (!existingTags.Value.Tags.TryGetValue(tagKey, out var resubmitCountValue))
+        {
+            return null;
+        }
+        return int.TryParse(resubmitCountValue, out var resubmitCount) ? resubmitCount : null;
+    }
+
+    /// <summary>
+    /// if <c>ResubmitCount</c> tag is available it will raise the count and update the tag
+    /// </summary>
+    /// <param name="client"></param>
+    /// <param name="createTag">defaults to <c>true</c>to create the tag if there is none. If false then method will do nothing</param>
+    /// <param name="setTo">optionalyy pass in a fixed value</param>
+    /// <returns>final count</returns>
+    internal static async Task<IDictionary<string,string>> RaiseResubmitCount(this BlobClient client,bool createTag=true, int? setTo=null)
+    {
+        string tagKey = IMiddlewareHandler.BlobTagResubmitCount;
+        var existingTags = await client.GetTagsAsync();
+        if (existingTags.Value is null || existingTags.Value.Tags is null)
+            return new Dictionary<string,string>();
+        
+        if (!existingTags.Value.Tags.TryGetValue(tagKey, out var resubmitCountValue))
+        {
+            if (!createTag)
+                return existingTags.Value.Tags;
+        }
+
+        var allTags = existingTags.Value.Tags;
+        if (setTo is not null)
+        {
+            allTags[tagKey] = setTo.ToString();
+        }else
+        {
+            bool isParsedOk=int.TryParse(resubmitCountValue,out int currentCount);
+            if (!isParsedOk) 
+                currentCount = 0;
+
+            allTags[tagKey] = (currentCount + 1).ToString();
+        }
+        
+        await client.SetTagsAsync(allTags);
+        return allTags;
     }
 
     /// <summary>
@@ -254,25 +315,5 @@ public static class AzRebitBlobExtensions
         return string.Join("/", segments.Where(s => !string.IsNullOrEmpty(s)));
     }
 
-    /// <summary>
-    /// Updates or adds a tag to the blob
-    /// </summary>
-    /// <param name="blobClient"></param>
-    /// <param name="tagKey"></param>
-    /// <param name="tagValue"></param>
-    /// <returns></returns>
-    public static async Task<IDictionary<string,string>> UpdateBlobTag(this BlobClient blobClient,string tagKey,string tagValue)
-    {
-        // Get existing tags
-        var existingTags = await blobClient.GetTagsAsync();
-        var allTags= existingTags.Value.Tags;
-        // Update or add tags as needed
-        allTags[tagKey] = tagValue;
-
-        // Set the updated tags
-        await blobClient.SetTagsAsync(allTags);
-
-        return allTags;
-    }
 
 }

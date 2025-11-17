@@ -2,16 +2,13 @@ using System.Text.Json;
 
 using AwesomeAssertions;
 
-using AzRebit.Triggers.BlobTriggered.Handler;
+using AzRebit.HelperExtensions;
+using AzRebit.Shared;
 using AzRebit.Triggers.BlobTriggered.Middleware;
-using AzRebit.Triggers.HttpTriggered.Handler;
 using AzRebit.Triggers.HttpTriggered.Middleware;
 using AzRebit.Triggers.HttpTriggered.Model;
 
 using Azure.Storage.Blobs;
-
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AzRebit.Tests.IntegrationTests.HttpTests;
 
@@ -81,17 +78,22 @@ public class FunctionExample_Http
     }
 
     [TestMethod]
-    public async Task Resubmit_WhenResubmitIsRequest_ShouldSuccesfullyResubmitTheRequest()
+    [DataRow("GetCats", "2c7bae55-564c-4d6e-b66a-5cef2c20e732")]
+    public async Task Resubmit_WhenResubmitIsRequest_ShouldSuccesfullyResubmitTheRequest(string functionName,string invocationId)
     {
         //arrange
-        string invocationId = "03fb1530-63d1-43a5-aa47-1f4985c260a6";
         HttpClient client = FunctionHostStarter.GetHttpClient()!;
-
+        //check current resubmit count from blob
+        var blobFile = _blobContainerHtttp.GetBlobClient(invocationId+".json");
+        var currentResubmitCount=await blobFile.GetCurrentResubmitCount();
         //act
-        var resubmitResponse=await client.PostAsync($"/api/resubmit?functionName=GetCats&invocationId={invocationId}", new StringContent("Requesting to resubmit the previous request"));
+        var resubmitResponse=await client.PostAsync($"/api/resubmit?functionName={functionName}&invocationId={invocationId}", new StringContent("Requesting to resubmit the previous request"));
         resubmitResponse.EnsureSuccessStatusCode();
         //asssert
         resubmitResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        var newResubmitCount = await blobFile.GetCurrentResubmitCount();
+        newResubmitCount.Should().NotBeNull();
+        newResubmitCount.Should().Be(currentResubmitCount + 1,because:"we resubmited the file and resubmit counter should be +1");
         TestContext.WriteLine(await resubmitResponse.Content.ReadAsStringAsync());
     }
 }
