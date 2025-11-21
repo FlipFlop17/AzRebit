@@ -52,6 +52,8 @@ public static class ResubmitFunctionWorkerExtension
         //    builder.Services.AddSingleton<CleanUpFunction>();
         //}
         
+        //TODO: ADD an option that user can parse the function name to be excluded from a resubmit pipeline
+
         return builder;
     }
 

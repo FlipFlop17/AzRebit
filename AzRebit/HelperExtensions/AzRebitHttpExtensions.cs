@@ -24,12 +24,6 @@ public static class AzRebitHttpExtensions
     /// <exception cref="NotImplementedException"></exception>
     public static async Task SaveRequestForResubmitionAsync(this HttpRequestData req,string contextId)
     {
-        if (req.Headers.Contains(HttpResubmitHandler.HttpResubmitOriginalFileId))
-        {
-            await ProcessResubmitRequest(req);
-            return;
-        }
-
         string resubmitFileName = $"{contextId}.json";
         using StreamReader reader = new StreamReader(req.Body);
         var requestPayload = await reader.ReadToEndAsync();
@@ -62,7 +56,13 @@ public static class AzRebitHttpExtensions
         
     }
 
-    private static async Task ProcessResubmitRequest(HttpRequestData req)
+    /// <summary>
+    /// When a /resubmit request is received, increments the resubmit count tag on the original saved request blob.
+    /// </summary>
+    /// <remarks>Does not save the request since the original request is already saved.</remarks>
+    /// <param name="req"></param>
+    /// <returns></returns>
+    public static async Task ProcessResubmitRequest(HttpRequestData req)
     {
         req.Headers.TryGetValues(HttpResubmitHandler.HttpResubmitOriginalFileId, out var resubmitOriginalId);
         var resubmitFileName = $"{resubmitOriginalId?.First()}.json";

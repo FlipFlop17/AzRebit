@@ -41,6 +41,7 @@
 
   <ItemGroup>
     <Folder Include="nuget-res\" />
+    <Folder Include="Triggers\QueueTrigger\" />
     <Folder Include="Triggers\TimerTriggered\" />
   </ItemGroup>
 

@@ -38,7 +38,7 @@ public class Cats
         // ... some important work
 
         //cleanup
-        //optionaly (recommended) delete the save request- if processing was successfull
+        //optional but recomended - if processing was successfull delete the file as we probably won't need it for resubmition to save storage space
         if (deleteResubmitionFile)
             await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
@@ -56,31 +56,11 @@ public class Cats
         [TimerTrigger("* * 1 * * *")] FunctionContext funcContext)
     {
 
-        //optional - if processing was successfull
+        //optional but recomended - if processing was successfull delete the file as we probably won't need it for resubmition to save storage space
         if (deleteResubmitionFile)
             await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
         return new OkObjectResult("I was triggered by a TimerTrigger! - This request is automatically saved in this function storage account and ready for resubmition");
-    }
-
-
-    /// <summary>
-    /// Blob trigger example
-    /// </summary>
-    /// <param name="req"></param>
-    /// <returns></returns>
-    [Function("TransferCats")]
-    public async Task<IActionResult> RunAdd(
-        [BlobTrigger("cats-container/{blobPath}",Connection ="AzureWebJobsStorage")] BlobClient blobClient,string blobPath,
-        FunctionContext funcContext)
-    {
-        _logger.LogInformation("incoming payload saved");
-
-        //optionall - if processing was successfull
-        if (deleteResubmitionFile)
-            await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
-
-        return new OkObjectResult("I was triggered by a BlobTrigger! - This request is automatically saved in this function storage account and ready for resubmition");
     }
 
 

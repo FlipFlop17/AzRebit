@@ -10,6 +10,14 @@ using static AzRebit.ResubmitFunctionWorkerExtension;
 
 namespace AzRebit.Endpoints.Resubmit;
 
+public class ResubmitResponse
+{
+    public bool IsSuccess { get; set; }
+    public string Message { get; set; } = "Resubmit succeeded";
+    public object? InvokedFunctionResponse { get; set; }
+}
+
+
 internal class ResubmitEndpoint
 {
     private readonly IReadOnlyCollection<AzFunction> _availableFunctions;
@@ -27,12 +35,15 @@ internal class ResubmitEndpoint
 
     }
 
+
+    //TODO:Do we need an endpoint that will fetch all resubmitions done. Maybe track them in a storage table. last 3 days ?? 
+
     [Function("ResubmitHandler")]
     public async Task<HttpResponseData> RunResubmit(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "resubmit")] HttpRequestData req,
         FunctionContext executionContext)
     {
-
+        var resubmitResult = new ResubmitResponse();
         // Extract query parameters
         var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
         var functionName = query["functionName"];
@@ -41,7 +52,9 @@ internal class ResubmitEndpoint
         if(!ValidateRequest(functionName, invocationId))
         {
             var badRequestResponse = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-            await badRequestResponse.WriteAsJsonAsync(new { Error = "Invalid request parameters" });
+            resubmitResult.IsSuccess = false;
+            resubmitResult.Message = "Invalid request parameters";
+            await badRequestResponse.WriteAsJsonAsync(resubmitResult);
             return badRequestResponse;
         }
 
@@ -49,11 +62,15 @@ internal class ResubmitEndpoint
         {
             _logger.LogInformation("Resubmit request received for function: {FunctionName} with invocationId: {InvocationId}", functionName, invocationId);
 
-            var resubmitResult=await HandleResubmit(functionName!, invocationId!);
+            var handlerResult=await HandleResubmit(functionName!, invocationId!);
             var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
 
-            if (!resubmitResult.IsSuccess)
+            if (!handlerResult.IsSuccess)
+            {
                 response.StatusCode = System.Net.HttpStatusCode.InternalServerError;
+                resubmitResult.IsSuccess = false;
+                resubmitResult.Message = handlerResult.Message;
+            }
             
             await response.WriteAsJsonAsync(new
             {

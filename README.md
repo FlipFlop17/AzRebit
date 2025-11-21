@@ -14,7 +14,20 @@
 
 ## Overview
 
-This package adds a `/resubmit` HTTP endpoint to your Azure Functions application, allowing you to programmatically trigger resubmission of failed or pending function executions. Perfect for implementing retry logic, handling transient failures, or integrating with external monitoring and alerting systems.
+This package adds a `/resubmit` HTTP endpoint to your Azure Functions application, allowing you to programmatically trigger resubmission of failed or pending function executions. 
+Perfect for implementing retry logic, handling transient failures, or integrating with external monitoring and alerting systems.
+
+### Problem statement
+Azure Functions can fail. No mattter the retry mechanisms in place. We also might have sensitive apps and we want the ability to resubmit a failed request manually.
+
+We might run different dashboards, workbooks that are showing our apps run status. 
+With this nuget package you can enrich your monitoring by integrating the ``/resubmit`` endpoint to be called directly from your dashboard.
+
+### Example use case
+--Drawio of azure diagram with logs
+
+>The inspiration for this package came from the 🔄 Resubmit  feature in Logic apps.
+
 
 ## Features
 
@@ -62,32 +75,27 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 
-//just add without configuration:
+//just add
 builder.AddResubmitEndpoint();
-//optionally add this if you want to configure
-builder.AddResubmitEndpoint();
-
-
-//then add the middleware
-builder.UseResubmitMiddleware();
 
 builder.Build().Run();
 ```
 
-Currently supported trigger attributes are:
+#### Supported Triggers
+You can use this package if your azure function is triggered by:
 
 - `HttpTrigger` --> saves incoming to `http-resubmits`
 - `BlobTrigger` -->saves incoming to `blob-resubmits`
 
-After configuring all functions with listed trigger atributes will automatically save incoming requests to a storage account of the function app.
+Every function in your project, with these listed trigger atributes,will have a resubmit functionality.
 
 ### Recommendation
 
-Since the resubmition is best used just for failed requests, keeping successfull runs might increase storage size. You can delete the saved request within your function by using the provided `DeleteSavedBlobAsync()` method in case of a successfull execution.
+Since the resubmition is best used just for failed requests, keeping successfull runs might increase storage size. You can delete the saved request within your function by using the provided `AzRebitBlobExtensions.DeleteSavedBlobAsync()` method in case of a successfull execution.
 
 ```csharp
 //optional - delete the save request. Usually you would want this iy your function runned successfuly
-await AzRebitBlobExtensions.DeleteSavedBlobAsync(funcContext.InvocationId.ToString());
+await AzRebitBlobExtensions.DeleteSavedBlobAsync(uniqueueInvocationIdOfYourFunction);
 ```
 Additionaly you can setup a Lifecycle Management policy on your storage account to automatically delete blobs older than a certain number of days.
 
@@ -111,7 +119,7 @@ To locate what is the unique id of you run you need to inspect your logs and sea
 curl -X POST "http://localhost:7071/api/resubmit?functionName=MyFunction&invocationId=abc-123-def-456" \
 ```
 
->In case of HTTP triggers the invocationid can be a custom. If you add a header ``x-azrebit-invocationid`` with a custom value that value will be used as invocationId.
+>In case of **HTTP triggers** the invocationid can be a custom. If you add a header ``x-azrebit-invocationid`` with a custom value **that value will be used as invocationId**.
 
 ## API Reference
 
