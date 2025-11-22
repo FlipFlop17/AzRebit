@@ -32,7 +32,7 @@ public static class ResubmitFunctionWorkerExtension
         builder.Services.AddSingleton(Options.Create(options));
 
         // discover and register function names
-        var functionDetails = AssemblyDiscovery.DiscoverAzFunctions().ToList();
+        var functionDetails = AssemblyDiscovery.DiscoverAzFunctions(options.ExcludedFunctionNames).ToList();
         builder.Services.AddSingleton<IReadOnlyCollection<AzFunction>>(functionDetails);
         //builder.Services.AddSingleton<ResubmitMiddleware>();
         builder.UseMiddleware<ResubmitMiddleware>();
