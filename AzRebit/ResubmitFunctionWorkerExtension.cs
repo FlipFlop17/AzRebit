@@ -20,15 +20,13 @@ public static class ResubmitFunctionWorkerExtension
         /// </summary>
         public HashSet<string> ExcludedFunctionNames { get; set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     }
-    public static IFunctionsWorkerApplicationBuilder AddResubmitEndpoint(this IFunctionsWorkerApplicationBuilder builder)
-       => builder.AddResubmitEndpoints(_ => { });
 
-    public static IFunctionsWorkerApplicationBuilder AddResubmitEndpoints(
+    public static IFunctionsWorkerApplicationBuilder AddResubmitEndpoint(
         this IFunctionsWorkerApplicationBuilder builder,
-        Action<ResubmitOptions> configure)
+        Action<ResubmitOptions>? configure = null)
     {
         var options = new ResubmitOptions();
-        configure(options);
+        configure?.Invoke(options);
 
         // register options for dependency injection
         builder.Services.AddSingleton(Options.Create(options));
@@ -42,7 +40,4 @@ public static class ResubmitFunctionWorkerExtension
 
         return builder;
     }
-
-    
-
 }
