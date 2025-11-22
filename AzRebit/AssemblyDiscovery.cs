@@ -15,14 +15,12 @@ internal static class AssemblyDiscovery
     /// <summary>
     /// Discovers all Functions with the [Function(Name="...")] attribute, excluding internal resubmit functions
     /// </summary>
-    /// <param name="excludedFunctionNames">Optional set of function names to exclude from discovery</param>
     /// <returns>IEnumerable of function names</returns>
     internal static IEnumerable<AzFunction> DiscoverAzFunctions(ISet<string>? excludedFunctionNames = null)
     {
         var functionDetails = new HashSet<AzFunction>();
         var internalFunctions = new[] { "ResubmitHandler", "CleanupSavedResubmits" }; //functions that we want to skip in out search
         excludedFunctionNames ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
         // Loop through all loaded assemblies
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
@@ -81,7 +79,7 @@ internal static class AssemblyDiscovery
                 var triggerType = featureInstance.TriggerSupport;
 
                 // Check if any parameter has this trigger attribute
-                var functionsTriggerParameter = allParams.FirstOrDefault(p => p.GetCustomAttribute(triggerAttributeType) != null);
+                var functionsTriggerParameter = allParams.FirstOrDefault(p =>p.GetCustomAttribute(triggerAttributeType) != null);
 
                 if (functionsTriggerParameter is not null)
                 {
@@ -173,5 +171,5 @@ internal static class AssemblyDiscovery
             }
         }
     }
-}
 
+}
