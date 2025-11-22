@@ -34,9 +34,6 @@ internal class BlobResubmitHandler : ITriggerHandler
             return ActionResult.Failure($"No blob found for invocation id {invocationId} in container {blobTriggerAttributeMetadata.ContainerName}");
         }
         var existingTagsResponse = await blobForResubmitClient.GetTagsAsync();
-        //upload the blob to the azure function trigger container which will trigger the logic app
-        //TODO: trebas skuziti kako spremiti naziv blob input containera za blob. 
-        //Blob trigger moze imati Connection parametar koji referencira Environment varijablu ali i ne mora imati, ako nema onda se koristi default connection string - tj. storage account od funkcije. Takoder mozes imati i [StorageAccount] atribut na klasi. to mozda kasnije ubaci kao feature
         BlobContainerClient inputContainer = new BlobContainerClient(blobTriggerAttributeMetadata.Connection, blobTriggerAttributeMetadata.ContainerName);
         AppendBlobClient inputBlob= inputContainer.GetAppendBlobClient(blobForResubmitClient.GetBlobName());
         await inputBlob.StartCopyFromUriAsync(blobForResubmitClient.Uri);

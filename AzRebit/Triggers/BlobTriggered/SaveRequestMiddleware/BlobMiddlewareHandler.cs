@@ -184,24 +184,4 @@ internal class BlobMiddlewareHandler : IMiddlewareHandler
         var accountNamePart = parts.FirstOrDefault(p => p.StartsWith("AccountName="));
         return accountNamePart?.Substring("AccountName=".Length) ?? throw new InvalidOperationException("AccountName not found in connection string");
     }
-
-    /// <summary>
-    /// Extracts storage account key from connection string.
-    /// </summary>
-    private string GetStorageAccountKey(string connectionString)
-    {
-        var parts = connectionString.Split(';');
-        var accountKeyPart = parts.FirstOrDefault(p => p.StartsWith("AccountKey="));
-        return accountKeyPart?.Substring("AccountKey=".Length) ?? throw new InvalidOperationException("AccountKey not found in connection string");
-    }
-
-    /// <summary>
-    /// Extracts blob service URI from connection string.
-    /// Expected format: DefaultEndpointsProtocol=https;AccountName=xxx;AccountKey=yyy;EndpointSuffix=core.windows.net
-    /// </summary>
-    private string GetBlobServiceUri(string connectionString)
-    {
-        var accountName = GetStorageAccountName(connectionString);
-        return $"{accountName}.blob.core.windows.net";
-    }
 }

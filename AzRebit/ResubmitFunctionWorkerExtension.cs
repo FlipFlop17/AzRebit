@@ -16,14 +16,9 @@ public static class ResubmitFunctionWorkerExtension
     public class ResubmitOptions
     {
         /// <summary>
-        /// Automatic cleanup of saved requests older than specified days.
+        /// Names of functions to be excluded from the resubmit pipeline.
         /// </summary>
-        public int DaysToKeepRequests { get; set; } = 4;
-        /// <summary>
-        /// If true adds a new cleanup function that runs once a day at 01 (not configurable) to delete all saved requests older than 'DaysToKeepRequests'
-        /// </summary>
-        public bool AddCleanUpFunction { get; set; } = false;
-
+        public HashSet<string> ExcludedFunctionNames { get; set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     }
     public static IFunctionsWorkerApplicationBuilder AddResubmitEndpoint(this IFunctionsWorkerApplicationBuilder builder)
        => builder.AddResubmitEndpoints(_ => { });
@@ -44,15 +39,6 @@ public static class ResubmitFunctionWorkerExtension
         //builder.Services.AddSingleton<ResubmitMiddleware>();
         builder.UseMiddleware<ResubmitMiddleware>();
         AssemblyDiscovery.RegisterAllFeatures(builder.Services);
-
-        // register the resubmit endpoint function
-        //builder.Services.AddSingleton<ResubmitEndpoint>();
-        //if (options.AddCleanUpFunction)
-        //{
-        //    builder.Services.AddSingleton<CleanUpFunction>();
-        //}
-        
-        //TODO: ADD an option that user can parse the function name to be excluded from a resubmit pipeline
 
         return builder;
     }
