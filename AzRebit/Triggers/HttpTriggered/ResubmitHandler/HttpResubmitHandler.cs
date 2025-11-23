@@ -12,7 +12,7 @@ using static AzRebit.Shared.Model.TriggerTypes;
 
 namespace AzRebit.Triggers.HttpTriggered.Handler;
 
-internal class HttpResubmitHandler:ITriggerHandler
+internal class HttpResubmitHandler:IResubmitHandler
 {
     public const string HttpResubmitOriginalFileId = "x-resubmit-originalid";
     private readonly IHttpClientFactory _httpFact;

@@ -6,6 +6,7 @@ using AzRebit.Triggers.HttpTriggered.Handler;
 using AzRebit.Triggers.HttpTriggered.Middleware;
 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AzRebit.Triggers.HttpTriggered;
@@ -21,8 +22,13 @@ internal class HttpFeatureSetup : IFeatureSetup
 
     public static void RegisterServices(IServiceCollection services)
     {
-        services.AddSingleton<ITriggerHandler, HttpResubmitHandler>();
+        services.AddSingleton<IResubmitHandler, HttpResubmitHandler>();
         services.AddSingleton<IMiddlewareHandler, HttpMiddlewareHandler>();
+        services.AddAzureClients(clients =>
+        {
+            clients.AddBlobServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!)
+            .WithName(HttpMiddlewareHandler.HttpResubmitContainerName);
+        });
     }
 
     public object? CreateTriggerMetadata(ParameterInfo parameter)
