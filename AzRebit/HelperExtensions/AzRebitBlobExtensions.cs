@@ -18,12 +18,13 @@ public static class AzRebitBlobExtensions
 {
 
     /// <summary>
-    /// Saves the blob in a local container for resubmition
+    /// Saves the blob in a resubmition container. Copies existing tags and adds/updates the tag for invocation id.
     /// </summary>
     /// <param name="blobClient"></param>
     /// <param name="id"></param>
+    /// <param name="destinationContainer"> If null it uses the container of the BlobBaseClient otherwise the file is saved in the provided BlobContainerClient</param>
     /// <returns></returns>
-    public static async Task SaveBlobForResubmitionAsync(this BlobBaseClient blobClient, string id)
+    public static async Task SaveBlobForResubmitionAsync(this BlobBaseClient blobClient, string id, BlobContainerClient? destinationContainer = null)
     {
         var existingTagsResponse = await blobClient.GetTagsAsync();
         IDictionary<string, string> tags = new Dictionary<string, string>();
@@ -32,15 +33,21 @@ public static class AzRebitBlobExtensions
         {
             tags = existingTagsResponse.Value.Tags;
         }
-        BlobContainerClient localContainer = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"), BlobMiddlewareHandler.BlobResubmitContainerName);
-        await localContainer.CreateIfNotExistsAsync();
         var destinationBlobName = $"{id}{Path.GetExtension(blobClient.Name)}";
-        BlobClient destinationClient = localContainer.GetBlobClient(destinationBlobName);
-        var operation = await destinationClient.StartCopyFromUriAsync(blobClient.Uri);
+        
+        BlobContainerClient saveContainer=blobClient.GetParentBlobContainerClient();
+        if (destinationContainer is not null)
+        {
+            saveContainer = destinationContainer;
+            await saveContainer.CreateIfNotExistsAsync();
+        }
+      
+        BlobClient destinationFileClient = saveContainer.GetBlobClient(destinationBlobName);
+        var operation = await destinationFileClient.StartCopyFromUriAsync(blobClient.Uri);
         await operation.WaitForCompletionAsync();
         //set tags
         tags[IMiddlewareHandler.BlobTagInvocationId] = id;
-        await destinationClient.SetTagsAsync(tags);
+        await destinationFileClient.SetTagsAsync(tags);
     }
 
     /// <summary>

@@ -6,6 +6,7 @@ using AzRebit.Triggers.BlobTriggered.Middleware;
 using AzRebit.Triggers.BlobTriggered.Model;
 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 
 using static AzRebit.Shared.Model.TriggerTypes;
@@ -38,8 +39,13 @@ internal class BlobFeatureSetup:IFeatureSetup
 
     public static void RegisterServices(IServiceCollection services)
     {
-        services.AddTransient<ITriggerHandler, BlobResubmitHandler>();
+        services.AddTransient<IResubmitHandler, BlobResubmitHandler>();
         services.AddSingleton<IMiddlewareHandler, BlobMiddlewareHandler>();
+        services.AddAzureClients(clients =>
+        {
+            clients.AddBlobServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!)
+            .WithName(BlobMiddlewareHandler.BlobResubmitContainerName);
+        });
     }
 
 

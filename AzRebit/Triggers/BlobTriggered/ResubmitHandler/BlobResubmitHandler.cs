@@ -15,7 +15,7 @@ namespace AzRebit.Triggers.BlobTriggered.Handler;
 /// <summary>
 /// The handler for blob triggered resubmissions. Does the work of copying the blob from the resubmit container to the input container
 /// </summary>
-internal class BlobResubmitHandler : ITriggerHandler
+internal class BlobResubmitHandler : IResubmitHandler
 
 {
 

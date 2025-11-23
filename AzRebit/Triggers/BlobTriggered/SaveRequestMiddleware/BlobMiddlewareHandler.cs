@@ -5,6 +5,7 @@ using Azure.Identity;
 using Azure.Storage.Blobs;
 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 
 namespace AzRebit.Triggers.BlobTriggered.Middleware;
@@ -17,14 +18,19 @@ namespace AzRebit.Triggers.BlobTriggered.Middleware;
 internal class BlobMiddlewareHandler : IMiddlewareHandler
 {
     private readonly ILogger<BlobMiddlewareHandler> _logger;
+    private readonly BlobContainerClient _blobResubmitClient;
+
     /// <summary>
     /// the name of the container where blobs for resubmition are stored
     /// </summary>
     public const string BlobResubmitContainerName = "blob-resubmits";
 
-    public BlobMiddlewareHandler(ILogger<BlobMiddlewareHandler> logger)
+    public BlobMiddlewareHandler(ILogger<BlobMiddlewareHandler> logger,IAzureClientFactory<BlobServiceClient> blobFact)
     {
         _logger = logger;
+        _blobResubmitClient = blobFact
+           .CreateClient(BlobResubmitContainerName)
+           .GetBlobContainerClient(BlobResubmitContainerName);
     }
 
     public string BindingName => "blobTrigger";
@@ -73,12 +79,12 @@ internal class BlobMiddlewareHandler : IMiddlewareHandler
 
             try
             {
-                // Create BlobClient using appropriate authentication method
-                BlobClient blobClient = await CreateBlobClientAsync(connectionProperty, sourceContainerProperty, sourceBlobNameProperty);
+                // Create BlobClient of the incoming request
+                BlobClient originalSourceBlobClient = await CreateBlobClientAsync(connectionProperty, sourceContainerProperty, sourceBlobNameProperty);
 
-                if (blobClient != null)
+                if (originalSourceBlobClient != null)
                 {
-                    await blobClient.SaveBlobForResubmitionAsync(invocationId);
+                    await originalSourceBlobClient.SaveBlobForResubmitionAsync(invocationId,destinationContainer:_blobResubmitClient);
                     _logger.LogInformation("Blob {BlobName} saved for resubmission with invocationId {InvocationId}",
                         sourceBlobNameProperty, invocationId);
                 }
