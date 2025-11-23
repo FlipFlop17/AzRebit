@@ -53,7 +53,7 @@ public class Cats
     /// <returns></returns>
     [Function("CheckCats")]
     public async Task<IActionResult> RunTimerCats(
-        [TimerTrigger("* * 1 * * *")] FunctionContext funcContext)
+        [TimerTrigger("* * 1 * * *"/* Every second, every minute, between 01:00 AM and 01:59 AM, every day */)] FunctionContext funcContext)
     {
 
         //optional but recomended - if processing was successfull delete the file as we probably won't need it for resubmition to save storage space

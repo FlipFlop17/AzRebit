@@ -19,10 +19,13 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Storage.Blobs" Version="12.26.0" />
+    <PackageReference Include="Azure.Storage.Queues" Version="12.24.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.2.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Core" Version="2.2.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" Version="6.8.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.5.3" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Tables" Version="1.5.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.10" />
     <InternalsVisibleTo Include="AzRebit.Tests" />
@@ -41,7 +44,6 @@
 
   <ItemGroup>
     <Folder Include="nuget-res\" />
-    <Folder Include="Triggers\QueueTrigger\" />
     <Folder Include="Triggers\TimerTriggered\" />
   </ItemGroup>
 

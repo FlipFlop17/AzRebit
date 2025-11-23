@@ -19,7 +19,7 @@ internal static class AssemblyDiscovery
     internal static IEnumerable<AzFunction> DiscoverAzFunctions(ISet<string>? excludedFunctionNames = null)
     {
         var functionDetails = new HashSet<AzFunction>();
-        var internalFunctions = new[] { "ResubmitHandler", "CleanupSavedResubmits" }; //functions that we want to skip in out search
+        var internalFunctions = new[] { "ResubmitHandler" }; //internal functions that we want to skip in out search
         excludedFunctionNames ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         // Loop through all loaded assemblies
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())

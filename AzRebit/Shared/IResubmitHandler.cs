@@ -5,7 +5,7 @@ using static AzRebit.Shared.Model.TriggerTypes;
 
 namespace AzRebit.Shared;
 
-internal interface ITriggerHandler
+internal interface IResubmitHandler
 {
     public TriggerType HandlerType { get; }
     /// <summary>

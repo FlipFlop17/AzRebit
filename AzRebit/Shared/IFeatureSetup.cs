@@ -19,5 +19,14 @@ internal interface IFeatureSetup
     Type TriggerAttribute { get; }
     static abstract void RegisterServices(IServiceCollection services);
 
-     object? CreateTriggerMetadata(ParameterInfo parameter);
+    
+    /// <summary>
+    /// Factory for creating trigger metadata objects
+    /// </summary>
+    /// <remarks>
+    /// Usually you should create a new class that holds the important metadata you might need later.
+    /// </remarks>
+    /// <param name="parameter"></param>
+    /// <returns></returns>
+    object? CreateTriggerMetadata(ParameterInfo parameter);
 }

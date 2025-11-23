@@ -21,12 +21,12 @@ public class ResubmitResponse
 internal class ResubmitEndpoint
 {
     private readonly IReadOnlyCollection<AzFunction> _availableFunctions;
-    private readonly IEnumerable<ITriggerHandler> _triggerHandlers;
+    private readonly IEnumerable<IResubmitHandler> _triggerHandlers;
     private readonly ILogger<ResubmitEndpoint> _logger;
     public ResubmitEndpoint(
         IOptions<ResubmitOptions> options,
         IReadOnlyCollection<AzFunction> functionNames,
-        IEnumerable<ITriggerHandler> triggerHandlers,
+        IEnumerable<IResubmitHandler> triggerHandlers,
         ILogger<ResubmitEndpoint> logger)
     {
         _availableFunctions = functionNames;
@@ -96,7 +96,7 @@ internal class ResubmitEndpoint
         var functionForResubmit = _availableFunctions.First(fn => fn.Name.Equals(functionName));
         var functionsTriggerMetadata = functionForResubmit.TriggerMetadata;
         //find the handler for this type of trigger
-        ITriggerHandler handler = _triggerHandlers.FirstOrDefault(h =>
+        IResubmitHandler handler = _triggerHandlers.FirstOrDefault(h =>
         {
             return h.HandlerType == functionForResubmit.TriggerType;
         }) ?? throw new InvalidOperationException($"No trigger handler found for function '{functionName}' with the trigger type {functionForResubmit.TriggerType}");

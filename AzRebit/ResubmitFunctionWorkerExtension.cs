@@ -2,6 +2,7 @@
 using AzRebit.Shared.Model;
 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -30,11 +31,9 @@ public static class ResubmitFunctionWorkerExtension
 
         // register options for dependency injection
         builder.Services.AddSingleton(Options.Create(options));
-
         // discover and register function names
         var functionDetails = AssemblyDiscovery.DiscoverAzFunctions(options.ExcludedFunctionNames).ToList();
         builder.Services.AddSingleton<IReadOnlyCollection<AzFunction>>(functionDetails);
-        //builder.Services.AddSingleton<ResubmitMiddleware>();
         builder.UseMiddleware<ResubmitMiddleware>();
         AssemblyDiscovery.RegisterAllFeatures(builder.Services);
 
