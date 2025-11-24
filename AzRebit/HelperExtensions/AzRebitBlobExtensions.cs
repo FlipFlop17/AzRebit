@@ -18,7 +18,7 @@ public static class AzRebitBlobExtensions
 {
 
     /// <summary>
-    /// Saves the blob in a resubmition container. Copies existing tags and adds/updates the tag for invocation id.
+    /// Saves the <code>existing</code> blob in a resubmition container. Copies existing tags and adds/updates the tag for invocation id.
     /// </summary>
     /// <param name="blobClient"></param>
     /// <param name="id"></param>
@@ -26,22 +26,21 @@ public static class AzRebitBlobExtensions
     /// <returns></returns>
     public static async Task SaveBlobForResubmitionAsync(this BlobBaseClient blobClient, string id, BlobContainerClient? destinationContainer = null)
     {
-        var existingTagsResponse = await blobClient.GetTagsAsync();
         IDictionary<string, string> tags = new Dictionary<string, string>();
-
+        var existingTagsResponse = await blobClient.GetTagsAsync();
         if (existingTagsResponse.Value is not null)
         {
             tags = existingTagsResponse.Value.Tags;
         }
+      
         var destinationBlobName = $"{id}{Path.GetExtension(blobClient.Name)}";
         
         BlobContainerClient saveContainer=blobClient.GetParentBlobContainerClient();
         if (destinationContainer is not null)
         {
             saveContainer = destinationContainer;
-            await saveContainer.CreateIfNotExistsAsync();
         }
-      
+        await saveContainer.CreateIfNotExistsAsync();
         BlobClient destinationFileClient = saveContainer.GetBlobClient(destinationBlobName);
         var operation = await destinationFileClient.StartCopyFromUriAsync(blobClient.Uri);
         await operation.WaitForCompletionAsync();

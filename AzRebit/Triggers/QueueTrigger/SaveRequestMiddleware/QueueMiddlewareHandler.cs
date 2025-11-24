@@ -1,15 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using AzRebit.HelperExtensions;
+﻿using AzRebit.HelperExtensions;
 using AzRebit.Shared;
 
-using Azure.Identity;
 using Azure.Storage.Blobs;
-using Azure.Storage.Queues;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Azure;
@@ -58,28 +50,9 @@ internal class QueueMiddlewareHandler : IMiddlewareHandler
                ?.GetValue(bindingAttribute)?.ToString();
 
             //saving the queue message to blob for resubmission
-            BlobClient blobResubmitFile= _blobResubmitClient.GetBlobClient(queueName);
-            await blobResubmitFile.SaveBlobForResubmitionAsync(invocationId);
-            //try
-            //{
-            //    // Create QueueClient using appropriate authentication method
-            //    BlobClient blobClient = await CreateBlobClientAsync(connectionProperty, sourceContainerProperty, sourceBlobNameProperty);
-
-            //    if (blobClient != null)
-            //    {
-            //        await blobClient.SaveBlobForResubmitionAsync(invocationId);
-            //        _logger.LogInformation("Blob {BlobName} saved for resubmission with invocationId {InvocationId}",
-            //            sourceBlobNameProperty, invocationId);
-            //    } else
-            //    {
-            //        _logger.LogError("Failed to create BlobClient for blob {BlobName}", sourceBlobNameProperty);
-            //    }
-            //}
-            //catch (Exception ex)
-            //{
-            //    _logger.LogError(ex, "Error saving blob {BlobName} for resubmission", sourceBlobNameProperty);
-            //    throw;
-            //}
+            BlobClient blobResubmitFile= _blobResubmitClient.GetBlobClient($"{invocationId}.txt");
+            string messageContent = messageBody?.ToString() ?? string.Empty;
+            await blobResubmitFile.UploadAsync(new BinaryData(messageContent));
         }
 
     }

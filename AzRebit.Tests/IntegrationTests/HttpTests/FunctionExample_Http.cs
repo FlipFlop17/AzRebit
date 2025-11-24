@@ -10,7 +10,7 @@ using AzRebit.Triggers.HttpTriggered.Model;
 
 using Azure.Storage.Blobs;
 
-namespace AzRebit.Tests.IntegrationTests.HttpTests;
+namespace AzRebit.Tests.IntegrationTests;
 
 [TestClass]
 public class FunctionExample_Http

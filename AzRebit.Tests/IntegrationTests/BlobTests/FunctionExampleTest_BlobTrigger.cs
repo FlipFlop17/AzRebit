@@ -6,7 +6,7 @@ using AzRebit.Triggers.BlobTriggered.Middleware;
 
 using Azure.Storage.Blobs;
 
-namespace AzRebit.Tests.IntegrationTests.BlobTests;
+namespace AzRebit.Tests.IntegrationTests;
 
 [TestClass]
 public class FunctionExampleTest_BlobTrigger

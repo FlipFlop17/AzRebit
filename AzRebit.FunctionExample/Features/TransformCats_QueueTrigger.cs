@@ -20,8 +20,10 @@ internal class TransformCats_QueueTrigger
 
     [Function("TransformCats")]
     [QueueOutput("transform-cats-output")]
-    public void Run([QueueTrigger("transform-cats-queue", Connection = "AzureWebJobsStorage")] string dogMessage)
+    public string Run([QueueTrigger("transform-cats-queue", Connection = "AzureWebJobsStorage")] string dogMessage)
     {
         _logger.LogInformation("queueMessage: "+dogMessage);
+        return dogMessage + ";has been processed";
+        
     }
 }
