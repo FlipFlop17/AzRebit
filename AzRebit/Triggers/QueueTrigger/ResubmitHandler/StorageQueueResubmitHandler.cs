@@ -24,8 +24,7 @@ internal class StorageQueueResubmitHandler : IResubmitHandler
     }
     public async Task<ActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
     {
-        QueueTriggerAttributeMetadata queueTriggerData=triggerAttributeMetadata as QueueTriggerAttributeMetadata;
-        if(queueTriggerData is null)
+        if (triggerAttributeMetadata is not QueueTriggerAttributeMetadata queueTriggerData)
             return ActionResult.Failure("Trigger attribute data is missing");
 
         //1. Parse triggerAttributeMetadata to get queue name
@@ -43,7 +42,8 @@ internal class StorageQueueResubmitHandler : IResubmitHandler
         var msgResult=await destinationQueue.SendMessageAsync(Convert.ToBase64String(Encoding.UTF8.GetBytes(resubmitPayload)));
         
         if (msgResult.Value.MessageId is not null) { 
-            return ActionResult.Success(msgResult.Value?.ToString());
+            var msgToReturn = msgResult.Value.ToString() ?? "Message added to the queue (resubmited)";
+            return ActionResult.Success(msgToReturn);
         }
 
         return ActionResult.Failure("Failed to add message to the queue");

@@ -22,12 +22,14 @@ public static class AzRebitHttpExtensions
     /// <param name="contextId">the unique id of the run, usually extracted from FunctionContext</param>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="NotImplementedException"></exception>
-    public static async Task SaveRequestForResubmitionAsync(this HttpRequestData req,string contextId)
+    public static async Task SaveRequestForResubmitionAsync(this HttpRequestData req, string contextId)
     {
         string resubmitFileName = $"{contextId}.json";
         using StreamReader reader = new StreamReader(req.Body);
         var requestPayload = await reader.ReadToEndAsync();
-        var headers = req.Headers.Any() ? req.Headers.ToDictionary(h => h.Key, h => string.Join(", ", h.Value)) : default;
+        IDictionary<string, string?>? headers = req.Headers.Any()
+            ? req.Headers.ToDictionary(h => h.Key, h => h.Value != null ? string.Join(", ", h.Value) : null)
+            : default;
         string path = req.Url?.AbsoluteUri ?? string.Empty;
         string queryString = req.Url?.Query ?? string.Empty;
 
@@ -44,7 +46,7 @@ public static class AzRebitHttpExtensions
         var json = JsonSerializer.Serialize(requestDtoToSave);
 
         BlobServiceClient blobServiceClient = new BlobServiceClient(blobConnectionString);
-        var container=blobServiceClient.GetBlobContainerClient(HttpMiddlewareHandler.HttpResubmitContainerName);
+        var container = blobServiceClient.GetBlobContainerClient(HttpMiddlewareHandler.HttpResubmitContainerName);
         await container.CreateIfNotExistsAsync();
         BlobClient blobClient = container.GetBlobClient(resubmitFileName);
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(json));

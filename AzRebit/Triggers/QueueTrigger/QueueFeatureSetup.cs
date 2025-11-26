@@ -32,26 +32,31 @@ internal class QueueFeatureSetup : IFeatureSetup
     {
         var queueAttr = parameter.GetCustomAttribute<QueueTriggerAttribute>()!;
         var queueName = queueAttr.QueueName;
-        var queueConnection = queueAttr.Connection;
-        if (string.IsNullOrEmpty(queueConnection))
-        {
-            queueConnection = "AzureWebJobsStorage";
+        var queueConnectionSettingName = queueAttr.Connection;
+        var queueMeta = new QueueTriggerAttributeMetadata();
 
-        } else if (!queueConnection.StartsWith("AzureWebJobs"))
+        // Handle null/empty case
+        if (string.IsNullOrEmpty(queueConnectionSettingName))
         {
-            queueConnection = $"AzureWebJobs{queueConnection}";
+            queueConnectionSettingName = "AzureWebJobsStorage";
+        }
+        // Handle custom names without prefix
+        else if (!queueConnectionSettingName.StartsWith("AzureWebJobs"))
+        {
+            queueConnectionSettingName = $"AzureWebJobs{queueConnectionSettingName}";
         }
 
+        // If it's already "AzureWebJobsSomething", it stays as-is
         return new QueueTriggerAttributeMetadata
         {
             QueueName = queueName,
-            ConnectionString = Environment.GetEnvironmentVariable(queueConnection)
+            ConnectionString = Environment.GetEnvironmentVariable(queueConnectionSettingName) ?? string.Empty
         };
     }
 }
 
-internal class QueueTriggerAttributeMetadata
+internal sealed class QueueTriggerAttributeMetadata
 {
-    public string QueueName { get; set; }=string.Empty;
-    public string ConnectionString { get; set; }= Environment.GetEnvironmentVariable("AzureWebJobsStorage")!;
+    public string QueueName { get; set; } = string.Empty;
+    public string ConnectionString { get; set; } = string.Empty;
 }

@@ -69,7 +69,7 @@ internal class ResubmitEndpoint
             {
                 response.StatusCode = System.Net.HttpStatusCode.InternalServerError;
                 resubmitResult.IsSuccess = false;
-                resubmitResult.Message = handlerResult.Message;
+                resubmitResult.Message = handlerResult.Message ?? "Resubmit success";
             }
             
             await response.WriteAsJsonAsync(new
