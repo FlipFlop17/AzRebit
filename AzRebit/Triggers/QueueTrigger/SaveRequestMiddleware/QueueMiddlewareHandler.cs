@@ -2,6 +2,7 @@
 using AzRebit.Shared;
 
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Azure;
@@ -42,17 +43,21 @@ internal class QueueMiddlewareHandler : IMiddlewareHandler
             }
 
             context.BindingContext.BindingData.TryGetValue("QueueTrigger",out var messageBody);
-            // Extract connection from attribute
-            var connectionProperty = bindingAttribute?.GetType().GetProperty("Connection")
-                ?.GetValue(bindingAttribute)?.ToString();
 
-            var queueName = bindingAttribute?.GetType().GetProperty("QueueName")
-               ?.GetValue(bindingAttribute)?.ToString();
+            var queueName = (bindingAttribute?.GetType().GetProperty("QueueName")
+               ?.GetValue(bindingAttribute)?.ToString()) ?? throw new InvalidOperationException("QueueName is null in bindingAttribute");
 
             //saving the queue message to blob for resubmission
-            BlobClient blobResubmitFile= _blobResubmitClient.GetBlobClient($"{invocationId}.txt");
+            BlobClient blobResubmitFile = _blobResubmitClient
+                .GetBlobClient($"{IMiddlewareHandler.BlobPrefixForQueue}{invocationId}.txt");
+
             string messageContent = messageBody?.ToString() ?? string.Empty;
-            await blobResubmitFile.UploadAsync(new BinaryData(messageContent));
+            BlobUploadOptions uploadOptions = new BlobUploadOptions() {
+                Tags = new Dictionary<string, string> {
+                    { "QueueName", queueName }, { IMiddlewareHandler.BlobTagInvocationId, invocationId } }
+            };
+
+            await blobResubmitFile.UploadAsync(new BinaryData(messageContent), uploadOptions);
         }
 
     }

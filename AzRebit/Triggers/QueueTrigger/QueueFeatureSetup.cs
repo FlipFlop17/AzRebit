@@ -33,11 +33,19 @@ internal class QueueFeatureSetup : IFeatureSetup
         var queueAttr = parameter.GetCustomAttribute<QueueTriggerAttribute>()!;
         var queueName = queueAttr.QueueName;
         var queueConnection = queueAttr.Connection;
+        if (string.IsNullOrEmpty(queueConnection))
+        {
+            queueConnection = "AzureWebJobsStorage";
+
+        } else if (!queueConnection.StartsWith("AzureWebJobs"))
+        {
+            queueConnection = $"AzureWebJobs{queueConnection}";
+        }
 
         return new QueueTriggerAttributeMetadata
         {
             QueueName = queueName,
-            Connection = queueConnection
+            ConnectionString = Environment.GetEnvironmentVariable(queueConnection)
         };
     }
 }
@@ -45,5 +53,5 @@ internal class QueueFeatureSetup : IFeatureSetup
 internal class QueueTriggerAttributeMetadata
 {
     public string QueueName { get; set; }=string.Empty;
-    public string? Connection { get; set; }
+    public string ConnectionString { get; set; }= Environment.GetEnvironmentVariable("AzureWebJobsStorage")!;
 }

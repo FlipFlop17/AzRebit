@@ -2,14 +2,10 @@ using System.Text;
 
 using AwesomeAssertions;
 
-using AzRebit.Tests.IntegrationTests;
-using AzRebit.Triggers.BlobTriggered.Middleware;
-using AzRebit.Triggers.HttpTriggered.Middleware;
 using AzRebit.Triggers.QueueTrigger.SaveRequestMiddleware;
 
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
-using Azure.Storage.Queues.Models;
 
 namespace AzRebit.Tests.IntegrationTests;
 
@@ -46,7 +42,6 @@ public class FunctionExample_Queue
         // Act
         // Send message to the queue (needs to be base64 encoded)
         await _inputQueueClient.SendMessageAsync(Convert.ToBase64String(Encoding.UTF8.GetBytes(testMessage)));
-
         // Wait for the function to trigger and process the message
         await Task.Delay(10000); // 10 seconds delay for function processing
 

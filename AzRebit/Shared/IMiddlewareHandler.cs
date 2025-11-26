@@ -12,6 +12,9 @@ internal interface IMiddlewareHandler
 {
     public const string BlobTagInvocationId = "InvocationId";
     public const string BlobTagResubmitCount = "ResubmitCount";
+    public const string BlobPrefixForBlob = "bl-";
+    public const string BlobPrefixForQueue = "qu-";
+    public const string BlobPrefixForHttp = "ht-";
     public string BindingName { get; }
     public Task SaveIncomingRequest(FunctionContext context);
 }
