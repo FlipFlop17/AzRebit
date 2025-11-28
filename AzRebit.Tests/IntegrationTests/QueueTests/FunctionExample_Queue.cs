@@ -22,14 +22,7 @@ public class FunctionExample_Queue
         Environment.SetEnvironmentVariable("AzureWebJobsStorage", "UseDevelopmentStorage=true");
         _blobContainerResubmit = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, QueueMiddlewareHandler.ResubmitContainerNameName);
         _inputQueueClient = new QueueClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, "transform-cats-queue");
-        //start the server
-        await FunctionHostStarter.StartFunctionHost();
-    }
 
-    [ClassCleanup]
-    public static async Task ClassCleanup()
-    {
-        FunctionHostStarter.Dispose();
     }
 
     [TestMethod]

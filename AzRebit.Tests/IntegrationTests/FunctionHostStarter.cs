@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace AzRebit.Tests.IntegrationTests;
 
+[TestClass]
 public class FunctionHostStarter
 {
     private static Process _hostProcess;
@@ -16,8 +17,10 @@ public class FunctionHostStarter
     
     public static string BaseUrl { get; } = "http://localhost:7000";
     public static HttpClient GetHttpClient() => _httpClient;
-
-    public static async Task StartFunctionHost()
+    
+    
+    [AssemblyInitialize]
+    public static void StartFunctionHost(TestContext context)
     {
         lock (_lockObject)
         {
@@ -29,7 +32,7 @@ public class FunctionHostStarter
         try
         {
             // Clean up any existing process first
-            Dispose();
+            Dispose(context);
 
             // Start the Azure Functions host
             _hostProcess = new Process
@@ -57,7 +60,7 @@ public class FunctionHostStarter
             // Capture output for debugging
             var outputBuilder = new StringBuilder();
             var errorBuilder = new StringBuilder();
-            
+
             _hostProcess.OutputDataReceived += (sender, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
@@ -66,7 +69,7 @@ public class FunctionHostStarter
                     Debug.WriteLine($"FUNC OUTPUT: {e.Data}");
                 }
             };
-            
+
             _hostProcess.ErrorDataReceived += (sender, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
@@ -92,12 +95,13 @@ public class FunctionHostStarter
             };
 
             // Wait for the host to be ready with proper error handling
-            await WaitForHostToBeReady(_httpClient, processExitedTcs.Task, outputBuilder, errorBuilder, maxWaitTimeSeconds: 60);
+            WaitForHostToBeReady(_httpClient, processExitedTcs.Task, outputBuilder, errorBuilder, maxWaitTimeSeconds: 60)
+                .GetAwaiter().GetResult();
         }
         catch
         {
             // Clean up on failure
-            Dispose();
+            Dispose(context);
             throw;
         }
         finally
@@ -191,7 +195,9 @@ public class FunctionHostStarter
             $"Errors: {errorBuilder}");
     }
 
-    public static void Dispose()
+
+    [AssemblyCleanup]
+    public static void Dispose(TestContext context)
     {
         try
         {

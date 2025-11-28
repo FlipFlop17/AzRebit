@@ -18,28 +18,23 @@ public class FunctionExample_Http
     public static BlobContainerClient _blobContainerHtttp { get; set; }
     public static BlobContainerClient _blobContainerBlob { get; set; }
     public TestContext? TestContext { get; set; }
-
+    private HttpClient _httpClient = new HttpClient() { BaseAddress = new Uri("http://localhost:7000") };
+    
     [ClassInitialize]
     public static async Task ClassInitialize(TestContext context)
     {
         Environment.SetEnvironmentVariable("AzureWebJobsStorage", "UseDevelopmentStorage=true");
         _blobContainerBlob = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, BlobMiddlewareHandler.BlobResubmitContainerName);
         _blobContainerHtttp = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, HttpMiddlewareHandler.HttpResubmitContainerName);
-        await FunctionHostStarter.StartFunctionHost();
-        //start the server
     }
 
-    [ClassCleanup]
-    public static async Task ClassCleanup()
-    {
-        FunctionHostStarter.Dispose();
-    }
+
 
     [TestMethod]
     public async Task GetCats_WhenGetCatsIsCalledWithGetMethod_ShouldReturnOkWithSavedRequest()
     {
         //arrange
-        HttpClient client=FunctionHostStarter.GetHttpClient()!;
+        HttpClient client= _httpClient;
         var customKey=Guid.NewGuid().ToString();
         client.DefaultRequestHeaders.Add(HttpMiddlewareHandler.HeaderInvocationId, customKey);
         //act
@@ -59,7 +54,7 @@ public class FunctionExample_Http
     public async Task GetCats_WhenGetCatsIsCalledWithPostMethod_ShouldReturnOkWithSavedRequest()
     {
         //arrange
-        HttpClient client = FunctionHostStarter.GetHttpClient()!;
+        HttpClient client = _httpClient;
         var customKey = Guid.NewGuid().ToString();
         client.DefaultRequestHeaders.Add(HttpMiddlewareHandler.HeaderInvocationId, customKey);
         var requestBody = new StringContent("Requesting to show me all available cats you have");
@@ -78,19 +73,18 @@ public class FunctionExample_Http
     }
 
     [TestMethod]
-    [DataRow("GetCats", "2c7bae55-564c-4d6e-b66a-5cef2c20e732")]
+    [DataRow("GetCats", "31b60c2b-fe87-4519-9630-3a56a63772d4")]
     public async Task Resubmit_WhenResubmitIsRequest_ShouldSuccesfullyResubmitTheRequest(string functionName,string invocationId)
     {
         //arrange
-        HttpClient client = FunctionHostStarter.GetHttpClient()!;
+        HttpClient client = _httpClient;
         //check current resubmit count from blob
         var blobFile = _blobContainerHtttp.GetBlobClient(invocationId+".json");
         var currentResubmitCount=await blobFile.GetCurrentResubmitCount();
         //act
         var resubmitResponse=await client.PostAsync($"/api/resubmit?functionName={functionName}&invocationId={invocationId}", new StringContent("Requesting to resubmit the previous request"));
-        resubmitResponse.EnsureSuccessStatusCode();
         //asssert
-        resubmitResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        resubmitResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.OK,because:await resubmitResponse.Content.ReadAsStringAsync());
         var newResubmitCount = await blobFile.GetCurrentResubmitCount();
         newResubmitCount.Should().NotBeNull();
         newResubmitCount.Should().Be(currentResubmitCount + 1,because:"we resubmited the file and resubmit counter should be +1");

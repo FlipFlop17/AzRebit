@@ -20,7 +20,7 @@ internal class StorageQueueResubmitHandler : IResubmitHandler
     {
         _blobResubmitContainer = blobClientFactory
             .CreateClient(QueueMiddlewareHandler.ResubmitContainerNameName)
-            .CreateBlobContainer(QueueMiddlewareHandler.ResubmitContainerNameName);
+            .GetBlobContainerClient(QueueMiddlewareHandler.ResubmitContainerNameName);
     }
     public async Task<ActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
     {

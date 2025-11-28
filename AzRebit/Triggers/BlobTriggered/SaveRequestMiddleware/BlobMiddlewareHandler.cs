@@ -45,7 +45,7 @@ internal class BlobMiddlewareHandler : IMiddlewareHandler
 
         var sourceBlobNameProperty = Path.GetFileName(context.BindingContext.BindingData
             .First(d => d.Key.Equals("BlobTrigger")).Value!
-            .ToString());
+            .ToString()!);
 
         if (triggerProperties.TryGetValue("bindingAttribute", out var bindingAttributeObj))
         {

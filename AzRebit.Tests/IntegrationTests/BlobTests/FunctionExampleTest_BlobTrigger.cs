@@ -17,15 +17,8 @@ public class FunctionExampleTest_BlobTrigger
     public static async Task ClassInitialize(TestContext context)
     {
         Environment.SetEnvironmentVariable("AzureWebJobsStorage", "UseDevelopmentStorage=true");
-        _blobResubmitContainerBlob = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, BlobMiddlewareHandler.BlobResubmitContainerName);
-        await FunctionHostStarter.StartFunctionHost();
-        //start the server
-    }
-
-    [ClassCleanup]
-    public static async Task ClassCleanup()
-    {
-        FunctionHostStarter.Dispose();
+        _blobResubmitContainerBlob = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, 
+            BlobMiddlewareHandler.BlobResubmitContainerName);
     }
 
     [TestMethod]

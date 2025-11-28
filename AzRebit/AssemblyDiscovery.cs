@@ -19,14 +19,14 @@ internal static class AssemblyDiscovery
     internal static IEnumerable<AzFunction> DiscoverAzFunctions(ISet<string>? excludedFunctionNames = null)
     {
         var functionDetails = new HashSet<AzFunction>();
-        var internalFunctions = new[] { "ResubmitHandler" }; //internal functions that we want to skip in out search
         excludedFunctionNames ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         // Loop through all loaded assemblies
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
             // Skip system assemblies to avoid noise
             if (assembly.FullName?.StartsWith("System") == true ||
-                assembly.FullName?.StartsWith("Microsoft") == true)
+                assembly.FullName?.StartsWith("Microsoft") == true ||
+                assembly.FullName?.Equals("AzRebit") == true)
                 continue;
 
             try
@@ -38,7 +38,6 @@ internal static class AssemblyDiscovery
                         var attr = method.GetCustomAttribute<FunctionAttribute>(); //we are looking for [Function("FunctionName")] which is of type FunctionAttribute
                         if (attr != null &&
                             !string.IsNullOrWhiteSpace(attr.Name) &&
-                            !internalFunctions.Contains(attr.Name, StringComparer.OrdinalIgnoreCase) &&
                             !excludedFunctionNames.Contains(attr.Name))
                         {
                             AddAzFuncTriggerMetadata(attr.Name, functionDetails, method.GetParameters());
@@ -113,7 +112,8 @@ internal static class AssemblyDiscovery
         {
             // Skip system assemblies
             if (assembly.FullName?.StartsWith("System") == true ||
-                assembly.FullName?.StartsWith("Microsoft") == true)
+                assembly.FullName?.StartsWith("Microsoft") == true ||
+                assembly.FullName?.Equals("AzRebit") == true)
                 continue;
 
             try
