@@ -29,9 +29,9 @@ public class TransferCats_BlobTrigger
     /// <param name="req"></param>
     /// <returns></returns>
     [Function("TransferCats")]
-    public async Task RunAdd(
-        [BlobTrigger("cats-container/{blobPath}", Connection = "AzureWebJobsStorage")] BlobClient blobClient, string blobPath,
-        FunctionContext funcContext)
+    public async Task RunCatTransfer(
+        [BlobTrigger("cats-container/{blobPath}", Connection = "AzureWebJobsStorage")] 
+        BlobClient blobClient, string blobPath,FunctionContext funcContext)
     {
         _logger.LogInformation("incoming payload saved");
         Console.WriteLine(blobClient.Name);

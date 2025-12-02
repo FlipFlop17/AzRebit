@@ -15,7 +15,7 @@ namespace AzRebit.Triggers.BlobTriggered.Middleware;
 /// <summary>
 /// Middleware handler for incoming blob payloads. Depending on blob triggered params it saves the blob for resubmission.
 /// </summary>
-internal class BlobMiddlewareHandler : IMiddlewareHandler
+public class BlobMiddlewareHandler : IMiddlewareHandler
 {
     private readonly ILogger<BlobMiddlewareHandler> _logger;
     private readonly BlobContainerClient _blobResubmitClient;

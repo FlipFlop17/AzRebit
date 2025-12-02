@@ -9,7 +9,7 @@ using Azure.Storage.Blobs;
 namespace AzRebit.Tests.IntegrationTests;
 
 [TestClass]
-public class FunctionExampleTest_BlobTrigger
+public class ResubmitTests_ResubmitBlob
 {
     private static BlobContainerClient _blobResubmitContainerBlob;
 

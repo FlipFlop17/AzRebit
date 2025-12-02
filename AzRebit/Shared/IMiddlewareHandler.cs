@@ -8,7 +8,7 @@ using Microsoft.Azure.Functions.Worker;
 
 namespace AzRebit.Shared;
 
-internal interface IMiddlewareHandler
+public interface IMiddlewareHandler
 {
     public const string BlobTagInvocationId = "InvocationId";
     public const string BlobTagResubmitCount = "ResubmitCount";

@@ -38,7 +38,7 @@ internal class ResubmitEndpoint
 
     //TODO:Do we need an endpoint that will fetch all resubmitions done. Maybe track them in a storage table. last 3 days ?? 
 
-    [Function("ResubmitHandler")]
+    [Function("Resubmit")]
     public async Task<HttpResponseData> RunResubmit(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "resubmit")] HttpRequestData req,
         FunctionContext executionContext)

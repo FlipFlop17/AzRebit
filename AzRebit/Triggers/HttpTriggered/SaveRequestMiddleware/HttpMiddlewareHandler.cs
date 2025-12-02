@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AzRebit.Triggers.HttpTriggered.Middleware;
 
-internal class HttpMiddlewareHandler:IMiddlewareHandler
+public class HttpMiddlewareHandler:IMiddlewareHandler
 {
     private readonly ILogger<HttpMiddlewareHandler> _logger;
 

@@ -21,6 +21,12 @@ public static class ResubmitFunctionWorkerExtension
         public HashSet<string> ExcludedFunctionNames { get; set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Adds the AzRebit resubmit endpoint
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="configure"></param>
+    /// <returns></returns>
     public static IFunctionsWorkerApplicationBuilder AddResubmitEndpoint(
         this IFunctionsWorkerApplicationBuilder builder,
         Action<ResubmitOptions>? configure = null)

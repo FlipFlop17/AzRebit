@@ -26,7 +26,9 @@ internal class HttpResubmitHandler:IResubmitHandler
     
     public async Task<ActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
     {
-        BlobContainerClient httpContainer = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"),HttpMiddlewareHandler.HttpResubmitContainerName);
+        BlobContainerClient httpContainer = new BlobContainerClient(
+            Environment.GetEnvironmentVariable("AzureWebJobsStorage"),
+            HttpMiddlewareHandler.HttpResubmitContainerName);
         var blobForResubmit = await httpContainer.PickUpBlobForResubmition(invocationId);
 
         if (blobForResubmit is null)

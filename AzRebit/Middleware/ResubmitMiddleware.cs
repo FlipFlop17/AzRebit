@@ -1,4 +1,6 @@
-﻿using AzRebit.Shared;
+﻿using System.ComponentModel;
+
+using AzRebit.Shared;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Middleware;
@@ -9,11 +11,12 @@ namespace AzRebit.Middleware;
 /// <summary>
 /// Main entry middleware that will discover the trigger type and call the appropriate middleware handler to save the incoming request for resubmission.
 /// </summary>
-internal class ResubmitMiddleware : IFunctionsWorkerMiddleware
+[EditorBrowsable(EditorBrowsableState.Advanced)]
+public sealed class ResubmitMiddleware : IFunctionsWorkerMiddleware
 {
     private readonly ILogger<ResubmitMiddleware> _logger;
     private readonly IEnumerable<IMiddlewareHandler> _middlewareHandlers;
-
+    public static EventId SkipAutoSave = new EventId(1000, "SkipAutoSave");
     public ResubmitMiddleware(ILogger<ResubmitMiddleware> logger,IEnumerable<IMiddlewareHandler> middlewareHandlers)
     {
         _logger = logger;
@@ -25,8 +28,9 @@ internal class ResubmitMiddleware : IFunctionsWorkerMiddleware
         try
         {
             //skip if resubmit endpoint
-            if (context.FunctionDefinition.Name.Equals("ResubmitHandler", StringComparison.OrdinalIgnoreCase))
+            if (context.FunctionDefinition.Name.Equals("Resubmit", StringComparison.OrdinalIgnoreCase))
             {
+                _logger.LogDebug(eventId:SkipAutoSave,"skiping payload saving for 'Resubmit' endpoint");
                 await next(context);
                 return;
             }
@@ -62,5 +66,6 @@ internal class ResubmitMiddleware : IFunctionsWorkerMiddleware
         }
 
         await next(context);
+
     }
 }
