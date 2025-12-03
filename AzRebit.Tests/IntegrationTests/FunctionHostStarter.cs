@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace AzRebit.Tests.IntegrationTests;
 
-[TestClass]
+//[TestClass]
 public class FunctionHostStarter
 {
     private static Process _hostProcess;
@@ -19,7 +19,7 @@ public class FunctionHostStarter
     public static HttpClient GetHttpClient() => _httpClient;
     
     
-    [AssemblyInitialize]
+    //[AssemblyInitialize]
     public static void StartFunctionHost(TestContext context)
     {
         lock (_lockObject)
@@ -196,7 +196,7 @@ public class FunctionHostStarter
     }
 
 
-    [AssemblyCleanup]
+    //[AssemblyCleanup]
     public static void Dispose(TestContext context)
     {
         try

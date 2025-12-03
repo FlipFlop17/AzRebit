@@ -1,11 +1,11 @@
 ﻿using System.Reflection;
 
 using AwesomeAssertions;
-
+using AzRebit;
 using AzRebit.Shared.Model;
 using AzRebit.Triggers.BlobTriggered.Model;
 
-namespace AzRebit.Tests.UnitTests;
+namespace AzFunctionsDiscovery;
 
 [TestClass]
 public sealed class AssemblyDiscoveryTests

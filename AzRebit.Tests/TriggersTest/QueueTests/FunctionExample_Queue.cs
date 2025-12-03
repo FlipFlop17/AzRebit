@@ -7,7 +7,7 @@ using AzRebit.Triggers.QueueTrigger.SaveRequestMiddleware;
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 
-namespace AzRebit.Tests.IntegrationTests;
+namespace TriggerTests;
 
 [TestClass]
 public class FunctionExample_Queue

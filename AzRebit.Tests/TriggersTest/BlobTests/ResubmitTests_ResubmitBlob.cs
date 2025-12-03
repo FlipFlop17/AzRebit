@@ -6,7 +6,7 @@ using AzRebit.Triggers.BlobTriggered.Middleware;
 
 using Azure.Storage.Blobs;
 
-namespace AzRebit.Tests.IntegrationTests;
+namespace TriggerTests;
 
 [TestClass]
 public class ResubmitTests_ResubmitBlob

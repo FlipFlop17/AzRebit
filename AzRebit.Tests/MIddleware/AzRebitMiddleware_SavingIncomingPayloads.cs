@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 using NSubstitute;
 
-namespace AzRebit.Tests.UnitTests;
+namespace Middleware;
 
 
 public static class MiddlewareHandlerFactory
@@ -31,14 +31,21 @@ public static class MiddlewareHandlerFactory
                 .Returns(fakeContainerClient);
 
             var blobHandler=Substitute.For<IMiddlewareHandler>();
+            blobHandler.BindingName.Returns("blobTrigger");
             blobHandler.SaveIncomingRequest(Arg.Any<FunctionContext>()).Returns(Task.CompletedTask);
             var meta = Substitute.For<BindingMetadata>();
             meta.Type.Returns("blobTrigger");
             IEnumerable<BindingMetadata> functionInputBindings = [meta];
             yield return new object[] { blobHandler, functionInputBindings };
             //
+            meta = Substitute.For<BindingMetadata>();
+            meta.Type.Returns("httpTrigger");
+            functionInputBindings = [meta];
             var loggerHttp = Substitute.For<ILogger<HttpMiddlewareHandler>>();
-            yield return new object[] { Substitute.For<IMiddlewareHandler>(), null };
+            var httpHandlerFake=Substitute.For<IMiddlewareHandler>();
+            httpHandlerFake.BindingName.Returns("httpTrigger");
+
+            yield return new object[] { httpHandlerFake, functionInputBindings };
             //
         }
     }
