@@ -9,7 +9,7 @@ using Azure.Storage.Blobs;
 namespace TriggerTests;
 
 [TestClass]
-public class ResubmitTests_ResubmitBlob
+public class ResubmitHandler_ResubmitingSavedFiles
 {
     private static BlobContainerClient _blobResubmitContainerBlob;
 

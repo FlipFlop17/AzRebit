@@ -49,20 +49,15 @@ public class BlobMiddlewareHandler : IMiddlewareHandler
 
         if (triggerProperties.TryGetValue("bindingAttribute", out var bindingAttributeObj))
         {
-            var bindingAttribute = bindingAttributeObj;
-
-            if (bindingAttribute == null)
+            if (bindingAttributeObj is not BlobTriggerAttribute bindingAttribute)
             {
                 _logger.LogWarning("bindingAttribute is null");
                 return;
             }
 
             // Extract connection/blob path from attribute
-            var connectionProperty = bindingAttribute?.GetType().GetProperty("Connection")
-                ?.GetValue(bindingAttribute)?.ToString();
-
-            var blobPathProperty = bindingAttribute?.GetType().GetProperty("BlobPath")
-                ?.GetValue(bindingAttribute)?.ToString();
+            var connectionProperty = bindingAttribute.Connection;
+            var blobPathProperty = bindingAttribute.BlobPath;
 
             if (string.IsNullOrEmpty(blobPathProperty))
             {

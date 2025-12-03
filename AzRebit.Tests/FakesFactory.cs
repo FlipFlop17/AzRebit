@@ -4,16 +4,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Azure.Storage.Blobs;
+
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 
 using NSubstitute;
 
-namespace AzRebit.Tests.UnitTests;
+namespace AzRebit.Tests;
 
-internal static class Utils
+internal static class FakesFactory
 {
-
 
     internal static FunctionContext? CreateFunctionContext()
     {

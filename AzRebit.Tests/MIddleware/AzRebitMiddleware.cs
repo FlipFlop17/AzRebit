@@ -53,7 +53,7 @@ public static class MiddlewareHandlerFactory
 }
 
 [TestClass]
-public class AzRebitMiddleware_SavingIncomingPayloads
+public class AzRebitMiddleware
 {
 
     [TestMethod]
