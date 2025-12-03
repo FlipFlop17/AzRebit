@@ -9,11 +9,11 @@ using Microsoft.Extensions.Logging;
 
 namespace AzRebit.FunctionExample.Features;
 
-internal class TransformCats_QueueTrigger
+internal class QueueCats
 {
-    private readonly ILogger<TransformCats_QueueTrigger> _logger;
+    private readonly ILogger<QueueCats> _logger;
 
-    public TransformCats_QueueTrigger(ILogger<TransformCats_QueueTrigger> logger)
+    public QueueCats(ILogger<QueueCats> logger)
     {
         _logger = logger;
     }
