@@ -1,19 +1,25 @@
-﻿using AzRebit.Triggers.BlobTriggered.Middleware;
+﻿using AwesomeAssertions;
+
+using AzRebit.Shared.Model;
+using AzRebit.Triggers.BlobTriggered.Middleware;
 
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Specialized;
 
 using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Context.Features;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 
 using NSubstitute;
 
-namespace AzRebit.Tests.TriggersTest.BlobTests;
+namespace Triggers.BlobTest;
 
 [TestClass]
 public class MiddlewareHandler_SaveIncoming
 {
+    public TestContext TestContext { get; set; }
     private  ILogger<BlobMiddlewareHandler> fakeLogger;
     /// <summary>
     /// The top-level object representing the Function. Holds the runtime data
@@ -29,21 +35,20 @@ public class MiddlewareHandler_SaveIncoming
     /// FunctionName, MethodName, Parameters, InputBindings, OutputBindings
     /// </summary>
     private  FunctionDefinition mockFunctionDefinition;
-
-    private BlobTriggerAttribute mockBlobTriggerAttribute;
     /// <summary>
     /// Inside the FunctionDefinition.Parameters - Its a Class representing each parameter inside the function.
     /// Holds the name, type, properties, binding atribute name
     /// </summary>
     private FunctionParameter mockFunctionParameter;
     private IAzureClientFactory<BlobServiceClient> fakeBlobClientFactory;
+    private BlobClient fakeBlobClient;
 
     public MiddlewareHandler_SaveIncoming()
     {
         fakeLogger = Substitute.For<ILogger<BlobMiddlewareHandler>>();
         context = Substitute.For<FunctionContext>();
-        mockFunctionDefinition = Substitute.For<FunctionDefinition>();
-
+        mockFunctionDefinition=Substitute.For<FunctionDefinition>();
+        fakeBlobClient = Substitute.For<BlobClient>();
         fakeBlobClientFactory = Substitute.For<IAzureClientFactory<BlobServiceClient>>();
         var fakeBlobServiceClient = Substitute.For<BlobServiceClient>();
         var fakeContainerClient = Substitute.For<BlobContainerClient>();
@@ -51,9 +56,23 @@ public class MiddlewareHandler_SaveIncoming
             .Returns(fakeBlobServiceClient);
         fakeBlobServiceClient.GetBlobContainerClient(Arg.Any<string>())
             .Returns(fakeContainerClient);
-        mockBindingContext=Substitute.For<BindingContext>();
-        mockBlobTriggerAttribute = Substitute.For<BlobTriggerAttribute>();
-        mockFunctionParameter = Substitute.For<FunctionParameter>();
+        fakeContainerClient.GetBlobClient(Arg.Any<string>())
+            .Returns(fakeBlobClient);
+
+        var contextFeatures = Substitute.For<IInvocationFeatures>();
+        // Mock the IFunctionInputBindingFeature
+        var inputBindingFeature = Substitute.For<IFunctionInputBindingFeature>();
+
+        var functionInputBindingResult = new FunctionInputBindingResult(new object[] { fakeBlobClient });
+
+        // Setup the binding feature to return the correct type
+        inputBindingFeature.BindFunctionInputAsync(Arg.Any<FunctionContext>())
+            .Returns(ValueTask.FromResult(functionInputBindingResult));
+
+        // Wire up the features to the context
+        contextFeatures.Get<IFunctionInputBindingFeature>()
+            .Returns(inputBindingFeature);
+        context.Features.Returns(contextFeatures);
     }
 
     [TestMethod]
@@ -64,39 +83,15 @@ public class MiddlewareHandler_SaveIncoming
         mockFunctionDefinition.Name.Returns(functionName);
         context.FunctionDefinition.Returns(mockFunctionDefinition);
         context.InvocationId.Returns(invocationId);
-        context.BindingContext.Returns(mockBindingContext);
-        mockBlobTriggerAttribute.Connection.Returns("FakeConnectionName");
-        mockBlobTriggerAttribute.BlobPath.Returns("incoming-container/blobs/test-path");
-
-        // 2. Mock the FunctionDefinition Parameter
+        //context.BindingContext.Returns(mockBindingContext);
         
-        // Setup the properties dictionary to return the mocked binding attribute
-        mockFunctionParameter.Properties
-            .Returns(new Dictionary<string, object>
-            {
-                { "bindingAttribute", mockBlobTriggerAttribute }
-            });
-
-        // mockFunctionDefinition.Parameters.Returns(new List<FunctionParameter> { mockFunctionParameter });
-        // mockBindingContext.BindingData.Returns(new Dictionary<string, object>
-        // {
-        //     // This is the key part: it holds the full path the function was triggered with
-        //     { "BlobTrigger", "incoming-container/blobs/test-path/file-123.json" }
-        // });
-
-        // 5. Mock the final FunctionContext
-     
-        
-        // var sut = new BlobMiddlewareHandler(fakeLogger, blobClientFacto);
+        var sut = new BlobMiddlewareHandler(fakeLogger, fakeBlobClientFactory);
 
         // //act
-        // sut.SaveIncomingRequest();
+        var blobSaveResult=await sut.SaveIncomingRequest(context);
 
         //assert
-
-        //cleanup
-
-
+        blobSaveResult.IsSuccess.Should().BeTrue();
     }
 
 

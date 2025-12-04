@@ -1,5 +1,6 @@
 ﻿using AzRebit.HelperExtensions;
 using AzRebit.Shared;
+using AzRebit.Shared.Model;
 using AzRebit.Triggers.HttpTriggered.Handler;
 
 using Microsoft.Azure.Functions.Worker;
@@ -29,13 +30,19 @@ public class HttpMiddlewareHandler:IMiddlewareHandler
     /// </summary>
     /// <param name="context"></param>
     /// <returns></returns>
-    public async Task SaveIncomingRequest(FunctionContext context)
+    public async Task<RebitActionResult> SaveIncomingRequest(FunctionContext context)
     {
-        var httpRequestData = await context.GetHttpRequestDataAsync();
+        string invocationId = context.InvocationId;
 
-        if (httpRequestData != null)
+        try
         {
-            string invocationId = context.InvocationId;
+            var httpRequestData = await context.GetHttpRequestDataAsync();
+
+            if (httpRequestData is null)
+            {
+                return RebitActionResult.Failure("Http Request Data is null");
+            }
+
             httpRequestData.Headers.TryGetValues(HeaderInvocationId, out var functionKeyHeader);
             if (functionKeyHeader != null)
             {
@@ -44,15 +51,24 @@ public class HttpMiddlewareHandler:IMiddlewareHandler
             _logger.LogInformation(
                 "Auto-saving HTTP request for resubmission with invocationId: {invocationId}",
                 invocationId);
-            if (httpRequestData.Headers.Contains(HttpResubmitHandler.HttpResubmitOriginalFileId)) //this header can only come from the /resubmit endpoint
+
+            //handle if the request is coming from the /resubmit endpoint
+            if (httpRequestData.Headers.Contains(HttpResubmitHandler.HttpResubmitOriginalFileId)) 
             {
                 await AzRebitHttpExtensions.ProcessResubmitRequest(httpRequestData);
-            }else
+            } else
             {
                 await httpRequestData.SaveRequestForResubmitionAsync(invocationId);
             }
-               
+
+            return RebitActionResult<object>.Success(new {  InvocationId= invocationId });
         }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Unexpected error while saving incoming http request {InvocationId}",invocationId);
+            return RebitActionResult.Failure(e.Message);
+        }
+
         
     }
 }

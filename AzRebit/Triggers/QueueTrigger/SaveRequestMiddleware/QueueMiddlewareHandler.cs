@@ -1,10 +1,12 @@
 ﻿using AzRebit.HelperExtensions;
 using AzRebit.Shared;
+using AzRebit.Shared.Model;
 
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Context.Features;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 
@@ -24,42 +26,43 @@ internal class QueueMiddlewareHandler : IMiddlewareHandler
             .GetBlobContainerClient(ResubmitContainerNameName);
     }
 
-    public async Task SaveIncomingRequest(FunctionContext context)
+    public async Task<RebitActionResult> SaveIncomingRequest(FunctionContext context)
     {
         string invocationId = context.InvocationId;
 
-        var triggerProperties = context.FunctionDefinition.Parameters
-            .Where(atr => atr.Properties.ContainsKey("bindingAttribute"))
-            .First().Properties;
+        return RebitActionResult.Failure("not implemented");
+            //var triggerProperties = context.FunctionDefinition.Parameters
+            //    .Where(atr => atr.Properties.ContainsKey("bindingAttribute"))
+            //    .First().Properties;
 
-        if (triggerProperties.TryGetValue("bindingAttribute", out var bindingAttributeObj))
-        {
-            var bindingAttribute = bindingAttributeObj;
+            //if (triggerProperties.TryGetValue("bindingAttribute", out var bindingAttributeObj))
+            //{
+            //    var bindingAttribute = bindingAttributeObj;
 
-            if (bindingAttribute == null)
-            {
-                _logger.LogWarning("bindingAttribute is null");
-                return;
-            }
+            //    if (bindingAttribute == null)
+            //    {
+            //        _logger.LogWarning("bindingAttribute is null");
+            //        return ActionResult.Failure();
+            //    }
 
-            context.BindingContext.BindingData.TryGetValue("QueueTrigger",out var messageBody);
+            //    context.BindingContext.BindingData.TryGetValue("QueueTrigger",out var messageBody);
 
-            var queueName = (bindingAttribute?.GetType().GetProperty("QueueName")
-               ?.GetValue(bindingAttribute)?.ToString()) ?? throw new InvalidOperationException("QueueName is null in bindingAttribute");
+            //    var queueName = (bindingAttribute?.GetType().GetProperty("QueueName")
+            //       ?.GetValue(bindingAttribute)?.ToString()) ?? throw new InvalidOperationException("QueueName is null in bindingAttribute");
 
-            //saving the queue message to blob for resubmission
-            BlobClient blobResubmitFile = _blobResubmitClient
-                .GetBlobClient($"{IMiddlewareHandler.BlobPrefixForQueue}{invocationId}.txt");
+            //    //saving the queue message to blob for resubmission
+            //    BlobClient blobResubmitFile = _blobResubmitClient
+            //        .GetBlobClient($"{IMiddlewareHandler.BlobPrefixForQueue}{invocationId}.txt");
 
-            string messageContent = messageBody?.ToString() ?? string.Empty;
-            BlobUploadOptions uploadOptions = new BlobUploadOptions() {
-                Tags = new Dictionary<string, string> {
-                    { "QueueName", queueName }, { IMiddlewareHandler.BlobTagInvocationId, invocationId } }
-            };
+            //    string messageContent = messageBody?.ToString() ?? string.Empty;
+            //    BlobUploadOptions uploadOptions = new BlobUploadOptions() {
+            //        Tags = new Dictionary<string, string> {
+            //            { "QueueName", queueName }, { IMiddlewareHandler.BlobTagInvocationId, invocationId } }
+            //    };
 
-            await blobResubmitFile.UploadAsync(new BinaryData(messageContent), uploadOptions);
+            //    await blobResubmitFile.UploadAsync(new BinaryData(messageContent), uploadOptions);
+            //}
+
         }
-
-    }
 
 }

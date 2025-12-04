@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using AzRebit.Shared.Model;
+
 using Microsoft.Azure.Functions.Worker;
 
 namespace AzRebit.Shared;
@@ -16,5 +18,5 @@ public interface IMiddlewareHandler
     public const string BlobPrefixForQueue = "qu-";
     public const string BlobPrefixForHttp = "ht-";
     public string BindingName { get; }
-    public Task SaveIncomingRequest(FunctionContext context);
+    public Task<RebitActionResult> SaveIncomingRequest(FunctionContext context);
 }

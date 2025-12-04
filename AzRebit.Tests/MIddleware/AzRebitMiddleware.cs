@@ -1,5 +1,6 @@
 ﻿using AzRebit.Middleware;
 using AzRebit.Shared;
+using AzRebit.Shared.Model;
 using AzRebit.Triggers.BlobTriggered.Middleware;
 using AzRebit.Triggers.HttpTriggered.Middleware;
 
@@ -32,7 +33,7 @@ public static class MiddlewareHandlerFactory
 
             var blobHandler=Substitute.For<IMiddlewareHandler>();
             blobHandler.BindingName.Returns("blobTrigger");
-            blobHandler.SaveIncomingRequest(Arg.Any<FunctionContext>()).Returns(Task.CompletedTask);
+            blobHandler.SaveIncomingRequest(Arg.Any<FunctionContext>()).Returns(Task.FromResult(RebitActionResult.Success()));
             var meta = Substitute.For<BindingMetadata>();
             meta.Type.Returns("blobTrigger");
             IEnumerable<BindingMetadata> functionInputBindings = [meta];
@@ -44,7 +45,7 @@ public static class MiddlewareHandlerFactory
             var loggerHttp = Substitute.For<ILogger<HttpMiddlewareHandler>>();
             var httpHandlerFake=Substitute.For<IMiddlewareHandler>();
             httpHandlerFake.BindingName.Returns("httpTrigger");
-
+            httpHandlerFake.SaveIncomingRequest(Arg.Any<FunctionContext>()).Returns(Task.FromResult(RebitActionResult.Success()));
             yield return new object[] { httpHandlerFake, functionInputBindings };
             //
         }

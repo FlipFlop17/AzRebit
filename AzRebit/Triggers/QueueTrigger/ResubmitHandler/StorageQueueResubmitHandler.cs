@@ -22,10 +22,10 @@ internal class StorageQueueResubmitHandler : IResubmitHandler
             .CreateClient(QueueMiddlewareHandler.ResubmitContainerNameName)
             .GetBlobContainerClient(QueueMiddlewareHandler.ResubmitContainerNameName);
     }
-    public async Task<ActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
+    public async Task<RebitActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
     {
         if (triggerAttributeMetadata is not QueueTriggerAttributeMetadata queueTriggerData)
-            return ActionResult.Failure("Trigger attribute data is missing");
+            return RebitActionResult.Failure("Trigger attribute data is missing");
 
         //1. Parse triggerAttributeMetadata to get queue name
         var queueName = queueTriggerData.QueueName;
@@ -43,9 +43,9 @@ internal class StorageQueueResubmitHandler : IResubmitHandler
         
         if (msgResult.Value.MessageId is not null) { 
             var msgToReturn = msgResult.Value.ToString() ?? "Message added to the queue (resubmited)";
-            return ActionResult.Success(msgToReturn);
+            return RebitActionResult.Success(msgToReturn);
         }
 
-        return ActionResult.Failure("Failed to add message to the queue");
+        return RebitActionResult.Failure("Failed to add message to the queue");
     }
 }

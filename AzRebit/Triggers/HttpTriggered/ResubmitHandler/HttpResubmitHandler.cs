@@ -24,7 +24,7 @@ internal class HttpResubmitHandler:IResubmitHandler
         _httpFact = httpFact;
     }
     
-    public async Task<ActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
+    public async Task<RebitActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
     {
         BlobContainerClient httpContainer = new BlobContainerClient(
             Environment.GetEnvironmentVariable("AzureWebJobsStorage"),
@@ -33,7 +33,7 @@ internal class HttpResubmitHandler:IResubmitHandler
 
         if (blobForResubmit is null)
         {
-            return ActionResult.Failure();
+            return RebitActionResult.Failure();
         }
         var downloadResponse = await blobForResubmit.DownloadAsync();
         using var streamReader = new StreamReader(downloadResponse.Value.Content);
@@ -57,6 +57,6 @@ internal class HttpResubmitHandler:IResubmitHandler
 
         var response = await azFuncEndpointclient.SendAsync(httpRequestMessage);
 
-        return response.IsSuccessStatusCode ? ActionResult.Success(await response.Content.ReadAsStringAsync()) : ActionResult.Failure(await response.Content.ReadAsStringAsync());
+        return response.IsSuccessStatusCode ? RebitActionResult.Success(await response.Content.ReadAsStringAsync()) : RebitActionResult.Failure(await response.Content.ReadAsStringAsync());
     }
 }

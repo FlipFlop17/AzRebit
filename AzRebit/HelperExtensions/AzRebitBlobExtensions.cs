@@ -7,6 +7,7 @@ using AzRebit.Shared;
 using AzRebit.Triggers.BlobTriggered.Handler;
 using AzRebit.Triggers.BlobTriggered.Middleware;
 
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
@@ -15,39 +16,7 @@ using Microsoft.IdentityModel.Abstractions;
 
 namespace AzRebit.HelperExtensions;
 public static class AzRebitBlobExtensions
-{
-
-    /// <summary>
-    /// Saves the <code>existing</code> blob in a resubmition container. Copies existing tags and adds/updates the tag for invocation id.
-    /// </summary>
-    /// <param name="blobClient"></param>
-    /// <param name="id"></param>
-    /// <param name="destinationContainer"> If null it uses the container of the BlobBaseClient otherwise the file is saved in the provided BlobContainerClient</param>
-    /// <returns></returns>
-    public static async Task SaveBlobForResubmitionAsync(this BlobBaseClient blobClient, string id, BlobContainerClient? destinationContainer = null)
-    {
-        IDictionary<string, string> tags = new Dictionary<string, string>();
-        var existingTagsResponse = await blobClient.GetTagsAsync();
-        if (existingTagsResponse.Value is not null)
-        {
-            tags = existingTagsResponse.Value.Tags;
-        }
-      
-        var destinationBlobName = $"{id}{Path.GetExtension(blobClient.Name)}";
-        
-        BlobContainerClient saveContainer=blobClient.GetParentBlobContainerClient();
-        if (destinationContainer is not null)
-        {
-            saveContainer = destinationContainer;
-        }
-        await saveContainer.CreateIfNotExistsAsync();
-        BlobClient destinationFileClient = saveContainer.GetBlobClient(destinationBlobName);
-        var operation = await destinationFileClient.StartCopyFromUriAsync(blobClient.Uri);
-        await operation.WaitForCompletionAsync();
-        //set tags
-        tags[IMiddlewareHandler.BlobTagInvocationId] = id;
-        await destinationFileClient.SetTagsAsync(tags);
-    }
+{    
 
     /// <summary>
     /// Saves blob content directly to the resubmission container
@@ -228,6 +197,31 @@ public static class AzRebitBlobExtensions
             return string.Empty;
 
         return string.Join("/", segments.Where(s => !string.IsNullOrEmpty(s)));
+    }
+
+    /// <summary>
+    /// Gets tags
+    /// </summary>
+    /// <param name="blobClient"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static async Task<IDictionary<string, string>> GetClonedTagsAsync(
+       this BlobClient blobClient,
+       CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await blobClient.GetTagsAsync(cancellationToken: cancellationToken);
+
+            return response.Value?.Tags != null
+                ? new Dictionary<string, string>(response.Value.Tags)
+                : new Dictionary<string, string>();
+        }
+        catch (RequestFailedException)
+        {
+            // If tags are not supported or missing, return empty
+            return new Dictionary<string, string>();
+        }
     }
 
 

@@ -21,7 +21,7 @@ internal class BlobResubmitHandler : IResubmitHandler
 
     public TriggerType HandlerType => TriggerType.Blob;
 
-    public async Task<ActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
+    public async Task<RebitActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
     {
         BlobTriggerAttributeMetadata blobTriggerAttributeMetadata = (BlobTriggerAttributeMetadata)triggerAttributeMetadata!;
         IDictionary<string, string> tags = new Dictionary<string, string>();
@@ -31,7 +31,7 @@ internal class BlobResubmitHandler : IResubmitHandler
         BlobClient? blobForResubmitClient = await resubmitContainerClient.PickUpBlobForResubmition(invocationId);
         if (blobForResubmitClient is null)
         {
-            return ActionResult.Failure($"No blob found for invocation id {invocationId} in container {blobTriggerAttributeMetadata.ContainerName}");
+            return RebitActionResult.Failure($"No blob found for invocation id {invocationId} in container {blobTriggerAttributeMetadata.ContainerName}");
         }
         var existingTagsResponse = await blobForResubmitClient.GetTagsAsync();
         BlobContainerClient inputContainer = new BlobContainerClient(blobTriggerAttributeMetadata.Connection, blobTriggerAttributeMetadata.ContainerName);
@@ -42,7 +42,7 @@ internal class BlobResubmitHandler : IResubmitHandler
         {
             await inputBlob.SetTagsAsync(existingTagsResponse.Value.Tags);
         }
-        return ActionResult.Success();
+        return RebitActionResult.Success();
     }
 
   

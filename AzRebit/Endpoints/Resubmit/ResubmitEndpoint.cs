@@ -91,7 +91,7 @@ internal class ResubmitEndpoint
         }
     }
 
-    private async Task<ActionResult> HandleResubmit(string functionName,string invocationId)
+    private async Task<RebitActionResult> HandleResubmit(string functionName,string invocationId)
     {
         var functionForResubmit = _availableFunctions.First(fn => fn.Name.Equals(functionName));
         var functionsTriggerMetadata = functionForResubmit.TriggerMetadata;

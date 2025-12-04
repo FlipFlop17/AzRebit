@@ -1,16 +1,24 @@
-﻿using AzRebit.HelperExtensions;
-using AzRebit.Shared;
+﻿
+using System.ClientModel.Primitives;
 
+using AzRebit.HelperExtensions;
+using AzRebit.Shared;
+using AzRebit.Shared.Exceptions;
+using AzRebit.Shared.Model;
+
+using Azure;
 using Azure.Identity;
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Specialized;
+
+using Grpc.Net.Client.Configuration;
 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Context.Features;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 
 namespace AzRebit.Triggers.BlobTriggered.Middleware;
-
-
 
 /// <summary>
 /// Middleware handler for incoming blob payloads. Depending on blob triggered params it saves the blob for resubmission.
@@ -24,6 +32,7 @@ public class BlobMiddlewareHandler : IMiddlewareHandler
     /// the name of the container where blobs for resubmition are stored
     /// </summary>
     public const string BlobResubmitContainerName = "blob-resubmits";
+    public string BindingName => "blobTrigger";
 
     public BlobMiddlewareHandler(ILogger<BlobMiddlewareHandler> logger,IAzureClientFactory<BlobServiceClient> blobFact)
     {
@@ -33,135 +42,74 @@ public class BlobMiddlewareHandler : IMiddlewareHandler
            .GetBlobContainerClient(BlobResubmitContainerName);
     }
 
-    public string BindingName => "blobTrigger";
 
-    public async Task SaveIncomingRequest(FunctionContext context)
+    public async Task<RebitActionResult> SaveIncomingRequest(FunctionContext context)
     {
         string invocationId = context.InvocationId;
-		context.BindingContext.BindingData.TryGetValue("bindingAttribute",out var blobTriggerAttribute);
-		if (blobTriggerAttribute is not BlobTriggerAttribute bindingAttribute){
-            _logger.LogWarning("bindingAttribute is not BlobTrigger");
-			return;
-		}
-		// Extract connection/blob path from attribute
-		var connectionProperty = bindingAttribute.Connection;
-		var blobPathProperty = bindingAttribute.BlobPath;
-		
-		if (string.IsNullOrEmpty(blobPathProperty))
-		{
-			_logger.LogWarning("BlobPath not found in trigger attribute");
-			return;
-		}
-		var resubmitFileName=Path.GetFileName(blobPathProperty);
-		var sourceContainerProperty = Path.GetDirectoryName(blobPathProperty);
-		if (string.IsNullOrEmpty(sourceContainerProperty))
-		{
-			_logger.LogWarning("Unable to extract container name from BlobPath");
-			return;
-		}
+        try
+        {
+            var inputBindingFeature = context.Features.Get<IFunctionInputBindingFeature>();
+            if (inputBindingFeature is null)
+            {
+                return RebitActionResult.Failure("There is not input bindings specified");
+            }
 
-		// Create BlobClient of the incoming request
-		BlobClient originalSourceBlobClient = await CreateBlobClientAsync(connectionProperty, sourceContainerProperty, resubmitFileName);
+            var data = await inputBindingFeature.BindFunctionInputAsync(context);
+            var inputData = data.Values;
 
-		if (originalSourceBlobClient != null)
-		{
-			await originalSourceBlobClient.SaveBlobForResubmitionAsync(invocationId,destinationContainer:_blobResubmitClient);
-			_logger.LogInformation("Blob {BlobName} saved for resubmission with invocationId {InvocationId}",
-				resubmitFileName, invocationId);
-		}
-		else
-		{
-			_logger.LogError("Failed to create BlobClient for blob {BlobName}", resubmitFileName);
-		}        
+            var blobClient = inputData.OfType<BlobClient>().FirstOrDefault();
+            if (blobClient != null)
+            {
+                await SaveBlobForResubmitionAsync(blobClient, invocationId);
+                return RebitActionResult.Success();
+            }
+            return RebitActionResult.Failure("Blob Client not found");
+        }
+        catch (BlobOperationException blobE)
+        {
+            _logger.LogError(blobE, "Unexpected Error on SaveBlobForResubmitionAsync() {InvocationId}", invocationId);
+            return RebitActionResult.Failure(blobE.Message);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Unexpected Error while saving incoming request {InvocationId}", invocationId);
+            return RebitActionResult.Failure(e.Message);
+        }
+
     }
-
-    /// <summary>
-    /// Creates a BlobClient using the appropriate authentication method:
-    /// 1. Connection string (if available)
-    /// 2. Identity-based connection with service URI
-    /// 3. Default to AzureWebJobsStorage connection string
-    /// </summary>
-    private async Task<BlobClient> CreateBlobClientAsync(string? connectionName, string containerName, string blobName)
+    private async Task SaveBlobForResubmitionAsync(BlobClient sourceblobClient, string id)
     {
         try
         {
+            var existingTagsResponse = await sourceblobClient.GetClonedTagsAsync();
 
-            if (string.IsNullOrEmpty(connectionName) || connectionName.Equals("AzureWebJobsStorage")) // default local storage connection
-            {
-                connectionName = "AzureWebJobsStorage";
-                var connectionString = Environment.GetEnvironmentVariable(connectionName);
+            var destinationBlobName = $"{id}{Path.GetExtension(sourceblobClient.Name)}";
 
-                if (!string.IsNullOrEmpty(connectionString))
-                {
-                    // Case 1: Connection string authentication
-                    _logger.LogDebug("Using connection string authentication for connection '{ConnectionName}'", connectionName);
-                    return new BlobClient(connectionString: connectionString, containerName, blobName);
-                }
-            }
+            var saveContainer = _blobResubmitClient;
 
-            // Case 2: Identity-based connection (managed identity or user identity)
-            // Look for service URIs configured as: {PREFIX}__serviceUri or {PREFIX}__blobServiceUri
-            var serviceUri = GetServiceUri(connectionName);
-
-            if (!string.IsNullOrEmpty(serviceUri))
-            {
-                _logger.LogDebug("Using identity-based authentication with service URI for connection '{ConnectionName}'", connectionName);
-                
-                var blobUri = new Uri($"{serviceUri.TrimEnd('/')}/{containerName}/{blobName}");
-                
-                // Use DefaultAzureCredential for managed identity (system-assigned or user-assigned)
-                var credential = new DefaultAzureCredential();
-                
-                return new BlobClient(blobUri, credential);
-            }
-
-            // Case 3: Fallback - default to AzureWebJobsStorage connection string
-            connectionName = "AzureWebJobsStorage";
-            _logger.LogWarning("No configuration found for connection '{ConnectionName}', falling back to AzureWebJobsStorage", connectionName);
-            var connString = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
-
-            if (!string.IsNullOrEmpty(connString))
-            {
-                return new BlobClient(connectionString: connString, containerName, blobName);
-            }
-
-            _logger.LogError("Unable to create BlobClient: no connection string or identity-based URI found for connection '{ConnectionName}'", connectionName);
-            return null!;
+            await saveContainer.CreateIfNotExistsAsync();
+            BlobClient destinationFileClient = saveContainer.GetBlobClient(destinationBlobName);
+            var operation = await destinationFileClient.StartCopyFromUriAsync(sourceblobClient.Uri);
+            await operation.WaitForCompletionAsync();
+            
+            //set tags
+            if(existingTagsResponse.Count<10)
+                existingTagsResponse[IMiddlewareHandler.BlobTagInvocationId] = id;
+            
+            await destinationFileClient.SetTagsAsync(existingTagsResponse);
+        }
+        catch (RequestFailedException ex)
+        {
+            throw new BlobOperationException("SaveBlobForResubmitionAsync",
+             $"Failed saving blob '{sourceblobClient.Name}'",
+             ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating BlobClient for connection '{ConnectionName}'", connectionName);
-            throw;
+            throw new BlobOperationException("SaveBlobForResubmitionAsync",
+            $"Unexpected failure while saving blob '{sourceblobClient.Name}'",
+            ex);
         }
-    }
 
-    /// <summary>
-    /// Gets the service URI from environment variables for identity-based connections.
-    /// Checks for both combined serviceUri and separate blobServiceUri patterns.
-    /// </summary>
-    private string? GetServiceUri(string connectionName)
-    {
-        // Try service URI (works for blob-only scenarios)
-        var serviceUri = Environment.GetEnvironmentVariable($"{connectionName}__serviceUri");
-        if (!string.IsNullOrEmpty(serviceUri))
-            return serviceUri;
-
-        // Try blob-specific service URI (works for multi-service scenarios)
-        serviceUri = Environment.GetEnvironmentVariable($"{connectionName}__blobServiceUri");
-        if (!string.IsNullOrEmpty(serviceUri))
-            return serviceUri;
-
-        return null;
-    }
-
-    /// <summary>
-    /// Extracts storage account name from connection string.
-    /// Expected format: DefaultEndpointsProtocol=https;AccountName=xxx;AccountKey=yyy;EndpointSuffix=core.windows.net
-    /// </summary>
-    private string GetStorageAccountName(string connectionString)
-    {
-        var parts = connectionString.Split(';');
-        var accountNamePart = parts.FirstOrDefault(p => p.StartsWith("AccountName="));
-        return accountNamePart?.Substring("AccountName=".Length) ?? throw new InvalidOperationException("AccountName not found in connection string");
     }
 }
