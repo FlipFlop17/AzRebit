@@ -92,6 +92,7 @@ public class MiddlewareHandler_SaveIncoming
 
         //assert
         blobSaveResult.IsSuccess.Should().BeTrue();
+        await fakeBlobClient.Received(1).StartCopyFromUriAsync(Arg.Any<Uri>());
     }
 
 
