@@ -38,62 +38,41 @@ public class BlobMiddlewareHandler : IMiddlewareHandler
     public async Task SaveIncomingRequest(FunctionContext context)
     {
         string invocationId = context.InvocationId;
+		context.BindingContext.BindingData.TryGetValue("bindingAttribute",out var blobTriggerAttribute);
+		if (blobTriggerAttribute is not BlobTriggerAttribute bindingAttribute){
+            _logger.LogWarning("bindingAttribute is not BlobTrigger");
+			return;
+		}
+		// Extract connection/blob path from attribute
+		var connectionProperty = bindingAttribute.Connection;
+		var blobPathProperty = bindingAttribute.BlobPath;
+		
+		if (string.IsNullOrEmpty(blobPathProperty))
+		{
+			_logger.LogWarning("BlobPath not found in trigger attribute");
+			return;
+		}
+		var resubmitFileName=Path.GetFileName(blobPathProperty);
+		var sourceContainerProperty = Path.GetDirectoryName(blobPathProperty);
+		if (string.IsNullOrEmpty(sourceContainerProperty))
+		{
+			_logger.LogWarning("Unable to extract container name from BlobPath");
+			return;
+		}
 
-        var triggerProperties = context.FunctionDefinition.Parameters
-            .Where(atr => atr.Properties.ContainsKey("bindingAttribute"))
-            .First().Properties;
+		// Create BlobClient of the incoming request
+		BlobClient originalSourceBlobClient = await CreateBlobClientAsync(connectionProperty, sourceContainerProperty, resubmitFileName);
 
-        var sourceBlobNameProperty = Path.GetFileName(context.BindingContext.BindingData
-            .First(d => d.Key.Equals("BlobTrigger")).Value!
-            .ToString()!);
-
-        if (triggerProperties.TryGetValue("bindingAttribute", out var bindingAttributeObj))
-        {
-            if (bindingAttributeObj is not BlobTriggerAttribute bindingAttribute)
-            {
-                _logger.LogWarning("bindingAttribute is null");
-                return;
-            }
-
-            // Extract connection/blob path from attribute
-            var connectionProperty = bindingAttribute.Connection;
-            var blobPathProperty = bindingAttribute.BlobPath;
-
-            if (string.IsNullOrEmpty(blobPathProperty))
-            {
-                _logger.LogWarning("BlobPath not found in trigger attribute");
-                return;
-            }
-
-            var sourceContainerProperty = Path.GetDirectoryName(blobPathProperty);
-            if (string.IsNullOrEmpty(sourceContainerProperty))
-            {
-                _logger.LogWarning("Unable to extract container name from BlobPath");
-                return;
-            }
-
-            try
-            {
-                // Create BlobClient of the incoming request
-                BlobClient originalSourceBlobClient = await CreateBlobClientAsync(connectionProperty, sourceContainerProperty, sourceBlobNameProperty);
-
-                if (originalSourceBlobClient != null)
-                {
-                    await originalSourceBlobClient.SaveBlobForResubmitionAsync(invocationId,destinationContainer:_blobResubmitClient);
-                    _logger.LogInformation("Blob {BlobName} saved for resubmission with invocationId {InvocationId}",
-                        sourceBlobNameProperty, invocationId);
-                }
-                else
-                {
-                    _logger.LogError("Failed to create BlobClient for blob {BlobName}", sourceBlobNameProperty);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error saving blob {BlobName} for resubmission", sourceBlobNameProperty);
-                throw;
-            }
-        }
+		if (originalSourceBlobClient != null)
+		{
+			await originalSourceBlobClient.SaveBlobForResubmitionAsync(invocationId,destinationContainer:_blobResubmitClient);
+			_logger.LogInformation("Blob {BlobName} saved for resubmission with invocationId {InvocationId}",
+				resubmitFileName, invocationId);
+		}
+		else
+		{
+			_logger.LogError("Failed to create BlobClient for blob {BlobName}", resubmitFileName);
+		}        
     }
 
     /// <summary>

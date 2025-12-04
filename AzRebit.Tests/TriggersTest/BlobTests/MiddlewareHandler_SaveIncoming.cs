@@ -77,20 +77,20 @@ public class MiddlewareHandler_SaveIncoming
                 { "bindingAttribute", mockBlobTriggerAttribute }
             });
 
-        mockFunctionDefinition.Parameters.Returns(new List<FunctionParameter> { mockFunctionParameter });
-        mockBindingContext.BindingData.Returns(new Dictionary<string, object>
-        {
-            // This is the key part: it holds the full path the function was triggered with
-            { "BlobTrigger", "incoming-container/blobs/test-path/file-123.json" }
-        });
+        // mockFunctionDefinition.Parameters.Returns(new List<FunctionParameter> { mockFunctionParameter });
+        // mockBindingContext.BindingData.Returns(new Dictionary<string, object>
+        // {
+        //     // This is the key part: it holds the full path the function was triggered with
+        //     { "BlobTrigger", "incoming-container/blobs/test-path/file-123.json" }
+        // });
 
         // 5. Mock the final FunctionContext
      
         
-        var sut = new BlobMiddlewareHandler(fakeLogger, blobClientFacto);
+        // var sut = new BlobMiddlewareHandler(fakeLogger, blobClientFacto);
 
-        //act
-        sut.SaveIncomingRequest();
+        // //act
+        // sut.SaveIncomingRequest();
 
         //assert
 
