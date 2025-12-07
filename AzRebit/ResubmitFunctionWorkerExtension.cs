@@ -40,8 +40,8 @@ public static class ResubmitFunctionWorkerExtension
         // register options for dependency injection
         builder.Services.AddSingleton(Options.Create(options));
         // discover and register function names
-        var functionDetails = AssemblyDiscovery.DiscoverAzFunctions(options.ExcludedFunctionNames).ToList();
-        builder.Services.AddSingleton<IReadOnlyCollection<AzFunction>>(functionDetails);
+        var discoveredFunctions = AssemblyDiscovery.DiscoverAzFunctions(builder.Services,options.ExcludedFunctionNames).ToList();
+        builder.Services.AddSingleton<IReadOnlyCollection<AzFunction>>(discoveredFunctions);
         builder.Services.AddAzureClients(c=>
         {
             c.AddTableServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"))

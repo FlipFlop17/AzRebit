@@ -22,7 +22,7 @@ internal static class AssemblyDiscovery
     /// Discovers all Functions with the [Function(Name="...")] attribute, excluding internal resubmit functions
     /// </summary>
     /// <returns>IEnumerable of function names</returns>
-    internal static IEnumerable<AzFunction> DiscoverAzFunctions(IServiceCollection services,ISet<string>? excludedFunctionNames = null)
+    internal static IEnumerable<AzFunction> DiscoverAzFunctions(IServiceCollection services, ISet<string>? excludedFunctionNames = null)
     {
         var foundFunctions = new HashSet<AzFunction>();
         excludedFunctionNames ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -46,8 +46,8 @@ internal static class AssemblyDiscovery
                             !string.IsNullOrWhiteSpace(attr.Name) &&
                             !excludedFunctionNames.Contains(attr.Name))
                         {
-                            var func=CreateAzFunction(attr.Name, method.GetParameters(),services);
-                            if(func is not null)
+                            var func = CreateAzFunction(attr.Name, method.GetParameters(), services);
+                            if (func is not null)
                                 foundFunctions.Add(func);
                         }
                     }
@@ -73,50 +73,30 @@ internal static class AssemblyDiscovery
     /// <param name="funcName">The name of the function for which trigger details are being added.</param>
     /// <param name="functions">A collection to which the function and its trigger type will be added if a matching trigger is found.</param>
     /// <param name="allParams">An array of all parameters for the function, used to search for trigger attributes.</param>
-    private static AzFunction? CreateAzFunction(string funcName, ParameterInfo[] allParams,IServiceCollection services)
+    private static AzFunction? CreateAzFunction(string funcName, ParameterInfo[] allParams, IServiceCollection services)
     {
-        ICollection<TriggerSetupBase> supportedTriggers = DiscoverSupportedTriggerTypes().ToList(); //we only process triggers (IFeatureSetup) supported by this package
-        //steps
-        //find out whats the trigger atribute of the function
-        //check if the trigger is in the supported range
+        ICollection<TriggerSetupBase> supportedTriggers = [.. DiscoverTriggerSetups()]; 
 
-        //create depending on the resolved trigger
-        
-        foreach (var triggerAttribute in supportedTriggers)
+        foreach (TriggerSetupBase triggerBase in supportedTriggers)
         {
             try
             {
-                //var featureInstance = Activator.CreateInstance(feature) as IFeatureSetup;
-                //if (featureInstance is null) continue;
-                var triggerAttributeType = featureInstance.TriggerAttribute;
-                //var triggerType = featureInstance.TriggerSupport;
-
-                // resolve trigger attribute
-                var functionsTriggerParameter = allParams.FirstOrDefault(p =>p.GetCustomAttribute(triggerAttributeType) != null);
-                var functionTriggerType=allParams.Select(t=>t.ParameterType).FirstOrDefault();
-                
-                if (functionsTriggerParameter is not null)
-                {
-                    AzFunction func = triggerType switch
-                    {
-                        typeof(BlobTriggerAttribute) => Setup.CreateAzFunction(funcName, functionsTriggerParameter, services),
-                        TriggerTypes.TriggerType.Queue => QueueFeatureSetup.CreateAzFunction(funcName, functionsTriggerParameter, services),
-                        TriggerTypes.TriggerType.Http => HttpFeatureSetup.CreateAzFunction(funcName, functionsTriggerParameter, services)
-
-                    };
-
-                    return func;
-                } else
-                {
-                    return null;
-                }
+                AzFunction func = triggerBase.TryCreateAzFunction(funcName, allParams, services);
+                return func;
+            }
+            catch (AzFunctionNotCreatedException ex)
+            {
+                Console.WriteLine("function not created {Reason}", ex.Message);
+                return null;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Could not resolve the TriggerMetadata {triggerAttribute}: {ex.Message}");
+                Debug.WriteLine($"Could not resolve the TriggerMetadata");
                 return null;
             }
         }
+
+        return null;
     }
 
     /// <summary>
@@ -127,7 +107,7 @@ internal static class AssemblyDiscovery
     /// the handler types; it only returns their Type objects.</remarks>
     /// <returns>An enumerable collection of types representing trigger handler classes found in the current application domain.
     /// The collection may be empty if no handlers are found.</returns>
-    private static IEnumerable<TriggerSetupBase> DiscoverSupportedTriggerTypes()
+    private static IEnumerable<TriggerSetupBase> DiscoverTriggerSetups()
     {
         var featureInstances = new List<TriggerSetupBase>();
 
@@ -183,6 +163,67 @@ internal static class AssemblyDiscovery
         installers.ForEach(installer => installer.RegisterServices(services));
 
         return services;
+    }
+
+    public static string ResolveConnectionString(string? connectionAttribute)
+    {
+        // Default to AzureWebJobsStorage if not specified
+        if (string.IsNullOrWhiteSpace(connectionAttribute))
+        {
+            return ValidateConnectionExists("AzureWebJobsStorage");
+        }
+
+        // Try the connection name as-is first
+        if (ConnectionStringExists(connectionAttribute))
+        {
+            return connectionAttribute;
+        }
+
+        // Try with AzureWebJobsStorage: prefix (colon separator)
+        var prefixedWithColon = $"AzureWebJobsStorage:{connectionAttribute}";
+        if (ConnectionStringExists(prefixedWithColon))
+        {
+            return prefixedWithColon;
+        }
+
+        // Try with AzureWebJobsStorage__ prefix (double underscore for env vars)
+        var prefixedWithUnderscore = $"AzureWebJobsStorage__{connectionAttribute}";
+        if (ConnectionStringExists(prefixedWithUnderscore))
+        {
+            return prefixedWithUnderscore;
+        }
+
+        // If nothing found, return the original and let it fail downstream with proper error
+        return connectionAttribute;
+    }
+
+    private static bool ConnectionStringExists(string connectionName)
+    {
+        // Check environment variables
+        var envValue = Environment.GetEnvironmentVariable(connectionName);
+        if (!string.IsNullOrWhiteSpace(envValue))
+        {
+            return true;
+        }
+
+        // If you have access to IConfiguration, check there too
+        // var configValue = _configuration[connectionName];
+        // if (!string.IsNullOrWhiteSpace(configValue))
+        // {
+        //     return true;
+        // }
+
+        return false;
+    }
+
+    private static string ValidateConnectionExists(string connectionName)
+    {
+        if (!ConnectionStringExists(connectionName))
+        {
+            throw new InvalidOperationException(
+                $"Connection string '{connectionName}' not found in environment variables or configuration.");
+        }
+        return connectionName;
     }
 
 }
