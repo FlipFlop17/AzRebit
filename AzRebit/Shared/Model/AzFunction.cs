@@ -8,14 +8,14 @@ namespace AzRebit.Shared.Model;
 /// <param name="name"></param>
 /// <param name="triggerType"></param>
 /// <param name="triggerDetails">Trigger metadata like connection strings, const params etc.</param>
-internal sealed class AzFunction(string name,TriggerType triggerType,object? triggerDetails)
+internal sealed class AzFunction(string name,TriggerType triggerType,Dictionary<string,string>? triggerDetails)
 {
     internal TriggerType TriggerType => triggerType;
     internal string Name => name;
     /// <summary>
-    /// Holds trigger-specific metadata
+    /// Handler that is doing the resubmiting logic
     /// </summary>
-    internal object? TriggerMetadata => triggerDetails;
+    internal Dictionary<string,string> TriggerMetadata => triggerDetails;
 }
 
 

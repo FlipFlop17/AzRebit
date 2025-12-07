@@ -24,7 +24,7 @@ internal class HttpResubmitHandler:IResubmitHandler
         _httpFact = httpFact;
     }
     
-    public async Task<RebitActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
+    public async Task<RebitActionResult> HandleResubmitAsync(string invocationId, AzFunction function)
     {
         BlobContainerClient httpContainer = new BlobContainerClient(
             Environment.GetEnvironmentVariable("AzureWebJobsStorage"),

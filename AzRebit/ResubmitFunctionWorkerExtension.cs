@@ -1,7 +1,10 @@
 ﻿using AzRebit.Middleware;
 using AzRebit.Shared.Model;
 
+using Azure.Data.Tables;
+
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -39,8 +42,14 @@ public static class ResubmitFunctionWorkerExtension
         // discover and register function names
         var functionDetails = AssemblyDiscovery.DiscoverAzFunctions(options.ExcludedFunctionNames).ToList();
         builder.Services.AddSingleton<IReadOnlyCollection<AzFunction>>(functionDetails);
+        builder.Services.AddAzureClients(c=>
+        {
+            c.AddTableServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"))
+            .WithName("rebitTables");
+        });
+
         builder.UseMiddleware<ResubmitMiddleware>();
-        AssemblyDiscovery.RegisterAllFeatures(builder.Services);
+        builder.Services.AddAllAzRebitServices();
 
         return builder;
     }

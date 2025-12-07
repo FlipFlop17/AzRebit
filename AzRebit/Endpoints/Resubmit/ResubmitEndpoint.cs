@@ -101,7 +101,7 @@ internal class ResubmitEndpoint
             return h.HandlerType == functionForResubmit.TriggerType;
         }) ?? throw new InvalidOperationException($"No trigger handler found for function '{functionName}' with the trigger type {functionForResubmit.TriggerType}");
 
-        var handlerResponse= await handler.HandleResubmitAsync(invocationId, functionsTriggerMetadata);
+        var handlerResponse= await handler.HandleResubmitAsync(invocationId, functionForResubmit);
 
         return handlerResponse;
     }

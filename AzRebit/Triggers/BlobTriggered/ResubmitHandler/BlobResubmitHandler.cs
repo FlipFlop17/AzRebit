@@ -1,11 +1,19 @@
-﻿using AzRebit.HelperExtensions;
+﻿using System.Reflection;
+
+using AzRebit.HelperExtensions;
 using AzRebit.Shared;
 using AzRebit.Shared.Model;
 using AzRebit.Triggers.BlobTriggered.Middleware;
 using AzRebit.Triggers.BlobTriggered.Model;
 
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
+
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 using static AzRebit.Shared.Model.TriggerTypes;
 
@@ -18,34 +26,62 @@ namespace AzRebit.Triggers.BlobTriggered.Handler;
 internal class BlobResubmitHandler : IResubmitHandler
 
 {
-
+    private readonly ILogger<BlobResubmitHandler> _logger;
+    private readonly IAzureClientFactory<BlobServiceClient> _blobFact;
+    private BlobContainerClient _blobResubmitContainerClient;
     public TriggerType HandlerType => TriggerType.Blob;
 
-    public async Task<RebitActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
+    public BlobResubmitHandler(ILogger<BlobResubmitHandler> logger,
+        IAzureClientFactory<BlobServiceClient> blobFact)
     {
-        BlobTriggerAttributeMetadata blobTriggerAttributeMetadata = (BlobTriggerAttributeMetadata)triggerAttributeMetadata!;
-        IDictionary<string, string> tags = new Dictionary<string, string>();
-
-        BlobContainerClient resubmitContainerClient = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"), BlobMiddlewareHandler.BlobResubmitContainerName);
-
-        BlobClient? blobForResubmitClient = await resubmitContainerClient.PickUpBlobForResubmition(invocationId);
-        if (blobForResubmitClient is null)
-        {
-            return RebitActionResult.Failure($"No blob found for invocation id {invocationId} in container {blobTriggerAttributeMetadata.ContainerName}");
-        }
-        var existingTagsResponse = await blobForResubmitClient.GetTagsAsync();
-        BlobContainerClient inputContainer = new BlobContainerClient(blobTriggerAttributeMetadata.Connection, blobTriggerAttributeMetadata.ContainerName);
-        AppendBlobClient inputBlob= inputContainer.GetAppendBlobClient(blobForResubmitClient.GetBlobName());
-        await inputBlob.StartCopyFromUriAsync(blobForResubmitClient.Uri);
-
-        if (existingTagsResponse.Value is not null)
-        {
-            await inputBlob.SetTagsAsync(existingTagsResponse.Value.Tags);
-        }
-        return RebitActionResult.Success();
+        _blobResubmitContainerClient= blobFact
+            .CreateClient(BlobMiddlewareHandler.BlobResubmitContainerName)
+            .GetBlobContainerClient(BlobMiddlewareHandler.BlobResubmitContainerName);
+        _logger = logger;
+        _blobFact = blobFact;
     }
 
-  
+    public async Task<RebitActionResult> HandleResubmitAsync(string invocationId, AzFunction function)
+    {
+        try
+        {
+            
+            IDictionary<string, string> tags = new Dictionary<string, string>();
+            function.TriggerMetadata.TryGetValue("container", out string triggerContainerName);
 
+            BlobClient? blobForResubmitClient = await _blobResubmitContainerClient.PickUpBlobForResubmition(invocationId);
+            if (blobForResubmitClient is null)
+            {
+                return RebitActionResult.Failure($"No blob found for invocation id {invocationId} in container {_blobResubmitContainerClient.Name}");
+            }
+            var existingTagsResponse = await blobForResubmitClient.GetClonedTagsAsync();
+            var existingMetaResponse = await blobForResubmitClient.GetClonedMetadataAsync();
 
+            BlobCopyFromUriOptions options = new()
+            {
+                Tags = existingTagsResponse,
+                Metadata = existingMetaResponse
+            };
+
+            var inputBlob = CreateInputContainerClient(function.Name, triggerContainerName)
+                .GetBlobClient(blobForResubmitClient.GetBlobName());
+
+            var copyOp = await inputBlob.StartCopyFromUriAsync(blobForResubmitClient.Uri, options);
+
+            await copyOp.WaitForCompletionAsync();
+
+            return RebitActionResult.Success();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e,"Unexpected error while trying to resubmit the file {InvocationId}",invocationId);
+            return RebitActionResult.Failure($"{e.Message}");
+        }
+
+    }
+
+    private BlobContainerClient CreateInputContainerClient(string functionName , string containerName)
+    {
+        return _blobFact.CreateClient(functionName).GetBlobContainerClient(containerName);
+    }
 }

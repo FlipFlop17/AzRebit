@@ -224,5 +224,24 @@ public static class AzRebitBlobExtensions
         }
     }
 
+    public static async Task<IDictionary<string, string>> GetClonedMetadataAsync(
+      this BlobClient blobClient,
+      CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);
+
+            return response.Value?.Metadata != null
+                ? new Dictionary<string, string>(response.Value.Metadata)
+                : new Dictionary<string, string>();
+        }
+        catch (RequestFailedException)
+        {
+            // If meta are not supported or missing, return empty
+            return new Dictionary<string, string>();
+        }
+    }
+
 
 }

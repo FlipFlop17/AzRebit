@@ -11,11 +11,35 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AzRebit.Triggers.QueueTrigger;
 
-internal class QueueFeatureSetup : IFeatureSetup
+internal class QueueFeatureSetup : ITriggerSetup
 {
     public TriggerTypes.TriggerType TriggerSupport => TriggerTypes.TriggerType.Queue;
 
     public Type TriggerAttribute => typeof(QueueTriggerAttribute);
+
+    public static AzFunction CreateAzFunction(string functionName, ParameterInfo parameter, IServiceCollection services)
+    {
+        var queueAttr = parameter.GetCustomAttribute<QueueTriggerAttribute>()!;
+        var queueName = queueAttr.QueueName;
+        var queueConnectionSettingName = queueAttr.Connection;
+        var functionMeta = new Dictionary<string, string>();
+        // Handle null/empty case
+        if (string.IsNullOrEmpty(queueConnectionSettingName))
+        {
+            queueConnectionSettingName = "AzureWebJobsStorage";
+        }
+        // Handle custom names without prefix
+        else if (!queueConnectionSettingName.StartsWith("AzureWebJobs"))
+        {
+            queueConnectionSettingName = $"AzureWebJobs{queueConnectionSettingName}";
+        }
+        var connectionString=Environment.GetEnvironmentVariable(queueConnectionSettingName);
+        services.AddAzureClients(c => {
+            c.AddQueueServiceClient(connectionString).WithName(functionName);
+        });
+        functionMeta.Add("QueueName", queueName);
+        return new AzFunction(functionName,TriggerTypes.TriggerType.Queue,functionMeta);
+    }
 
     public static void RegisterServices(IServiceCollection services)
     {
@@ -27,36 +51,4 @@ internal class QueueFeatureSetup : IFeatureSetup
             .WithName(QueueMiddlewareHandler.ResubmitContainerNameName);
         });
     }
-
-    public object? CreateTriggerMetadata(ParameterInfo parameter)
-    {
-        var queueAttr = parameter.GetCustomAttribute<QueueTriggerAttribute>()!;
-        var queueName = queueAttr.QueueName;
-        var queueConnectionSettingName = queueAttr.Connection;
-        var queueMeta = new QueueTriggerAttributeMetadata();
-
-        // Handle null/empty case
-        if (string.IsNullOrEmpty(queueConnectionSettingName))
-        {
-            queueConnectionSettingName = "AzureWebJobsStorage";
-        }
-        // Handle custom names without prefix
-        else if (!queueConnectionSettingName.StartsWith("AzureWebJobs"))
-        {
-            queueConnectionSettingName = $"AzureWebJobs{queueConnectionSettingName}";
-        }
-
-        // If it's already "AzureWebJobsSomething", it stays as-is
-        return new QueueTriggerAttributeMetadata
-        {
-            QueueName = queueName,
-            ConnectionString = Environment.GetEnvironmentVariable(queueConnectionSettingName) ?? string.Empty
-        };
-    }
-}
-
-internal sealed class QueueTriggerAttributeMetadata
-{
-    public string QueueName { get; set; } = string.Empty;
-    public string ConnectionString { get; set; } = string.Empty;
 }

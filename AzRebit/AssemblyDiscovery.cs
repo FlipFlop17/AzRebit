@@ -3,9 +3,15 @@ using System.Reflection;
 
 using AzRebit.Shared;
 using AzRebit.Shared.Model;
+using AzRebit.Triggers.BlobTriggered;
+using AzRebit.Triggers.HttpTriggered;
+using AzRebit.Triggers.QueueTrigger;
 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace AzRebit;
 
@@ -16,9 +22,9 @@ internal static class AssemblyDiscovery
     /// Discovers all Functions with the [Function(Name="...")] attribute, excluding internal resubmit functions
     /// </summary>
     /// <returns>IEnumerable of function names</returns>
-    internal static IEnumerable<AzFunction> DiscoverAzFunctions(ISet<string>? excludedFunctionNames = null)
+    internal static IEnumerable<AzFunction> DiscoverAzFunctions(IServiceCollection services,ISet<string>? excludedFunctionNames = null)
     {
-        var functionDetails = new HashSet<AzFunction>();
+        var foundFunctions = new HashSet<AzFunction>();
         excludedFunctionNames ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         // Loop through all loaded assemblies
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
@@ -40,7 +46,9 @@ internal static class AssemblyDiscovery
                             !string.IsNullOrWhiteSpace(attr.Name) &&
                             !excludedFunctionNames.Contains(attr.Name))
                         {
-                            AddAzFuncTriggerMetadata(attr.Name, functionDetails, method.GetParameters());
+                            var func=CreateAzFunction(attr.Name, method.GetParameters(),services);
+                            if(func is not null)
+                                foundFunctions.Add(func);
                         }
                     }
                 }
@@ -52,7 +60,7 @@ internal static class AssemblyDiscovery
             }
         }
 
-        return functionDetails;
+        return foundFunctions;
     }
 
     /// <summary>
@@ -65,111 +73,116 @@ internal static class AssemblyDiscovery
     /// <param name="funcName">The name of the function for which trigger details are being added.</param>
     /// <param name="functions">A collection to which the function and its trigger type will be added if a matching trigger is found.</param>
     /// <param name="allParams">An array of all parameters for the function, used to search for trigger attributes.</param>
-    private static void AddAzFuncTriggerMetadata(string funcName, HashSet<AzFunction> functions, ParameterInfo[] allParams)
+    private static AzFunction? CreateAzFunction(string funcName, ParameterInfo[] allParams,IServiceCollection services)
     {
-        ICollection<Type> supportedTriggers = DiscoverSupportedTriggerTypes().ToList(); //we only search for triggers supported by this project
-        foreach (var feature in supportedTriggers)
+        ICollection<TriggerSetupBase> supportedTriggers = DiscoverSupportedTriggerTypes().ToList(); //we only process triggers (IFeatureSetup) supported by this package
+        //steps
+        //find out whats the trigger atribute of the function
+        //check if the trigger is in the supported range
+
+        //create depending on the resolved trigger
+        
+        foreach (var triggerAttribute in supportedTriggers)
         {
             try
             {
-                var featureInstance = Activator.CreateInstance(feature) as IFeatureSetup;
-                if (featureInstance is null) continue;
+                //var featureInstance = Activator.CreateInstance(feature) as IFeatureSetup;
+                //if (featureInstance is null) continue;
                 var triggerAttributeType = featureInstance.TriggerAttribute;
-                var triggerType = featureInstance.TriggerSupport;
+                //var triggerType = featureInstance.TriggerSupport;
 
-                // Check if any parameter has this trigger attribute
+                // resolve trigger attribute
                 var functionsTriggerParameter = allParams.FirstOrDefault(p =>p.GetCustomAttribute(triggerAttributeType) != null);
-
+                var functionTriggerType=allParams.Select(t=>t.ParameterType).FirstOrDefault();
+                
                 if (functionsTriggerParameter is not null)
                 {
-                    //each trigger feature knows how to create its own metadata from the parameter info
-                    var triggerDetails = featureInstance.CreateTriggerMetadata(functionsTriggerParameter);
-                    functions.Add(new AzFunction(funcName, triggerType, triggerDetails!));
-                    return;
+                    AzFunction func = triggerType switch
+                    {
+                        typeof(BlobTriggerAttribute) => Setup.CreateAzFunction(funcName, functionsTriggerParameter, services),
+                        TriggerTypes.TriggerType.Queue => QueueFeatureSetup.CreateAzFunction(funcName, functionsTriggerParameter, services),
+                        TriggerTypes.TriggerType.Http => HttpFeatureSetup.CreateAzFunction(funcName, functionsTriggerParameter, services)
+
+                    };
+
+                    return func;
+                } else
+                {
+                    return null;
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Could not resolve the TriggerMetadata {feature}: {ex.Message}");
+                Debug.WriteLine($"Could not resolve the TriggerMetadata {triggerAttribute}: {ex.Message}");
+                return null;
             }
         }
     }
 
     /// <summary>
-    /// Discovers all non-abstract classes in loaded assemblies that implement the ITriggerHandler interface.
+    /// Discovers all non-abstract classes in loaded assemblies that implement the IFeatureSetup interface.
     /// </summary>
     /// <remarks>Only assemblies that do not start with "System" or "Microsoft" are scanned. If an assembly
     /// cannot be loaded or inspected, it is skipped and a debug message is written. This method does not instantiate
     /// the handler types; it only returns their Type objects.</remarks>
     /// <returns>An enumerable collection of types representing trigger handler classes found in the current application domain.
     /// The collection may be empty if no handlers are found.</returns>
-    private static IEnumerable<Type> DiscoverSupportedTriggerTypes()
+    private static IEnumerable<TriggerSetupBase> DiscoverSupportedTriggerTypes()
     {
-        var triggerHandlerType = typeof(IFeatureSetup);
-        var featuresSetupClasses = new List<Type>();
+        var featureInstances = new List<TriggerSetupBase>();
 
-        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        try
         {
-            // Skip system assemblies
-            if (assembly.FullName?.StartsWith("System") == true ||
-                assembly.FullName?.StartsWith("Microsoft") == true ||
-                assembly.FullName?.Equals("AzRebit") == true)
-                continue;
+            var thisAssembly = AppDomain.CurrentDomain.GetAssemblies()
+            .FirstOrDefault(a => a.GetName().Name == "AzRebit");
 
-            try
-            {
-                var featureSetupClasses = assembly.GetTypes()
-                    .Where(t => t is { IsClass: true, IsAbstract: false }
-                        && triggerHandlerType.IsAssignableFrom(t));
+            var setupTypes = thisAssembly.GetTypes()
+            .Where(t => t is { IsClass: true, IsAbstract: false }
+                && typeof(TriggerSetupBase).IsAssignableFrom(t));
 
-                featuresSetupClasses.AddRange(featureSetupClasses);
-            }
-            catch (Exception ex)
+            foreach (var type in setupTypes)
             {
-                Debug.WriteLine($"Could not load supported trigger feature from assembly {assembly.FullName}: {ex.Message}");
+                try
+                {
+                    var instance = (TriggerSetupBase)Activator.CreateInstance(type)!;
+                    featureInstances.Add(instance);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Could not instantiate {type.Name}: {ex.Message}");
+                }
             }
         }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Could not load supported trigger feature from");
+        }
+        return featureInstances;
 
-        return featuresSetupClasses;
     }
 
     /// <summary>
-    /// Automatically discovers and registers all feature modules implementing IFeatureModule.
+    /// Automatically discovers and registers all Triggers features implementing ITriggersServiceCollection.
     /// </summary>
     /// <remarks>When adding a new trigger feature this interface is used to recognize it and to be automaticalyy added in DI</remarks>
-    internal static void RegisterAllFeatures(IServiceCollection services)
+    internal static IServiceCollection AddAllAzRebitServices(this IServiceCollection services)
     {
-        var featureSetupClass = typeof(IFeatureSetup);
 
-        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-        {
-            // Skip system assemblies
-            if (assembly.FullName?.StartsWith("System") == true ||
-                assembly.FullName?.StartsWith("Microsoft") == true)
-                continue;
+        var thisAssembly = AppDomain.CurrentDomain.GetAssemblies()
+           .FirstOrDefault(a => a.GetName().Name == "AzRebit");
 
-            try
-            {
-                var moduleTypes = assembly.GetTypes()
-                    .Where(t => t is { IsClass: true, IsAbstract: false }
-                        && featureSetupClass.IsAssignableFrom(t));
+        var installers = thisAssembly.GetExportedTypes()
+                .Where(t =>
+                    !t.IsAbstract &&
+                    !t.IsInterface &&
+                    typeof(ITriggersServiceCollection).IsAssignableFrom(t))
+                .Select(Activator.CreateInstance)
+                .Cast<ITriggersServiceCollection>()
+                .ToList();
 
-                foreach (var moduleType in moduleTypes)
-                {
-                    var method = moduleType.GetMethod(nameof(IFeatureSetup.RegisterServices),
-                        BindingFlags.Public | BindingFlags.Static);
+        installers.ForEach(installer => installer.RegisterServices(services));
 
-                    if (method != null)
-                    {
-                        method.Invoke(null, new object[] { services });
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Could not load feature setup class from assembly {assembly.FullName}: {ex.Message}");
-            }
-        }
+        return services;
     }
 
 }

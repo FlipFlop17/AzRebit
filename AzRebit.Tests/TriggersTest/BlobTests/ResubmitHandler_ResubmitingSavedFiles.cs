@@ -2,11 +2,19 @@ using System.Text;
 
 using AwesomeAssertions;
 
+using AzRebit.Tests;
+using AzRebit.Triggers.BlobTriggered.Handler;
 using AzRebit.Triggers.BlobTriggered.Middleware;
+using AzRebit.Triggers.BlobTriggered.Model;
 
 using Azure.Storage.Blobs;
 
-namespace TriggerTests;
+using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.Logging;
+
+using NSubstitute;
+
+namespace Triggers.BlobTest;
 
 [TestClass]
 public class ResubmitHandler_ResubmitingSavedFiles
@@ -19,8 +27,27 @@ public class ResubmitHandler_ResubmitingSavedFiles
         Environment.SetEnvironmentVariable("AzureWebJobsStorage", "UseDevelopmentStorage=true");
         _blobResubmitContainerBlob = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, 
             BlobMiddlewareHandler.BlobResubmitContainerName);
+    
+    }
+    [TestMethod]
+    public async Task GivenAResubmitFileExists_WhenAResubmitEndpointIsCalled_Then_ShouldInvokeBlobResubmitHandler()
+    {
+        //arrange
+        BlobClient fakeBlobClient = FakesFactory.CreateFakeBlobClient();
+        var logger = Substitute.For<ILogger<BlobResubmitHandler>>();
+        var fakeAzureClientFactory = FakesFactory.CreateFakeAzureBlobClientFactory();
+        var trigerMetadata = new BlobTriggerAttributeMetadata();
+        trigerMetadata.BlobPath = "fakeBlobPath";
+        trigerMetadata.Connection = "fakeConnection";
+        trigerMetadata.ContainerName = "fakeContainer";
+        var sut = new BlobResubmitHandler(logger,fakeAzureClientFactory);
+        string invocationId= Guid.NewGuid().ToString();
+        var sutResult=await sut.HandleResubmitAsync(invocationId,trigerMetadata);
+
+        sutResult.IsSuccess.Should().BeTrue();
     }
 
+    //todo recheck this method
     [TestMethod]
     public async Task TransferCats_WhenABlobIsAdded_ShouldSaveTheBlobReferenceForResubmition()
     {

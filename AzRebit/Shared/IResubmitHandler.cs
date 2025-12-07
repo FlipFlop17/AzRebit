@@ -16,5 +16,5 @@ internal interface IResubmitHandler
     /// <param name="triggerAttributeMetadata">The metadata associated with the trigger attribute for the invocation. Can be null since some triggers like HTTP are dynaamic</param>
     /// <returns>A task that represents the asynchronous operation. The task result is <see langword="true"/> if the resubmission
     /// was successful; otherwise, <see langword="false"/>.</returns>
-    public Task<RebitActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata);
+    public Task<RebitActionResult> HandleResubmitAsync(string invocationId, AzFunction function);
 }

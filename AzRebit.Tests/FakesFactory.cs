@@ -5,9 +5,11 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Specialized;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Azure;
 
 using NSubstitute;
 
@@ -15,6 +17,39 @@ namespace AzRebit.Tests;
 
 internal static class FakesFactory
 {
+
+    internal static IAzureClientFactory<BlobServiceClient> CreateFakeAzureBlobClientFactory()
+    {
+        var fakeAzureClientFactory = Substitute.For<IAzureClientFactory<BlobServiceClient>>();
+        BlobServiceClient serviceClient = Substitute.For<BlobServiceClient>();
+        var fakeContainerClient = Substitute.For<BlobContainerClient>();
+        BlobClient fakeBlobClient = Substitute.For<BlobClient>();
+
+        fakeContainerClient.GetBlobClient(Arg.Any<string>())
+        .Returns(fakeBlobClient);
+        serviceClient.GetBlobContainerClient(Arg.Any<string>())
+           .Returns(fakeContainerClient);
+
+        fakeAzureClientFactory
+            .CreateClient(Arg.Any<string>())
+            .Returns(serviceClient);
+
+        return fakeAzureClientFactory;
+    }
+    internal static BlobClient CreateFakeBlobClient()
+    {
+        BlobClient fakeBlobClient = Substitute.For<BlobClient>();
+        var fakeBlobServiceClient = Substitute.For<BlobServiceClient>();
+        var fakeContainerClient = Substitute.For<BlobContainerClient>();
+        //fakeBlobClientFactory.CreateClient(Arg.Any<string>())
+        //    .Returns(fakeBlobServiceClient);
+        fakeBlobServiceClient.GetBlobContainerClient(Arg.Any<string>())
+            .Returns(fakeContainerClient);
+        fakeContainerClient.GetBlobClient(Arg.Any<string>())
+            .Returns(fakeBlobClient);
+
+        return fakeBlobClient;
+    }
 
     internal static FunctionContext? CreateFunctionContext()
     {

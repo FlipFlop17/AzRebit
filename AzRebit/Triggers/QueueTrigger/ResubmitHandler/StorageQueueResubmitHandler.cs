@@ -14,22 +14,18 @@ namespace AzRebit.Triggers.QueueTrigger.ResubmitHandler;
 internal class StorageQueueResubmitHandler : IResubmitHandler
 {
     private BlobContainerClient _blobResubmitContainer;
+    private readonly IAzureClientFactory<QueueServiceClient> _queueServiceClientFactory;
 
     public TriggerTypes.TriggerType HandlerType => TriggerTypes.TriggerType.Queue;
-    public StorageQueueResubmitHandler(IAzureClientFactory<BlobServiceClient> blobClientFactory)
+    public StorageQueueResubmitHandler(IAzureClientFactory<BlobServiceClient> blobClientFactory,IAzureClientFactory<QueueServiceClient> queueClient)
     {
         _blobResubmitContainer = blobClientFactory
             .CreateClient(QueueMiddlewareHandler.ResubmitContainerNameName)
             .GetBlobContainerClient(QueueMiddlewareHandler.ResubmitContainerNameName);
+        _queueServiceClientFactory = queueClient;
     }
-    public async Task<RebitActionResult> HandleResubmitAsync(string invocationId, object? triggerAttributeMetadata)
+    public async Task<RebitActionResult> HandleResubmitAsync(string invocationId, AzFunction function)
     {
-        if (triggerAttributeMetadata is not QueueTriggerAttributeMetadata queueTriggerData)
-            return RebitActionResult.Failure("Trigger attribute data is missing");
-
-        //1. Parse triggerAttributeMetadata to get queue name
-        var queueName = queueTriggerData.QueueName;
-
         //2. fetch the stored message
         var storedBlobName = $"{IMiddlewareHandler.BlobPrefixForQueue}{invocationId}.txt";
         var storedMessage = await _blobResubmitContainer
@@ -37,8 +33,9 @@ internal class StorageQueueResubmitHandler : IResubmitHandler
             .DownloadContentAsync(); //since queue messages are small we can download them eniterly
 
         var resubmitPayload= storedMessage.Value.Content.ToString();
-        QueueClient destinationQueue=new QueueClient(queueTriggerData.ConnectionString, queueTriggerData.QueueName);
-        
+        function.TriggerMetadata.TryGetValue("QueueName", out string inputQueueName);
+        QueueClient destinationQueue = CreateQueueClient(function.Name,inputQueueName);
+
         var msgResult=await destinationQueue.SendMessageAsync(Convert.ToBase64String(Encoding.UTF8.GetBytes(resubmitPayload)));
         
         if (msgResult.Value.MessageId is not null) { 
@@ -47,5 +44,10 @@ internal class StorageQueueResubmitHandler : IResubmitHandler
         }
 
         return RebitActionResult.Failure("Failed to add message to the queue");
+    }
+
+    private QueueClient CreateQueueClient(string functionName,string queueName)
+    {
+        return _queueServiceClientFactory.CreateClient(functionName).GetQueueClient(queueName);
     }
 }

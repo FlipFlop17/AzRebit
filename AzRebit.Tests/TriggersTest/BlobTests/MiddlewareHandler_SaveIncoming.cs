@@ -1,12 +1,9 @@
 ﻿using AwesomeAssertions;
 
-using AzRebit.Shared.Model;
 using AzRebit.Triggers.BlobTriggered.Middleware;
 
 using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Specialized;
 
-using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Context.Features;
 using Microsoft.Extensions.Azure;
@@ -29,7 +26,7 @@ public class MiddlewareHandler_SaveIncoming
     /// <summary>
     /// Inside FunctionContext - It holds the actual runtime values of the parameters used by the invoked function
     /// </summary>
-    private BindingContext mockBindingContext;
+    private BindingContext? mockBindingContext;
     /// <summary>
     /// Inside FunctionContext - Holds the blueprint of the functions - describes what the function looks like
     /// FunctionName, MethodName, Parameters, InputBindings, OutputBindings
@@ -39,7 +36,7 @@ public class MiddlewareHandler_SaveIncoming
     /// Inside the FunctionDefinition.Parameters - Its a Class representing each parameter inside the function.
     /// Holds the name, type, properties, binding atribute name
     /// </summary>
-    private FunctionParameter mockFunctionParameter;
+    private FunctionParameter? mockFunctionParameter;
     private IAzureClientFactory<BlobServiceClient> fakeBlobClientFactory;
     private BlobClient fakeBlobClient;
 
@@ -63,7 +60,7 @@ public class MiddlewareHandler_SaveIncoming
         // Mock the IFunctionInputBindingFeature
         var inputBindingFeature = Substitute.For<IFunctionInputBindingFeature>();
 
-        var functionInputBindingResult = new FunctionInputBindingResult(new object[] { fakeBlobClient });
+        var functionInputBindingResult = new FunctionInputBindingResult([fakeBlobClient]);
 
         // Setup the binding feature to return the correct type
         inputBindingFeature.BindFunctionInputAsync(Arg.Any<FunctionContext>())
@@ -83,7 +80,6 @@ public class MiddlewareHandler_SaveIncoming
         mockFunctionDefinition.Name.Returns(functionName);
         context.FunctionDefinition.Returns(mockFunctionDefinition);
         context.InvocationId.Returns(invocationId);
-        //context.BindingContext.Returns(mockBindingContext);
         
         var sut = new BlobMiddlewareHandler(fakeLogger, fakeBlobClientFactory);
 
@@ -96,6 +92,24 @@ public class MiddlewareHandler_SaveIncoming
     }
 
 
-    
+    [TestMethod]
+    [DataRow("test-invocation-id-123", "TransferCats")]
+    [Description("Integration test")]
+    public async Task Integ_GivenAFunctionWithABlobTrigger_WhenAFunctionIsInvoked_ShouldSaveTheIncomingRequest(string invocationId, string functionName)
+    {
+        //arange
+        mockFunctionDefinition.Name.Returns(functionName);
+        context.FunctionDefinition.Returns(mockFunctionDefinition);
+        context.InvocationId.Returns(invocationId);
+
+        var sut = new BlobMiddlewareHandler(fakeLogger, fakeBlobClientFactory);
+
+        // //act
+        var blobSaveResult = await sut.SaveIncomingRequest(context);
+
+        //assert
+        blobSaveResult.IsSuccess.Should().BeTrue();
+        await fakeBlobClient.Received(1).StartCopyFromUriAsync(Arg.Any<Uri>());
+    }
 
 }

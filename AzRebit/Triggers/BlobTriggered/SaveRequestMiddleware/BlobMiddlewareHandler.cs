@@ -1,17 +1,10 @@
-﻿
-using System.ClientModel.Primitives;
-
-using AzRebit.HelperExtensions;
+﻿using AzRebit.HelperExtensions;
 using AzRebit.Shared;
 using AzRebit.Shared.Exceptions;
 using AzRebit.Shared.Model;
 
 using Azure;
-using Azure.Identity;
 using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Specialized;
-
-using Grpc.Net.Client.Configuration;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Context.Features;
@@ -61,7 +54,7 @@ public class BlobMiddlewareHandler : IMiddlewareHandler
             if (blobClient != null)
             {
                 await SaveBlobForResubmitionAsync(blobClient, invocationId);
-                return RebitActionResult.Success();
+                return RebitActionResult.Success(invocationId);
             }
             return RebitActionResult.Failure("Blob Client not found");
         }
