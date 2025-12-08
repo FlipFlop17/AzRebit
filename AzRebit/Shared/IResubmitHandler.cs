@@ -7,7 +7,7 @@ namespace AzRebit.Shared;
 
 internal interface IResubmitHandler
 {
-    public TriggerType HandlerType { get; }
+    public TriggerName HandlerType { get; }
     /// <summary>
     /// Attempts to resubmit a previously triggered invocation using the specified invocation identifier and trigger
     /// attribute metadata.

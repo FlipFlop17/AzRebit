@@ -16,7 +16,7 @@ internal class StorageQueueResubmitHandler : IResubmitHandler
     private BlobContainerClient _blobResubmitContainer;
     private readonly IAzureClientFactory<QueueServiceClient> _queueServiceClientFactory;
 
-    public TriggerTypes.TriggerType HandlerType => TriggerTypes.TriggerType.Queue;
+    public TriggerTypes.TriggerName HandlerType => TriggerTypes.TriggerName.Queue;
     public StorageQueueResubmitHandler(IAzureClientFactory<BlobServiceClient> blobClientFactory,IAzureClientFactory<QueueServiceClient> queueClient)
     {
         _blobResubmitContainer = blobClientFactory

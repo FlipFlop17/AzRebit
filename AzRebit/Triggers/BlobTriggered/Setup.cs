@@ -1,11 +1,8 @@
-﻿using System.Reflection;
-
-using AzRebit.Shared;
+﻿using AzRebit.Shared;
 using AzRebit.Shared.Model;
-using AzRebit.Triggers.BlobTriggered.Handler;
-using AzRebit.Triggers.BlobTriggered.Middleware;
 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,42 +15,24 @@ namespace AzRebit.Triggers.BlobTriggered;
 /// </summary>
 internal class Setup : TriggerSetupBase
 {
-    public override TriggerType TriggerSupport => TriggerType.Blob;
+    public override TriggerName TriggerName => TriggerName.Blob;
+    public override Type TriggerAttribute => typeof(BlobTriggerAttribute);
 
-    public override AzFunction TryCreateAzFunction(string functionName, ParameterInfo[] parameters, IServiceCollection services)
+    public override AzFunction TryCreateAzFunction(string functionName, TriggerBindingAttribute triggerAttribute, IServiceCollection services)
     {
-        BlobTriggerAttribute? blobAttr;
-
         try
         {
-            var functionsTriggerParameter = parameters.FirstOrDefault(
-                p => p.GetCustomAttribute<BlobTriggerAttribute>() != null
-            );
+            if (triggerAttribute is not BlobTriggerAttribute blobAttr) throw new Exception("Trigger binding attribute is null");
 
-            if (functionsTriggerParameter is null)
-                throw new ArgumentNullException(nameof(functionsTriggerParameter));
-
-            blobAttr = functionsTriggerParameter.GetCustomAttribute<BlobTriggerAttribute>();
-
-            if (blobAttr is null)
-                throw new ArgumentNullException(nameof(blobAttr));
-        }
-        catch (ArgumentNullException e)
-        {
-            throw new AzFunctionNotCreatedException(e.Message, e);
-        }
-
-        try
-        {
             var functionMeta = new Dictionary<string, string>();
-            var connectionName =AssemblyDiscovery.ResolveConnectionString(blobAttr.Connection);
+            var connectionName =AssemblyDiscovery.ResolveConnectionStringAppSettingName(blobAttr.Connection);
             services.AddAzureClients(clientBuilder =>
             {
                 clientBuilder.AddBlobServiceClient(connectionName)
                     .WithName(functionName);
             });
 
-            return new AzFunction(functionName, TriggerType.Blob, functionMeta);
+            return new AzFunction(functionName, TriggerName.Blob, functionMeta);
         }
         catch (Exception e)
         {

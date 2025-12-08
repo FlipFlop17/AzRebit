@@ -1,17 +1,13 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Reflection;
 
 using AzRebit.Shared;
 using AzRebit.Shared.Model;
-using AzRebit.Triggers.BlobTriggered;
-using AzRebit.Triggers.HttpTriggered;
-using AzRebit.Triggers.QueueTrigger;
 
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
-
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace AzRebit;
 
@@ -22,81 +18,77 @@ internal static class AssemblyDiscovery
     /// Discovers all Functions with the [Function(Name="...")] attribute, excluding internal resubmit functions
     /// </summary>
     /// <returns>IEnumerable of function names</returns>
-    internal static IEnumerable<AzFunction> DiscoverAzFunctions(IServiceCollection services, ISet<string>? excludedFunctionNames = null)
+    internal static IEnumerable<AzFunction> DiscoverAndAddAzFunctions(IServiceCollection services, ISet<string>? excludedFunctionNames = null)
     {
         var foundFunctions = new HashSet<AzFunction>();
         excludedFunctionNames ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        // Loop through all loaded assemblies
-        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-        {
-            // Skip system assemblies to avoid noise
-            if (assembly.FullName?.StartsWith("System") == true ||
-                assembly.FullName?.StartsWith("Microsoft") == true ||
-                assembly.FullName?.Equals("AzRebit") == true)
-                continue;
 
+        ICollection<TriggerSetupBase> supportedTriggers = [.. DiscoverTriggerSetups()];
+
+        var functionAssemblies = AppDomain.CurrentDomain.GetAssemblies()
+            .Where(a => !a.IsDynamic && a.GetReferencedAssemblies()
+            .Any(ra => ra.Name == "Microsoft.Azure.Functions.Worker"));
+
+
+        foreach (var functionProject in functionAssemblies)
+        {
             try
             {
-                foreach (var type in assembly.GetTypes())
+                var methodsDefinedWithFunctionAttribute = functionProject.GetTypes()
+                .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
+                .Select(m => new { Method = m, Attr = m.GetCustomAttribute<FunctionAttribute>() })
+                .Where(x => x.Attr != null &&
+                           !string.IsNullOrWhiteSpace(x.Attr.Name) &&
+                           !excludedFunctionNames.Contains(x.Attr.Name));
+
+                foreach (var function in methodsDefinedWithFunctionAttribute)
                 {
-                    foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
+                    //find out the atribute the function uses
+                    var triggerType = ResolveTriggerAttribute(function.Method.GetParameters(), supportedTriggers);
+                    var triggerBaseSetupClass = supportedTriggers.FirstOrDefault(t => t.TriggerAttribute == triggerType.GetType());
+                    if (triggerBaseSetupClass != null)
                     {
-                        var attr = method.GetCustomAttribute<FunctionAttribute>(); //we are looking for [Function("FunctionName")] which is of type FunctionAttribute
-                        if (attr != null &&
-                            !string.IsNullOrWhiteSpace(attr.Name) &&
-                            !excludedFunctionNames.Contains(attr.Name))
-                        {
-                            var func = CreateAzFunction(attr.Name, method.GetParameters(), services);
-                            if (func is not null)
-                                foundFunctions.Add(func);
-                        }
+                        foundFunctions.Add(triggerBaseSetupClass.TryCreateAzFunction(function.Attr.Name, triggerType, services));
                     }
                 }
             }
             catch (Exception ex)
             {
-                // Skip assemblies that can't be loaded
-                Debug.WriteLine($"Could not discover functions from assembly {assembly.FullName}: {ex.Message}");
+                Console.Error.WriteLine($"Unexpected error in DiscoverAndAddAzFunctions() {functionProject.FullName}: {ex.Message}");
             }
         }
 
         return foundFunctions;
     }
-
     /// <summary>
-    /// Identifies the trigger type for the specified function and adds trigger details to the provided collection if a
-    /// matching trigger attribute is found.
+    /// Resolves what type of trigger is set on the functions signature
     /// </summary>
-    /// <remarks>This method inspects the parameters of the specified function to determine if any are
-    /// decorated with a recognized trigger attribute. If a matching trigger is found, the function and its trigger type
-    /// are added to the provided collection. If no trigger is found, the collection remains unchanged.</remarks>
-    /// <param name="funcName">The name of the function for which trigger details are being added.</param>
-    /// <param name="functions">A collection to which the function and its trigger type will be added if a matching trigger is found.</param>
-    /// <param name="allParams">An array of all parameters for the function, used to search for trigger attributes.</param>
-    private static AzFunction? CreateAzFunction(string funcName, ParameterInfo[] allParams, IServiceCollection services)
+    /// <example>
+    /// [TimerTrigger], [BlobTrigger]
+    /// </example>
+    /// <param name="allParams"></param>
+    /// <param name="supportedTriggers"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    private static TriggerBindingAttribute ResolveTriggerAttribute(ParameterInfo[] allParams, ICollection<TriggerSetupBase> supportedTriggers)
     {
-        ICollection<TriggerSetupBase> supportedTriggers = [.. DiscoverTriggerSetups()]; 
+        var triggerTypes=supportedTriggers.Select(t=>t.TriggerAttribute).ToList();
 
-        foreach (TriggerSetupBase triggerBase in supportedTriggers)
-        {
-            try
+        var triggerParam = allParams
+            .Select(p => new
             {
-                AzFunction func = triggerBase.TryCreateAzFunction(funcName, allParams, services);
-                return func;
-            }
-            catch (AzFunctionNotCreatedException ex)
-            {
-                Console.WriteLine("function not created {Reason}", ex.Message);
-                return null;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Could not resolve the TriggerMetadata");
-                return null;
-            }
-        }
+                Parameter = p,
+                Attribute = triggerTypes
+                    .Select(t => p.GetCustomAttribute(t))
+                    .FirstOrDefault(a => a != null)
+            })
+            .FirstOrDefault(x => x.Attribute != null);
 
-        return null;
+        if (triggerParam?.Attribute is null)
+            throw new ArgumentNullException(nameof(triggerParam), "No trigger attribute found");
+
+        return (TriggerBindingAttribute)triggerParam.Attribute;
+
     }
 
     /// <summary>
@@ -114,7 +106,7 @@ internal static class AssemblyDiscovery
         try
         {
             var thisAssembly = AppDomain.CurrentDomain.GetAssemblies()
-            .FirstOrDefault(a => a.GetName().Name == "AzRebit");
+            .FirstOrDefault(a => a.ManifestModule.Name == "AzRebit.dll");
 
             var setupTypes = thisAssembly.GetTypes()
             .Where(t => t is { IsClass: true, IsAbstract: false }
@@ -129,13 +121,13 @@ internal static class AssemblyDiscovery
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Could not instantiate {type.Name}: {ex.Message}");
+                    Console.WriteLine($"Could not instantiate {type.Name}: {ex.Message}");
                 }
             }
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Could not load supported trigger feature from");
+            Console.Error.WriteLine($"Could not load supported trigger feature from");
         }
         return featureInstances;
 
@@ -165,7 +157,12 @@ internal static class AssemblyDiscovery
         return services;
     }
 
-    public static string ResolveConnectionString(string? connectionAttribute)
+    /// <summary>
+    /// Returns the full connection string app settings name from app settings
+    /// </summary>
+    /// <param name="connectionAttribute"></param>
+    /// <returns></returns>
+    public static string ResolveConnectionStringAppSettingName(string? connectionAttribute)
     {
         // Default to AzureWebJobsStorage if not specified
         if (string.IsNullOrWhiteSpace(connectionAttribute))

@@ -29,7 +29,7 @@ internal class BlobResubmitHandler : IResubmitHandler
     private readonly ILogger<BlobResubmitHandler> _logger;
     private readonly IAzureClientFactory<BlobServiceClient> _blobFact;
     private BlobContainerClient _blobResubmitContainerClient;
-    public TriggerType HandlerType => TriggerType.Blob;
+    public TriggerName HandlerType => TriggerName.Blob;
 
     public BlobResubmitHandler(ILogger<BlobResubmitHandler> logger,
         IAzureClientFactory<BlobServiceClient> blobFact)

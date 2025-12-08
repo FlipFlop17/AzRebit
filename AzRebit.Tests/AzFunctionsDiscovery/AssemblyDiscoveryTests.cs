@@ -2,16 +2,20 @@
 using System.Reflection;
 
 using AwesomeAssertions;
+
 using AzRebit;
-using AzRebit.FunctionExample.Features;
 using AzRebit.Shared.Model;
-using AzRebit.Triggers.BlobTriggered.Model;
+
+using Microsoft.Extensions.DependencyInjection;
+
+using NSubstitute;
 
 namespace AzFunctionsDiscovery;
 
 [TestClass]
 public sealed class AssemblyDiscoveryTests
 {
+
     public TestContext? TestContext { get; set; }
 
     [TestInitialize]
@@ -20,15 +24,30 @@ public sealed class AssemblyDiscoveryTests
         // Explicitly load the Azure Functions example assembly so it's available to AppDomain.CurrentDomain.GetAssemblies()
         _ = Assembly.Load("AzRebit.FunctionExample");
     }
+    [TestMethod]
+    [DataRow("AzureWebJobsStorage", "AzureWebJobsStorage")]
+    [DataRow("MyBlobConnection", "AzureWebJobsStorage__MyBlobConnection")]
+    [DataRow("SpecialStorageAccount", "AzureWebJobsStorage:SpecialStorageAccount")]
+    [DataRow("", "AzureWebJobsStorage")]
+    public void GivenDifferentConnectionStringNames_WhenFunctionProjectStarts_ShouldSuccessfullyAssignProperConnectionNames(string connectionInAzureTriggerDefinition,string expectedAppSettingDefinedName)
+    {
+        Environment.SetEnvironmentVariable(expectedAppSettingDefinedName, "ConnectionString=DefaultStorageAccountSomething");
+        var appsettingName=AssemblyDiscovery.ResolveConnectionStringAppSettingName(connectionInAzureTriggerDefinition);
+
+        appsettingName.Should().Be(expectedAppSettingDefinedName);
+    }
 
     [TestMethod]
-    [DataRow(["GetCats","CheckCats","TransferCats","TransformCats"])]
+    [DataRow(["GetCats", "CheckCats", "TransferCats", "TransformCats"])]
     public void GivenAzFunctionProject_WhenAzureFunctionsExists_ShouldDiscoverAll(string[] availableFunctions)
     {
         //arrange
+        Environment.SetEnvironmentVariable("AzureWebJobsStorage", "ConnectionStringPlaceHolder");
+        var serviceCollection = Substitute.For<IServiceCollection>();
+
         // act
-        IEnumerable<AzFunction> allFunctions= AssemblyDiscovery.DiscoverAzFunctions();
-        
+        IEnumerable<AzFunction> allFunctions = AssemblyDiscovery.DiscoverAndAddAzFunctions(serviceCollection, new HashSet<string>());
+
         //assert
         allFunctions.Should().HaveCount(availableFunctions.Count());
     }
@@ -38,10 +57,11 @@ public sealed class AssemblyDiscoveryTests
     public void GivenAzFunctionProject_WhenAzureFunctionsExists_ShouldExcludeDefinedFunctionNames(string[] excludedFunctions)
     {
         //arrange
+        var serviceCollection = Substitute.For<IServiceCollection>();
         var excludedSet = new HashSet<string>(excludedFunctions, StringComparer.OrdinalIgnoreCase);
         
         //act
-        IEnumerable<AzFunction> allFunctions = AssemblyDiscovery.DiscoverAzFunctions(excludedSet);
+        IEnumerable<AzFunction> allFunctions = AssemblyDiscovery.DiscoverAndAddAzFunctions(serviceCollection,excludedSet);
 
         //assert
         allFunctions.Should().HaveCountGreaterThan(0);

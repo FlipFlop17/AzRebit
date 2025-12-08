@@ -4,54 +4,40 @@ using AzRebit.Shared;
 using AzRebit.Shared.Model;
 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
+
 using static AzRebit.Shared.Model.TriggerTypes;
 
 namespace AzRebit.Triggers.QueueTrigger;
 
 internal class QueueFeatureSetup : TriggerSetupBase
 {
-    public override TriggerType TriggerSupport => TriggerType.Queue;
-
-    public override AzFunction TryCreateAzFunction(string functionName, ParameterInfo[] parameters, IServiceCollection services)
+    public override TriggerName TriggerName => TriggerName.Queue;
+    public override Type TriggerAttribute => typeof(QueueTriggerAttribute);
+    public override AzFunction TryCreateAzFunction(string functionName, TriggerBindingAttribute triggerAttribute, IServiceCollection services)
     {
-        QueueTriggerAttribute? queueAttribute;
         var functionMeta = new Dictionary<string, string>();
-        try
-        {
-            var functionsTriggerParameter = parameters.FirstOrDefault(
-                p => p.GetCustomAttribute<QueueTriggerAttribute>() != null
-            );
-
-            if (functionsTriggerParameter is null)
-                throw new ArgumentNullException(nameof(functionsTriggerParameter));
-
-            queueAttribute = functionsTriggerParameter.GetCustomAttribute<QueueTriggerAttribute>();
-
-            if (queueAttribute is null)
-                throw new ArgumentNullException(nameof(queueAttribute));
-        }
-        catch (ArgumentNullException e)
-        {
-            throw new AzFunctionNotCreatedException(e.Message, e);
-        }
 
         try
         {
+            if (triggerAttribute is not QueueTriggerAttribute queueAttribute) throw new ArgumentNullException();
+
             var queueName = queueAttribute.QueueName;
-            var connectionName = AssemblyDiscovery.ResolveConnectionString(queueAttribute.Connection);
+            var connectionName = AssemblyDiscovery.ResolveConnectionStringAppSettingName(queueAttribute.Connection);
             services.AddAzureClients(c =>
-                {
-                    c.AddQueueServiceClient(connectionName).WithName(functionName);
-                });
+            {
+                c.AddQueueServiceClient(connectionName).WithName(functionName);
+            });
             functionMeta.Add("QueueName", queueName);
 
-             return new AzFunction(functionName, TriggerType.Blob, functionMeta);
+             return new AzFunction(functionName, TriggerName.Blob, functionMeta);
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            throw;
+            Console.WriteLine("Unexpected error while tyring to create az function with Queue triggert attribute "+e.Message);
+            throw new AzFunctionNotCreatedException(e.Message, e);
         }
     }
 

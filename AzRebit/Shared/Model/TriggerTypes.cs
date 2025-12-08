@@ -2,7 +2,7 @@
 
 internal static class TriggerTypes
 {
-    internal enum TriggerType
+    internal enum TriggerName
     {
         Unknown, Blob, Queue, Http, Timer, EventHub, ServiceBus
     }

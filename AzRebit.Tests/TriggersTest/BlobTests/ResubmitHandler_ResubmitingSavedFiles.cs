@@ -2,6 +2,7 @@ using System.Text;
 
 using AwesomeAssertions;
 
+using AzRebit.Shared.Model;
 using AzRebit.Tests;
 using AzRebit.Triggers.BlobTriggered.Handler;
 using AzRebit.Triggers.BlobTriggered.Middleware;
@@ -36,18 +37,15 @@ public class ResubmitHandler_ResubmitingSavedFiles
         BlobClient fakeBlobClient = FakesFactory.CreateFakeBlobClient();
         var logger = Substitute.For<ILogger<BlobResubmitHandler>>();
         var fakeAzureClientFactory = FakesFactory.CreateFakeAzureBlobClientFactory();
-        var trigerMetadata = new BlobTriggerAttributeMetadata();
-        trigerMetadata.BlobPath = "fakeBlobPath";
-        trigerMetadata.Connection = "fakeConnection";
-        trigerMetadata.ContainerName = "fakeContainer";
+        AzFunction fakeFunction = new("fakeName",TriggerTypes.TriggerName.Blob,new Dictionary<string, string>() { { "container","fakeContainer"} });
         var sut = new BlobResubmitHandler(logger,fakeAzureClientFactory);
         string invocationId= Guid.NewGuid().ToString();
-        var sutResult=await sut.HandleResubmitAsync(invocationId,trigerMetadata);
+        var sutResult=await sut.HandleResubmitAsync(invocationId,fakeFunction);
 
         sutResult.IsSuccess.Should().BeTrue();
     }
 
-    //todo recheck this method
+    //todo recheck this method - ne valja ti dizajn ako moras gledati prema zadnjem uploadon blobu
     [TestMethod]
     public async Task TransferCats_WhenABlobIsAdded_ShouldSaveTheBlobReferenceForResubmition()
     {

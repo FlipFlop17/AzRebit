@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Reflection;
 
 using AzRebit.Shared.Model;
 
+using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
 using static AzRebit.Shared.Model.TriggerTypes;
@@ -15,7 +11,8 @@ namespace AzRebit.Shared;
 
 internal abstract class TriggerSetupBase
 {
-    public abstract TriggerType TriggerSupport { get; }
+    public abstract TriggerName TriggerName { get; }
+    public abstract Type TriggerAttribute { get; }
 
     /// <summary>
     /// Tries to create a ne AzFunction object based on the trigger params and Function implementation atributes
@@ -24,6 +21,7 @@ internal abstract class TriggerSetupBase
     /// <param name="parameter"></param>
     /// <param name="services"></param>
     /// <returns>AzFunction</returns>
-    public abstract AzFunction TryCreateAzFunction(string functionName, ParameterInfo[] parameter, IServiceCollection services);
+    public abstract AzFunction TryCreateAzFunction(string functionName, TriggerBindingAttribute triggerAtribute, IServiceCollection services);
+    
 
 }

@@ -17,7 +17,7 @@ internal class HttpResubmitHandler:IResubmitHandler
     public const string HttpResubmitOriginalFileId = "x-resubmit-originalid";
     private readonly IHttpClientFactory _httpFact;
 
-    public TriggerType HandlerType => TriggerType.Http;
+    public TriggerName HandlerType => TriggerName.Http;
 
     public HttpResubmitHandler(IHttpClientFactory httpFact)
     {
