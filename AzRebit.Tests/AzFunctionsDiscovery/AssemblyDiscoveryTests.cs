@@ -4,7 +4,7 @@ using System.Reflection;
 using AwesomeAssertions;
 
 using AzRebit;
-using AzRebit.Shared.Model;
+using AzRebit.Model;
 
 using Microsoft.Extensions.DependencyInjection;
 

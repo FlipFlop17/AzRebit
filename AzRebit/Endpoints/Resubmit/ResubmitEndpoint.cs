@@ -1,5 +1,5 @@
-﻿using AzRebit.Shared;
-using AzRebit.Shared.Model;
+﻿using AzRebit.Model;
+using AzRebit.Shared;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;

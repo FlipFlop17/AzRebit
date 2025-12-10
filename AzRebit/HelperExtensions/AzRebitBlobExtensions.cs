@@ -1,87 +1,13 @@
-﻿using System.Collections.Immutable;
-using System.Security.Cryptography;
-using System.Text;
-
-using AzRebit.Middleware;
-using AzRebit.Shared;
-using AzRebit.Triggers.BlobTriggered.Handler;
+﻿using AzRebit.Shared;
 using AzRebit.Triggers.BlobTriggered.Middleware;
 
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Azure.Storage.Blobs.Specialized;
-
-using Microsoft.IdentityModel.Abstractions;
 
 namespace AzRebit.HelperExtensions;
 public static class AzRebitBlobExtensions
 {    
-
-    /// <summary>
-    /// Saves blob content directly to the resubmission container
-    /// Used for primitive type bindings (string, byte[], Stream, POCO)
-    /// </summary>
-    /// <param name="content">The blob content as a stream</param>
-    /// <param name="blobName">The original blob name (used for metadata)</param>
-    /// <param name="id">The run ID for tracking</param>
-    /// <param name="contentType">Optional content type of the blob</param>
-    /// <returns></returns>
-    public static async Task SaveBlobContentForResubmissionAsync(
-        Stream content,
-        string blobName,
-        string id,
-        string? contentType = null)
-    {
-        BlobContainerClient localContainer = new BlobContainerClient(
-            Environment.GetEnvironmentVariable("AzureWebJobsStorage"),
-            BlobMiddlewareHandler.BlobResubmitContainerName);
-
-        await localContainer.CreateIfNotExistsAsync();
-        var destinationBlobName = $"{id}{Path.GetExtension(blobName)}";
-        BlobClient destinationClient = localContainer.GetBlobClient(destinationBlobName);
-
-        // Upload the content
-        var uploadOptions = new BlobUploadOptions();
-        if (!string.IsNullOrEmpty(contentType))
-        {
-            uploadOptions.HttpHeaders = new BlobHttpHeaders { ContentType = contentType };
-        }
-
-        // Reset stream position if possible
-        if (content.CanSeek)
-        {
-            content.Position = 0;
-        }
-
-        await destinationClient.UploadAsync(content, uploadOptions);
-
-        // Set tags with original blob name and run ID
-        var tags = new Dictionary<string, string>
-        {
-            [IMiddlewareHandler.BlobTagInvocationId] = id,
-            ["OriginalBlobName"] = blobName
-        };
-
-        await destinationClient.SetTagsAsync(tags);
-    }
-    /// <summary>
-    /// Searches for blob inside the given container that has the tag "input-invocationId" with the specified id value.
-    /// </summary>
-    /// <param name="id">Unique id usually extracted from FunctionContext.FunctionId</param>
-    /// <returns>null if not blob is found</returns>
-    internal static async Task<BlobClient?> PickUpBlobForResubmition(this BlobContainerClient container, string id)
-    {
-        string tagFilter = $"\"{IMiddlewareHandler.BlobTagInvocationId}\" = '{id}'";
-
-        await foreach (TaggedBlobItem taggedBlob in container.FindBlobsByTagsAsync(tagFilter))
-        {
-            // Return the first matching blob (should be only one)
-            return container.GetBlobClient(taggedBlob.BlobName);
-        }
-
-        return null;
-    }
 
     /// <summary>
     /// Tries to get the current resubmit count from blob tag named ResubmitCount
@@ -148,7 +74,7 @@ public static class AzRebitBlobExtensions
     {
         var containerClient = new BlobContainerClient(
             Environment.GetEnvironmentVariable("AzureWebJobsStorage"),
-            BlobMiddlewareHandler.BlobResubmitContainerName);
+            BlobMiddlewareHandler.BlobResubmitSavePath);
 
         if (!await containerClient.ExistsAsync())
         {

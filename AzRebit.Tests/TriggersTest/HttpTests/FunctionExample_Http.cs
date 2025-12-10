@@ -24,8 +24,8 @@ public class FunctionExample_Http
     public static async Task ClassInitialize(TestContext context)
     {
         Environment.SetEnvironmentVariable("AzureWebJobsStorage", "UseDevelopmentStorage=true");
-        _blobContainerBlob = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, BlobMiddlewareHandler.BlobResubmitContainerName);
-        _blobContainerHtttp = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, HttpMiddlewareHandler.HttpResubmitContainerName);
+        _blobContainerBlob = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, BlobMiddlewareHandler.BlobResubmitSavePath);
+        _blobContainerHtttp = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, HttpMiddlewareHandler.HttpResubmitVirtualPath);
     }
 
 
@@ -47,7 +47,7 @@ public class FunctionExample_Http
         checkblob.Value.Should().BeTrue(because:"a incoming request {0} should be saved by the middleware",customKey);
         // check body
         var blobContent = await savedResubmisionBlob.DownloadContentAsync();
-        var resubmitData = JsonSerializer.Deserialize<HttpSaveRequest>(blobContent.Value.Content.ToString());
+        var resubmitData = JsonSerializer.Deserialize<HttpRequestDto>(blobContent.Value.Content.ToString());
         resubmitData?.Id.Should().Be(customKey);
     }
     [TestMethod]
@@ -68,7 +68,7 @@ public class FunctionExample_Http
         checkblob.Value.Should().BeTrue(because: "a incoming request {0} should be saved by the middleware", customKey);
         // check blob content
         var blobContent = await savedResubmisionBlob.DownloadContentAsync();
-        var resubmitData = JsonSerializer.Deserialize<HttpSaveRequest>(blobContent.Value.Content.ToString());
+        var resubmitData = JsonSerializer.Deserialize<HttpRequestDto>(blobContent.Value.Content.ToString());
         resubmitData?.Body.Should().Be(await requestBody.ReadAsStringAsync());
     }
 

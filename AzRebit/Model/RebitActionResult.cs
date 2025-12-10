@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzRebit.Shared.Model;
+namespace AzRebit.Model;
 
 /// <summary>
 /// Non-generic version for operations without data payload

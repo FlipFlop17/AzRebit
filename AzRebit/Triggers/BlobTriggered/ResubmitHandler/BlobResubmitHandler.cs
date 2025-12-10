@@ -1,21 +1,15 @@
-﻿using System.Reflection;
-
-using AzRebit.HelperExtensions;
+﻿using AzRebit.HelperExtensions;
+using AzRebit.Infrastructure;
+using AzRebit.Model;
 using AzRebit.Shared;
-using AzRebit.Shared.Model;
-using AzRebit.Triggers.BlobTriggered.Middleware;
-using AzRebit.Triggers.BlobTriggered.Model;
 
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Azure.Storage.Blobs.Specialized;
 
-using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Azure;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-using static AzRebit.Shared.Model.TriggerTypes;
+using static AzRebit.Model.TriggerTypes;
 
 namespace AzRebit.Triggers.BlobTriggered.Handler;
 
@@ -28,17 +22,15 @@ internal class BlobResubmitHandler : IResubmitHandler
 {
     private readonly ILogger<BlobResubmitHandler> _logger;
     private readonly IAzureClientFactory<BlobServiceClient> _blobFact;
-    private BlobContainerClient _blobResubmitContainerClient;
+    private readonly IResubmitStorage _resubmitService;
     public TriggerName HandlerType => TriggerName.Blob;
 
     public BlobResubmitHandler(ILogger<BlobResubmitHandler> logger,
-        IAzureClientFactory<BlobServiceClient> blobFact)
+        IAzureClientFactory<BlobServiceClient> blobFact,IResubmitStorage resubmitService)
     {
-        _blobResubmitContainerClient= blobFact
-            .CreateClient(BlobMiddlewareHandler.BlobResubmitContainerName)
-            .GetBlobContainerClient(BlobMiddlewareHandler.BlobResubmitContainerName);
         _logger = logger;
         _blobFact = blobFact;
+        _resubmitService = resubmitService;
     }
 
     public async Task<RebitActionResult> HandleResubmitAsync(string invocationId, AzFunction function)
@@ -47,12 +39,12 @@ internal class BlobResubmitHandler : IResubmitHandler
         {
             
             IDictionary<string, string> tags = new Dictionary<string, string>();
-            function.TriggerMetadata.TryGetValue("container", out string triggerContainerName);
+            function.TriggerMetadata.TryGetValue("container", out string? triggerContainerName);
 
-            BlobClient? blobForResubmitClient = await _blobResubmitContainerClient.PickUpBlobForResubmition(invocationId);
+            BlobClient? blobForResubmitClient = await _resubmitService.FindAsync(invocationId);
             if (blobForResubmitClient is null)
             {
-                return RebitActionResult.Failure($"No blob found for invocation id {invocationId} in container {_blobResubmitContainerClient.Name}");
+                return RebitActionResult.Failure($"No blob found for invocation id {invocationId} in dedicated resubmit container");
             }
             var existingTagsResponse = await blobForResubmitClient.GetClonedTagsAsync();
             var existingMetaResponse = await blobForResubmitClient.GetClonedMetadataAsync();
@@ -63,7 +55,7 @@ internal class BlobResubmitHandler : IResubmitHandler
                 Metadata = existingMetaResponse
             };
 
-            var inputBlob = CreateInputContainerClient(function.Name, triggerContainerName)
+            var inputBlob = CreateInputContainerClient(function.Name, triggerContainerName!)
                 .GetBlobClient(blobForResubmitClient.GetBlobName());
 
             var copyOp = await inputBlob.StartCopyFromUriAsync(blobForResubmitClient.Uri, options);

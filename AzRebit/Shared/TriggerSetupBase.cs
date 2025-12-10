@@ -1,11 +1,11 @@
 ﻿using System.Reflection;
 
-using AzRebit.Shared.Model;
+using AzRebit.Model;
 
 using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
-using static AzRebit.Shared.Model.TriggerTypes;
+using static AzRebit.Model.TriggerTypes;
 
 namespace AzRebit.Shared;
 

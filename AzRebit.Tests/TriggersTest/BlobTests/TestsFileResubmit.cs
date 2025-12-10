@@ -2,15 +2,14 @@ using System.Text;
 
 using AwesomeAssertions;
 
-using AzRebit.Shared.Model;
+using AzRebit.Infrastructure;
+using AzRebit.Model;
 using AzRebit.Tests;
 using AzRebit.Triggers.BlobTriggered.Handler;
 using AzRebit.Triggers.BlobTriggered.Middleware;
-using AzRebit.Triggers.BlobTriggered.Model;
 
 using Azure.Storage.Blobs;
 
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 
 using NSubstitute;
@@ -18,7 +17,7 @@ using NSubstitute;
 namespace Triggers.BlobTest;
 
 [TestClass]
-public class ResubmitHandler_ResubmitingSavedFiles
+public class TestsFileResubmit
 {
     private static BlobContainerClient _blobResubmitContainerBlob;
 
@@ -27,7 +26,7 @@ public class ResubmitHandler_ResubmitingSavedFiles
     {
         Environment.SetEnvironmentVariable("AzureWebJobsStorage", "UseDevelopmentStorage=true");
         _blobResubmitContainerBlob = new BlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!, 
-            BlobMiddlewareHandler.BlobResubmitContainerName);
+            BlobMiddlewareHandler.BlobResubmitSavePath);
     
     }
     [TestMethod]
@@ -38,7 +37,8 @@ public class ResubmitHandler_ResubmitingSavedFiles
         var logger = Substitute.For<ILogger<BlobResubmitHandler>>();
         var fakeAzureClientFactory = FakesFactory.CreateFakeAzureBlobClientFactory();
         AzFunction fakeFunction = new("fakeName",TriggerTypes.TriggerName.Blob,new Dictionary<string, string>() { { "container","fakeContainer"} });
-        var sut = new BlobResubmitHandler(logger,fakeAzureClientFactory);
+        var resubmitStorage = Substitute.For<IResubmitStorage>();
+        var sut = new BlobResubmitHandler(logger,fakeAzureClientFactory,resubmitStorage);
         string invocationId= Guid.NewGuid().ToString();
         var sutResult=await sut.HandleResubmitAsync(invocationId,fakeFunction);
 

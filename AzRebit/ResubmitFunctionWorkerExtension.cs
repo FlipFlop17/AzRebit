@@ -1,5 +1,6 @@
-﻿using AzRebit.Middleware;
-using AzRebit.Shared.Model;
+﻿using AzRebit.Infrastructure;
+using AzRebit.Middleware;
+using AzRebit.Model;
 
 using Azure.Data.Tables;
 
@@ -16,6 +17,8 @@ namespace AzRebit;
 /// </summary>
 public static class ResubmitFunctionWorkerExtension
 {
+    public const string BlobResubmitServiceClientName = "StorageAccountResubmitArchive";
+    public const string InternalRebitStorageTable = "RebitStatePersistTable";
     public class ResubmitOptions
     {
         /// <summary>
@@ -42,10 +45,11 @@ public static class ResubmitFunctionWorkerExtension
         // discover and register function names
         var discoveredFunctions = AssemblyDiscovery.DiscoverAndAddAzFunctions(builder.Services,options.ExcludedFunctionNames).ToList();
         builder.Services.AddSingleton<IReadOnlyCollection<AzFunction>>(discoveredFunctions);
+        builder.Services.AddSingleton<IResubmitStorage, BlobResubmitStorage>();
         builder.Services.AddAzureClients(c=>
         {
-            c.AddTableServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"))
-            .WithName("rebitTables");
+            c.AddBlobServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")).WithName(BlobResubmitServiceClientName);
+            c.AddTableServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")).WithName(InternalRebitStorageTable);
         });
 
         builder.UseMiddleware<ResubmitMiddleware>();

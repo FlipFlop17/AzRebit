@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzRebit.Shared.Exceptions;
+namespace AzRebit.Model.Exceptions;
 
 internal class BlobOperationException:Exception
 {

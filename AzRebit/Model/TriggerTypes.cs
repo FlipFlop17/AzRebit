@@ -1,4 +1,4 @@
-﻿namespace AzRebit.Shared.Model;
+﻿namespace AzRebit.Model;
 
 internal static class TriggerTypes
 {

@@ -2,8 +2,8 @@
 using System.Diagnostics;
 using System.Reflection;
 
+using AzRebit.Model;
 using AzRebit.Shared;
-using AzRebit.Shared.Model;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
@@ -143,7 +143,7 @@ internal static class AssemblyDiscovery
         var thisAssembly = AppDomain.CurrentDomain.GetAssemblies()
            .FirstOrDefault(a => a.GetName().Name == "AzRebit");
 
-        var installers = thisAssembly.GetExportedTypes()
+        var installers = thisAssembly.GetTypes()
                 .Where(t =>
                     !t.IsAbstract &&
                     !t.IsInterface &&

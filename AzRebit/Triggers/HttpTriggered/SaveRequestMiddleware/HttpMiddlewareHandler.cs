@@ -1,9 +1,14 @@
-﻿using AzRebit.HelperExtensions;
+﻿using System.Text.Json;
+
+using AzRebit.HelperExtensions;
+using AzRebit.Infrastructure;
+using AzRebit.Model;
 using AzRebit.Shared;
-using AzRebit.Shared.Model;
 using AzRebit.Triggers.HttpTriggered.Handler;
+using AzRebit.Triggers.HttpTriggered.Model;
 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 
 namespace AzRebit.Triggers.HttpTriggered.Middleware;
@@ -11,17 +16,19 @@ namespace AzRebit.Triggers.HttpTriggered.Middleware;
 public class HttpMiddlewareHandler:IMiddlewareHandler
 {
     private readonly ILogger<HttpMiddlewareHandler> _logger;
+    private readonly IResubmitStorage _resubmitStorage;
 
     /// <summary>
     /// Container name where the http requests are saved for resubmiting
     /// </summary>
-    public const string HttpResubmitContainerName = "http-resubmits";
+    public const string HttpResubmitVirtualPath = "http-resubmits";
     public string BindingName => "httpTrigger";
     public const string HeaderInvocationId = "x-azrebit-invocationid"; //optional header to specify custom invocation id
     //public const string HeaderResubmitFlag = "x-azrebit-resubmit"; //optional header to specify this is a resubmission request
-    public HttpMiddlewareHandler(ILogger<HttpMiddlewareHandler> logger)
+    public HttpMiddlewareHandler(ILogger<HttpMiddlewareHandler> logger, IResubmitStorage resubmitStorage)
     {
         _logger = logger;
+        _resubmitStorage = resubmitStorage;
     }
 
    
@@ -58,7 +65,11 @@ public class HttpMiddlewareHandler:IMiddlewareHandler
                 await AzRebitHttpExtensions.ProcessResubmitRequest(httpRequestData);
             } else
             {
-                await httpRequestData.SaveRequestForResubmitionAsync(invocationId);
+
+                var payloadToSave= await PrepareHttpRequestForSaveAsync(httpRequestData,invocationId);
+                var destinationPath = $"{HttpResubmitVirtualPath}/{IMiddlewareHandler.BlobPrefixForHttp}{invocationId}.json";
+                
+                await _resubmitStorage.SaveFileAtResubmitLocation(payloadToSave, destinationPath);
             }
 
             return RebitActionResult<object>.Success(new {  InvocationId= invocationId });
@@ -70,5 +81,29 @@ public class HttpMiddlewareHandler:IMiddlewareHandler
         }
 
         
+    }
+    private async Task<string> PrepareHttpRequestForSaveAsync(HttpRequestData req,string invocationId)
+    {
+        using StreamReader reader = new StreamReader(req.Body);
+        var requestPayload = await reader.ReadToEndAsync();
+        IDictionary<string, string?>? headers = req.Headers.Any()
+            ? req.Headers.ToDictionary(h => h.Key, h => h.Value != null ? string.Join(", ", h.Value) : null)
+            : default;
+        string path = req.Url?.AbsoluteUri ?? string.Empty;
+        string queryString = req.Url?.Query ?? string.Empty;
+
+        var requestDtoToSave = new HttpRequestDto
+        (
+            invocationId,
+            req.Method,
+            path,
+            queryString,
+            headers,
+            requestPayload,
+            DateTime.UtcNow
+        );
+        var json = JsonSerializer.Serialize(requestDtoToSave);
+
+        return json;
     }
 }

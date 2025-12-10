@@ -1,12 +1,13 @@
-﻿using AzRebit.Shared;
-using AzRebit.Shared.Model;
+﻿using AzRebit.Model;
+using AzRebit.Shared;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 
-using static AzRebit.Shared.Model.TriggerTypes;
+using static AzRebit.Model.TriggerTypes;
+using static AzRebit.Utilities.Utility;
 
 namespace AzRebit.Triggers.BlobTriggered;
 
@@ -31,7 +32,7 @@ internal class Setup : TriggerSetupBase
                 clientBuilder.AddBlobServiceClient(connectionName)
                     .WithName(functionName);
             });
-
+            functionMeta.Add("container",BlobHelpers.ExtractContainerNameFromBlobPath(blobAttr.BlobPath));
             return new AzFunction(functionName, TriggerName.Blob, functionMeta);
         }
         catch (Exception e)

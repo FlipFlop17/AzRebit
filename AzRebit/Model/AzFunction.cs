@@ -1,6 +1,6 @@
-﻿using static AzRebit.Shared.Model.TriggerTypes;
+﻿using static AzRebit.Model.TriggerTypes;
 
-namespace AzRebit.Shared.Model;
+namespace AzRebit.Model;
 
 /// <summary>
 /// Represents an Azure Function with its name and trigger details
@@ -16,6 +16,13 @@ internal sealed class AzFunction(string name,TriggerName triggerType,Dictionary<
     /// Handler that is doing the resubmiting logic
     /// </summary>
     internal Dictionary<string,string> TriggerMetadata => triggerDetails;
+
+
+    public void AddBlobContainerName(string blobContainerName)
+    { 
+        TriggerMetadata.Add("container",blobContainerName);
+    }
+
 }
 
 

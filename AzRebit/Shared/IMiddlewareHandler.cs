@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using AzRebit.Shared.Model;
+using AzRebit.Model;
 
 using Microsoft.Azure.Functions.Worker;
 

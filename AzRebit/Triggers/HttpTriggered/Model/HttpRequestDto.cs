@@ -11,7 +11,7 @@
 /// <param name="Headers"></param>
 /// <param name="Body"></param>
 /// <param name="TimestampUtc"></param>
-public record HttpSaveRequest(string Id, 
+public record HttpRequestDto(string Id, 
     string Method,
     string Url,
     string? QueryString, 

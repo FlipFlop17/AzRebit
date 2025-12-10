@@ -1,7 +1,7 @@
-﻿using AzRebit.Shared.Model;
+﻿using AzRebit.Model;
 using AzRebit.Triggers.BlobTriggered.Model;
 
-using static AzRebit.Shared.Model.TriggerTypes;
+using static AzRebit.Model.TriggerTypes;
 
 namespace AzRebit.Shared;
 

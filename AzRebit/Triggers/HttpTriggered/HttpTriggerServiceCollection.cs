@@ -10,10 +10,5 @@ internal class HttpTriggerServiceCollection:ITriggersServiceCollection
     {
         services.AddSingleton<IResubmitHandler, HttpResubmitHandler>();
         services.AddSingleton<IMiddlewareHandler, HttpMiddlewareHandler>();
-        services.AddAzureClients(clients =>
-        {
-            clients.AddBlobServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")!)
-            .WithName(HttpMiddlewareHandler.HttpResubmitContainerName);
-        });
     }
 }

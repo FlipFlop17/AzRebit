@@ -1,12 +1,10 @@
-﻿using AzRebit.HelperExtensions;
+﻿using AzRebit.Infrastructure;
+using AzRebit.Model;
 using AzRebit.Shared;
-using AzRebit.Shared.Model;
 
 using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
 
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Context.Features;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 
@@ -15,15 +13,14 @@ namespace AzRebit.Triggers.QueueTrigger.SaveRequestMiddleware;
 internal class QueueMiddlewareHandler : IMiddlewareHandler
 {
     private readonly ILogger<QueueMiddlewareHandler> _logger;
-    private BlobContainerClient _blobResubmitClient;
+    private readonly IResubmitStorage _blobResubmit;
+
     public string BindingName => "queueTrigger";
     public const string ResubmitContainerNameName = "queue-resubmits";
-    public QueueMiddlewareHandler(ILogger<QueueMiddlewareHandler> logger,IAzureClientFactory<BlobServiceClient> blobService)
+    public QueueMiddlewareHandler(ILogger<QueueMiddlewareHandler> logger,IAzureClientFactory<BlobServiceClient> blobService,IResubmitStorage blobResubmit)
     {
         _logger = logger;
-        _blobResubmitClient = blobService
-            .CreateClient(ResubmitContainerNameName)
-            .GetBlobContainerClient(ResubmitContainerNameName);
+        _blobResubmit = blobResubmit;
     }
 
     public async Task<RebitActionResult> SaveIncomingRequest(FunctionContext context)

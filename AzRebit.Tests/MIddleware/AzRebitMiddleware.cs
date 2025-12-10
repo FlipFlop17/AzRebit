@@ -1,6 +1,6 @@
 ﻿using AzRebit.Middleware;
+using AzRebit.Model;
 using AzRebit.Shared;
-using AzRebit.Shared.Model;
 using AzRebit.Triggers.BlobTriggered.Middleware;
 using AzRebit.Triggers.HttpTriggered.Middleware;
 

@@ -1,5 +1,6 @@
 ﻿using AwesomeAssertions;
 
+using AzRebit.Infrastructure;
 using AzRebit.Triggers.BlobTriggered.Middleware;
 
 using Azure.Storage.Blobs;
@@ -14,7 +15,7 @@ using NSubstitute;
 namespace Triggers.BlobTest;
 
 [TestClass]
-public class MiddlewareHandler_SaveIncoming
+public class TestsSaveIncomingFile
 {
     public TestContext TestContext { get; set; }
     private  ILogger<BlobMiddlewareHandler> fakeLogger;
@@ -32,6 +33,8 @@ public class MiddlewareHandler_SaveIncoming
     /// FunctionName, MethodName, Parameters, InputBindings, OutputBindings
     /// </summary>
     private  FunctionDefinition mockFunctionDefinition;
+    private IResubmitStorage resubmitStorage;
+
     /// <summary>
     /// Inside the FunctionDefinition.Parameters - Its a Class representing each parameter inside the function.
     /// Holds the name, type, properties, binding atribute name
@@ -40,12 +43,18 @@ public class MiddlewareHandler_SaveIncoming
     private IAzureClientFactory<BlobServiceClient> fakeBlobClientFactory;
     private BlobClient fakeBlobClient;
 
-    public MiddlewareHandler_SaveIncoming()
+    public TestsSaveIncomingFile()
     {
         fakeLogger = Substitute.For<ILogger<BlobMiddlewareHandler>>();
         context = Substitute.For<FunctionContext>();
         mockFunctionDefinition=Substitute.For<FunctionDefinition>();
         fakeBlobClient = Substitute.For<BlobClient>();
+
+        resubmitStorage = Substitute.For<IResubmitStorage>();
+        resubmitStorage
+            .SaveFileAtResubmitLocation(fakeBlobClient,"fakePath")
+            .Returns(Task.FromResult(true));
+
         fakeBlobClientFactory = Substitute.For<IAzureClientFactory<BlobServiceClient>>();
         var fakeBlobServiceClient = Substitute.For<BlobServiceClient>();
         var fakeContainerClient = Substitute.For<BlobContainerClient>();
@@ -80,15 +89,14 @@ public class MiddlewareHandler_SaveIncoming
         mockFunctionDefinition.Name.Returns(functionName);
         context.FunctionDefinition.Returns(mockFunctionDefinition);
         context.InvocationId.Returns(invocationId);
-        
-        var sut = new BlobMiddlewareHandler(fakeLogger, fakeBlobClientFactory);
+       
+        var sut = new BlobMiddlewareHandler(fakeLogger, resubmitStorage);
 
         // //act
         var blobSaveResult=await sut.SaveIncomingRequest(context);
 
         //assert
         blobSaveResult.IsSuccess.Should().BeTrue();
-        await fakeBlobClient.Received(1).StartCopyFromUriAsync(Arg.Any<Uri>());
     }
 
 
@@ -102,14 +110,13 @@ public class MiddlewareHandler_SaveIncoming
         context.FunctionDefinition.Returns(mockFunctionDefinition);
         context.InvocationId.Returns(invocationId);
 
-        var sut = new BlobMiddlewareHandler(fakeLogger, fakeBlobClientFactory);
+        var sut = new BlobMiddlewareHandler(fakeLogger, resubmitStorage);
 
         // //act
         var blobSaveResult = await sut.SaveIncomingRequest(context);
 
         //assert
         blobSaveResult.IsSuccess.Should().BeTrue();
-        await fakeBlobClient.Received(1).StartCopyFromUriAsync(Arg.Any<Uri>());
     }
 
 }

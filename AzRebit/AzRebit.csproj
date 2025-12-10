@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="AzRebit.Tests" />
+    <InternalsVisibleTo Include="AzRebit.IntegrationTests" />
   </ItemGroup>
 
   <ItemGroup>
