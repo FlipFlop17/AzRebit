@@ -13,7 +13,7 @@ public class RebitActionResult
 {
     public bool IsSuccess { get; init; }
     public string? Message { get; init; }
-
+    public AzRebitErrorType ErrorType { get; init; }
     public static RebitActionResult Success() => new() { IsSuccess = true };
 
     public static RebitActionResult Success(string message) => new()
@@ -24,10 +24,11 @@ public class RebitActionResult
 
     public static RebitActionResult Failure() => new() { IsSuccess = false };
 
-    public static RebitActionResult Failure(string message) => new()
+    public static RebitActionResult Failure(string message,AzRebitErrorType errorType=AzRebitErrorType.UnexpectedError) => new()
     {
         IsSuccess = false,
-        Message = message
+        Message = message,
+        ErrorType= errorType
     };
 }
 /// <summary>
@@ -45,6 +46,8 @@ public class RebitActionResult<T>: RebitActionResult
     /// Optional message describing the result
     /// </summary>
     public string? Message { get; init; }
+
+    public AzRebitErrorType ErrorType { get; init; }
 
     /// <summary>
     /// The data payload of the operation
@@ -92,10 +95,11 @@ public class RebitActionResult<T>: RebitActionResult
     /// <summary>
     /// Creates a failed operation result with a message
     /// </summary>
-    public static RebitActionResult<T> Failure(string message) => new()
+    public static RebitActionResult<T> Failure(string message,AzRebitErrorType errorType=AzRebitErrorType.UnexpectedError) => new()
     {
         IsSuccess = false,
-        Message = message
+        Message = message,
+        ErrorType=errorType 
     };
 
     /// <summary>

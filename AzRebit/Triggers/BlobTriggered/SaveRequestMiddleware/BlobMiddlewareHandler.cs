@@ -14,7 +14,7 @@ namespace AzRebit.Triggers.BlobTriggered.Middleware;
 /// <summary>
 /// Middleware handler for incoming blob payloads. Depending on blob triggered params it saves the blob for resubmission.
 /// </summary>
-public class BlobMiddlewareHandler : IMiddlewareHandler
+public class BlobMiddlewareHandler : ISavePayloadsHandler
 {
     private readonly ILogger<BlobMiddlewareHandler> _logger;
     private readonly IResubmitStorage _blobStorage;
@@ -48,9 +48,12 @@ public class BlobMiddlewareHandler : IMiddlewareHandler
             var blobClient = inputData.OfType<BlobClient>().FirstOrDefault();
             if (blobClient != null)
             {
-                var extension = Path.GetExtension(blobClient.Name);
                 var destinationPath=$"{BlobResubmitSavePath}/{blobClient.Name}";
-                await _blobStorage.SaveFileAtResubmitLocation(blobClient, destinationPath);
+                await _blobStorage.SaveFileAtResubmitLocation(
+                    blobClient, 
+                    destinationPath,
+                    new Dictionary<string,string>() { { ISavePayloadsHandler.BlobTagInvocationId,invocationId } }
+                    );
                 return RebitActionResult.Success(invocationId);
             }
             return RebitActionResult.Failure("Blob Client not found");

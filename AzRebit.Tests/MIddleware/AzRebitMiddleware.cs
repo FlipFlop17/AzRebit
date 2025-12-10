@@ -31,7 +31,7 @@ public static class MiddlewareHandlerFactory
             fakeBlobServiceClient.GetBlobContainerClient(Arg.Any<string>())
                 .Returns(fakeContainerClient);
 
-            var blobHandler=Substitute.For<IMiddlewareHandler>();
+            var blobHandler=Substitute.For<ISavePayloadsHandler>();
             blobHandler.BindingName.Returns("blobTrigger");
             blobHandler.SaveIncomingRequest(Arg.Any<FunctionContext>()).Returns(Task.FromResult(RebitActionResult.Success()));
             var meta = Substitute.For<BindingMetadata>();
@@ -43,7 +43,7 @@ public static class MiddlewareHandlerFactory
             meta.Type.Returns("httpTrigger");
             functionInputBindings = [meta];
             var loggerHttp = Substitute.For<ILogger<HttpMiddlewareHandler>>();
-            var httpHandlerFake=Substitute.For<IMiddlewareHandler>();
+            var httpHandlerFake=Substitute.For<ISavePayloadsHandler>();
             httpHandlerFake.BindingName.Returns("httpTrigger");
             httpHandlerFake.SaveIncomingRequest(Arg.Any<FunctionContext>()).Returns(Task.FromResult(RebitActionResult.Success()));
             yield return new object[] { httpHandlerFake, functionInputBindings };
@@ -63,9 +63,9 @@ public class AzRebitMiddleware
     public async Task GivenAFunctionNamedResubmitIsTriggered_WhenAMiddlewareIsActivated_ShouldReturnWithoutCallingMiddlewareHandler(string functionName)
     {
         //arrange
-        var logger = Substitute.For<ILogger<ResubmitMiddleware>>();
-        var handlers = Enumerable.Empty<IMiddlewareHandler>();
-        var sut = new ResubmitMiddleware(logger, handlers);
+        var logger = Substitute.For<ILogger<SavePayloadsMiddleware>>();
+        var handlers = Enumerable.Empty<ISavePayloadsHandler>();
+        var sut = new SavePayloadsMiddleware(logger, handlers);
         //prepare func context
         var funcContext = CreateDefaultFunctionContext();
         var funcDefinition = Substitute.For<FunctionDefinition>();
@@ -77,7 +77,7 @@ public class AzRebitMiddleware
         //assert
         logger.Received(1).Log(
             LogLevel.Debug,
-            Arg.Is<EventId>(ResubmitMiddleware.SkipAutoSave),
+            Arg.Is<EventId>(SavePayloadsMiddleware.SkipAutoSave),
             Arg.Any<object>(),
             Arg.Any<Exception>(),
             Arg.Any<Func<object, Exception, string>>());
@@ -86,12 +86,12 @@ public class AzRebitMiddleware
     [TestMethod]
     [Description("When a middleware is actived it should invoke the middleware handler depending on the type of trigger")]
     [DynamicData(nameof(MiddlewareHandlerFactory.GetMiddlewareHandlers),typeof(MiddlewareHandlerFactory))]
-    public async Task GivenAFunctionIsTriggered_WhenAMiddlewareIsActivated_ShouldCallMiddlewareHandler(IMiddlewareHandler handlerToTest,IEnumerable<BindingMetadata> meta)
+    public async Task GivenAFunctionIsTriggered_WhenAMiddlewareIsActivated_ShouldCallMiddlewareHandler(ISavePayloadsHandler handlerToTest,IEnumerable<BindingMetadata> meta)
     {
         //arrange
-        var logger = Substitute.For<ILogger<ResubmitMiddleware>>();
-        IEnumerable<IMiddlewareHandler> handlers = [handlerToTest];
-        var sut = new ResubmitMiddleware(logger, handlers);
+        var logger = Substitute.For<ILogger<SavePayloadsMiddleware>>();
+        IEnumerable<ISavePayloadsHandler> handlers = [handlerToTest];
+        var sut = new SavePayloadsMiddleware(logger, handlers);
         var funcContext = CreateDefaultFunctionContext();
         var funcDefinition = Substitute.For<FunctionDefinition>();
         funcDefinition.InputBindings.Values.Returns(meta);

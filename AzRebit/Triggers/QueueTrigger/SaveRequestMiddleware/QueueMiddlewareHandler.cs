@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AzRebit.Triggers.QueueTrigger.SaveRequestMiddleware;
 
-internal class QueueMiddlewareHandler : IMiddlewareHandler
+internal class QueueMiddlewareHandler : ISavePayloadsHandler
 {
     private readonly ILogger<QueueMiddlewareHandler> _logger;
     private readonly IResubmitStorage _blobResubmit;

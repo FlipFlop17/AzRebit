@@ -52,7 +52,7 @@ public static class ResubmitFunctionWorkerExtension
             c.AddTableServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")).WithName(InternalRebitStorageTable);
         });
 
-        builder.UseMiddleware<ResubmitMiddleware>();
+        builder.UseMiddleware<SavePayloadsMiddleware>();
         builder.Services.AddAllAzRebitServices();
 
         return builder;

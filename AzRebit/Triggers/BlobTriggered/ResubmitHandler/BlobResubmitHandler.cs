@@ -44,8 +44,9 @@ internal class BlobResubmitHandler : IResubmitHandler
             BlobClient? blobForResubmitClient = await _resubmitService.FindAsync(invocationId);
             if (blobForResubmitClient is null)
             {
-                return RebitActionResult.Failure($"No blob found for invocation id {invocationId} in dedicated resubmit container");
+                return RebitActionResult.Failure("No blob found for invocation id {invocationId} in dedicated resubmit container",AzRebitErrorType.BlobResubmitFileNotFound);
             }
+            //No blob found for invocation id {invocationId} in dedicated resubmit container
             var existingTagsResponse = await blobForResubmitClient.GetClonedTagsAsync();
             var existingMetaResponse = await blobForResubmitClient.GetClonedMetadataAsync();
 
@@ -67,7 +68,7 @@ internal class BlobResubmitHandler : IResubmitHandler
         catch (Exception e)
         {
             _logger.LogError(e,"Unexpected error while trying to resubmit the file {InvocationId}",invocationId);
-            return RebitActionResult.Failure($"{e.Message}");
+            return RebitActionResult.Failure(e.Message,AzRebitErrorType.UnexpectedError);
         }
 
     }

@@ -1,4 +1,6 @@
-﻿using AzRebit.Model;
+﻿using System.Net;
+
+using AzRebit.Model;
 using AzRebit.Shared;
 
 using Microsoft.Azure.Functions.Worker;
@@ -40,7 +42,7 @@ internal class ResubmitEndpoint
 
     [Function("Resubmit")]
     public async Task<HttpResponseData> RunResubmit(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "resubmit")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, ["post","get"], Route = "resubmit")] HttpRequestData req,
         FunctionContext executionContext)
     {
         var resubmitResult = new ResubmitResponse();
@@ -67,7 +69,11 @@ internal class ResubmitEndpoint
 
             if (!handlerResult.IsSuccess)
             {
-                response.StatusCode = System.Net.HttpStatusCode.InternalServerError;
+                response.StatusCode = handlerResult.ErrorType switch
+                {
+                   AzRebitErrorType.BlobResubmitFileNotFound => HttpStatusCode.NotFound,
+                   _=>HttpStatusCode.InternalServerError
+                };
                 resubmitResult.IsSuccess = false;
                 resubmitResult.Message = handlerResult.Message ?? "Resubmit success";
             }

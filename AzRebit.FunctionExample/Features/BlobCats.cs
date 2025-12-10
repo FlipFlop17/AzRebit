@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using AzRebit.FunctionExample.Infra;
 using AzRebit.HelperExtensions;
 
 using Azure.Storage.Blobs;
@@ -16,10 +17,12 @@ namespace AzRebit.FunctionExample.Features;
 public class BlobCats
 {
     private readonly ILogger<BlobCats> _logger;
+    private readonly IFunctionOutput _output;
     private bool deleteResubmitionFile = Environment.GetEnvironmentVariable("AZREBIT_DELETE_RESUBMITION_FILE") == "true";
-    public BlobCats(ILogger<BlobCats> logger)
+    public BlobCats(ILogger<BlobCats> logger,IFunctionOutput output)
     {
         _logger = logger;
+        _output = output;
     }
 
 
@@ -39,6 +42,6 @@ public class BlobCats
         if (deleteResubmitionFile)
             await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
-        //publish the finished work on service bus, event, external endpoint etc.
+        await _output.PostOutputAsync("Function processed-"+funcContext.InvocationId);
     }
 }

@@ -12,12 +12,12 @@ namespace AzRebit.Middleware;
 /// Main entry middleware that will discover the trigger type and call the appropriate middleware handler to save the incoming request for resubmission.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-public sealed class ResubmitMiddleware : IFunctionsWorkerMiddleware
+public sealed class SavePayloadsMiddleware : IFunctionsWorkerMiddleware
 {
-    private readonly ILogger<ResubmitMiddleware> _logger;
-    private readonly IEnumerable<IMiddlewareHandler> _middlewareHandlers;
+    private readonly ILogger<SavePayloadsMiddleware> _logger;
+    private readonly IEnumerable<ISavePayloadsHandler> _middlewareHandlers;
     public static EventId SkipAutoSave = new EventId(1000, "SkipAutoSave");
-    public ResubmitMiddleware(ILogger<ResubmitMiddleware> logger,IEnumerable<IMiddlewareHandler> middlewareHandlers)
+    public SavePayloadsMiddleware(ILogger<SavePayloadsMiddleware> logger,IEnumerable<ISavePayloadsHandler> middlewareHandlers)
     {
         _logger = logger;
         _middlewareHandlers = middlewareHandlers;

@@ -11,6 +11,6 @@ internal class BlobTriggerServiceCollection: ITriggersServiceCollection
     public void RegisterServices(IServiceCollection services)
     {
         services.AddTransient<IResubmitHandler, BlobResubmitHandler>();
-        services.AddSingleton<IMiddlewareHandler, BlobMiddlewareHandler>();
+        services.AddSingleton<ISavePayloadsHandler, BlobMiddlewareHandler>();
     }
 }

@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AzRebit.Triggers.HttpTriggered.Middleware;
 
-public class HttpMiddlewareHandler:IMiddlewareHandler
+public class HttpMiddlewareHandler:ISavePayloadsHandler
 {
     private readonly ILogger<HttpMiddlewareHandler> _logger;
     private readonly IResubmitStorage _resubmitStorage;
@@ -67,7 +67,7 @@ public class HttpMiddlewareHandler:IMiddlewareHandler
             {
 
                 var payloadToSave= await PrepareHttpRequestForSaveAsync(httpRequestData,invocationId);
-                var destinationPath = $"{HttpResubmitVirtualPath}/{IMiddlewareHandler.BlobPrefixForHttp}{invocationId}.json";
+                var destinationPath = $"{HttpResubmitVirtualPath}/{context.FunctionDefinition.Name}/{invocationId}.http.json";
                 
                 await _resubmitStorage.SaveFileAtResubmitLocation(payloadToSave, destinationPath);
             }

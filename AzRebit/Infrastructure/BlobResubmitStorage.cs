@@ -31,7 +31,7 @@ internal class BlobResubmitStorage : IResubmitStorage
 
     public async Task<BlobClient?> FindAsync(string invocationId)
     {
-        string tagFilter = $"\"{IMiddlewareHandler.BlobTagInvocationId}\" = '{invocationId}'";
+        string tagFilter = $"\"{ISavePayloadsHandler.BlobTagInvocationId}\" = '{invocationId}'";
 
         await foreach (TaggedBlobItem taggedBlob in _resubmitContainerClient.FindBlobsByTagsAsync(tagFilter))
         {

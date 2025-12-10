@@ -10,13 +10,10 @@ using Microsoft.Azure.Functions.Worker;
 
 namespace AzRebit.Shared;
 
-public interface IMiddlewareHandler
+public interface ISavePayloadsHandler
 {
     public const string BlobTagInvocationId = "InvocationId";
     public const string BlobTagResubmitCount = "ResubmitCount";
-    public const string BlobPrefixForBlob = "bl-";
-    public const string BlobPrefixForQueue = "qu-";
-    public const string BlobPrefixForHttp = "ht-";
     public string BindingName { get; }
     public Task<RebitActionResult> SaveIncomingRequest(FunctionContext context);
 }

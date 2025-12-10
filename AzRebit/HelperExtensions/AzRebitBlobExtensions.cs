@@ -16,7 +16,7 @@ public static class AzRebitBlobExtensions
     /// <returns>null or int</returns>
     internal static async Task<int?> GetCurrentResubmitCount(this BlobClient client)
     {
-        string tagKey = IMiddlewareHandler.BlobTagResubmitCount;
+        string tagKey = ISavePayloadsHandler.BlobTagResubmitCount;
         var existingTags = await client.GetTagsAsync();
         if (existingTags.Value is null || existingTags.Value.Tags is null)
             return null;
@@ -37,7 +37,7 @@ public static class AzRebitBlobExtensions
     /// <returns>final count</returns>
     internal static async Task<IDictionary<string,string>> RaiseResubmitCount(this BlobClient client,bool createTag=true, int? setTo=null)
     {
-        string tagKey = IMiddlewareHandler.BlobTagResubmitCount;
+        string tagKey = ISavePayloadsHandler.BlobTagResubmitCount;
         var existingTags = await client.GetTagsAsync();
         if (existingTags.Value is null || existingTags.Value.Tags is null)
             return new Dictionary<string,string>();

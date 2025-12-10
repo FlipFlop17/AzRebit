@@ -1,4 +1,5 @@
 ﻿using AzRebit.Model;
+using AzRebit.Triggers.BlobTriggered.Handler;
 using AzRebit.Triggers.BlobTriggered.Model;
 
 using static AzRebit.Model.TriggerTypes;
