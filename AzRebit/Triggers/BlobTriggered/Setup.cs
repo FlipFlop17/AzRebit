@@ -4,6 +4,7 @@ using AzRebit.Shared;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
 using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 using static AzRebit.Model.TriggerTypes;
@@ -16,9 +17,9 @@ namespace AzRebit.Triggers.BlobTriggered;
 /// </summary>
 internal class Setup : TriggerSetupBase
 {
+
     public override TriggerName TriggerName => TriggerName.Blob;
     public override Type TriggerAttribute => typeof(BlobTriggerAttribute);
-
     public override AzFunction TryCreateAzFunction(string functionName, TriggerBindingAttribute triggerAttribute, IServiceCollection services)
     {
         try
@@ -27,9 +28,10 @@ internal class Setup : TriggerSetupBase
 
             var functionMeta = new Dictionary<string, string>();
             var connectionName =AssemblyDiscovery.ResolveConnectionStringAppSettingName(blobAttr.Connection);
+            string connectionString = Environment.GetEnvironmentVariable(connectionName)!; //_config.GetValue<string>(connectionName)!;
             services.AddAzureClients(clientBuilder =>
             {
-                clientBuilder.AddBlobServiceClient(connectionName)
+                clientBuilder.AddBlobServiceClient(connectionString)
                     .WithName(functionName);
             });
             functionMeta.Add("container",BlobHelpers.ExtractContainerNameFromBlobPath(blobAttr.BlobPath));

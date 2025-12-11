@@ -9,17 +9,21 @@ using Azure.Storage.Blobs;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 
+using Xunit.Abstractions;
+
 namespace AzRebit.IntegrationTests.BlobTriggerTest;
 
 [Collection("FunctionApp")]
 public class FunctionTriggeredByBlob
 {
     private readonly FunctionAppFixture _functionHost;
+    private readonly ITestOutputHelper _testOutput;
     BlobContainerClient _blobResubmitContainerClient;
     IHttpClientFactory _httpClientFactory;
-    public FunctionTriggeredByBlob(FunctionAppFixture functionHost)
+    public FunctionTriggeredByBlob(FunctionAppFixture functionHost,ITestOutputHelper testOutput)
     {
         _functionHost = functionHost;
+        _testOutput = testOutput;
         _blobResubmitContainerClient = _functionHost.ServiceProvider
             .GetRequiredService<IAzureClientFactory<BlobServiceClient>>()
             .CreateClient("resubmitContainer")
@@ -49,15 +53,16 @@ public class FunctionTriggeredByBlob
     }
 
     [Theory]
-    [InlineData("TransferCats", "81a23941-bf69-4493-9e3f-b1550e51bf00")]
+    [InlineData("TransferCats", "f9812b30-56f7-4be6-bfc4-53f511b3bba6")]
     public async Task GivenAResubmitEndpointIsCalled_WhenABlobTriggeredFunctionIsSpecifiedInTheRequest_ShouldCopyTheBlobFileFromResubmitContainerToFunctionsInputContainer(string functionName,string runId)
     {
         //arrange
         HttpClient httpClient = _httpClientFactory.CreateClient("resubmit");
         string query = $"?functionName={functionName}&invocationId={runId}";
         var resubmitResult=await httpClient.GetAsync(query);
-        Console.WriteLine(await resubmitResult.Content.ReadAsStringAsync());
+        _testOutput.WriteLine(await resubmitResult.Content.ReadAsStringAsync());
         resubmitResult.IsSuccessStatusCode.Should().BeTrue();
     }
+
 
 }

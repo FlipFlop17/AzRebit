@@ -6,6 +6,7 @@ using AzRebit.Shared;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
 using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 using static AzRebit.Model.TriggerTypes;
@@ -25,10 +26,11 @@ internal class QueueFeatureSetup : TriggerSetupBase
             if (triggerAttribute is not QueueTriggerAttribute queueAttribute) throw new ArgumentNullException();
 
             var queueName = queueAttribute.QueueName;
-            var connectionName = AssemblyDiscovery.ResolveConnectionStringAppSettingName(queueAttribute.Connection);
+            var appSettingName = AssemblyDiscovery.ResolveConnectionStringAppSettingName(queueAttribute.Connection);
+            string connectionString = Environment.GetEnvironmentVariable(appSettingName)!;
             services.AddAzureClients(c =>
             {
-                c.AddQueueServiceClient(connectionName).WithName(functionName);
+                c.AddQueueServiceClient(connectionString).WithName(functionName);
             });
             functionMeta.Add("QueueName", queueName);
 

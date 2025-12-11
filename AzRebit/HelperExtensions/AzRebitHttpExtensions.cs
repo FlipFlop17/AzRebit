@@ -1,11 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Text;
-using System.Text.Json;
-
-using AzRebit.Shared;
-using AzRebit.Triggers.HttpTriggered.Handler;
+﻿using AzRebit.Triggers.HttpTriggered.Handler;
 using AzRebit.Triggers.HttpTriggered.Middleware;
-using AzRebit.Triggers.HttpTriggered.Model;
 
 using Azure.Storage.Blobs;
 
@@ -29,7 +23,6 @@ public static class AzRebitHttpExtensions
         BlobServiceClient blobServiceClient = new BlobServiceClient(blobConnectionString);
         var container = blobServiceClient.GetBlobContainerClient(HttpMiddlewareHandler.HttpResubmitVirtualPath);
         BlobClient resubmitClient = container.GetBlobClient(resubmitFileName);
-        await resubmitClient.RaiseResubmitCount();
 
     }
 }

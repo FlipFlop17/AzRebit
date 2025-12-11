@@ -22,34 +22,34 @@ internal class BlobResubmitHandler : IResubmitHandler
 {
     private readonly ILogger<BlobResubmitHandler> _logger;
     private readonly IAzureClientFactory<BlobServiceClient> _blobFact;
-    private readonly IResubmitStorage _resubmitService;
+    private readonly IResubmitStorage _resubmitStorage;
     public TriggerName HandlerType => TriggerName.Blob;
 
     public BlobResubmitHandler(ILogger<BlobResubmitHandler> logger,
-        IAzureClientFactory<BlobServiceClient> blobFact,IResubmitStorage resubmitService)
+        IAzureClientFactory<BlobServiceClient> blobFact,IResubmitStorage resubmitStorage)
     {
         _logger = logger;
         _blobFact = blobFact;
-        _resubmitService = resubmitService;
+        _resubmitStorage = resubmitStorage;
     }
 
     public async Task<RebitActionResult> HandleResubmitAsync(string invocationId, AzFunction function)
     {
         try
         {
-            
             IDictionary<string, string> tags = new Dictionary<string, string>();
             function.TriggerMetadata.TryGetValue("container", out string? triggerContainerName);
 
-            BlobClient? blobForResubmitClient = await _resubmitService.FindAsync(invocationId);
+            BlobClient? blobForResubmitClient = await _resubmitStorage.FindAsync(invocationId);
             if (blobForResubmitClient is null)
             {
                 return RebitActionResult.Failure("No blob found for invocation id {invocationId} in dedicated resubmit container",AzRebitErrorType.BlobResubmitFileNotFound);
             }
-            //No blob found for invocation id {invocationId} in dedicated resubmit container
+
             var existingTagsResponse = await blobForResubmitClient.GetClonedTagsAsync();
             var existingMetaResponse = await blobForResubmitClient.GetClonedMetadataAsync();
-
+            CleanUpAnyResubmitTags(existingTagsResponse); //we dont want 'old' tags used for first resubmit save. we want a clean slate for retries
+            
             BlobCopyFromUriOptions options = new()
             {
                 Tags = existingTagsResponse,
@@ -57,12 +57,12 @@ internal class BlobResubmitHandler : IResubmitHandler
             };
 
             var inputBlob = CreateInputContainerClient(function.Name, triggerContainerName!)
-                .GetBlobClient(blobForResubmitClient.GetBlobName());
+                .GetBlobClient(Path.GetFileName(blobForResubmitClient.Name));
 
             var copyOp = await inputBlob.StartCopyFromUriAsync(blobForResubmitClient.Uri, options);
 
             await copyOp.WaitForCompletionAsync();
-
+            //todo at this point add that the record of this resubmition to azure table
             return RebitActionResult.Success();
         }
         catch (Exception e)
@@ -77,4 +77,11 @@ internal class BlobResubmitHandler : IResubmitHandler
     {
         return _blobFact.CreateClient(functionName).GetBlobContainerClient(containerName);
     }
+
+
+    private void CleanUpAnyResubmitTags(IDictionary<string,string> tags)
+    {
+        tags.Remove(ISavePayloadsHandler.BlobTagInvocationId);
+    }
+
 }

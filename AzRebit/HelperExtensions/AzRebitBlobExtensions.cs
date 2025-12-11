@@ -14,19 +14,19 @@ public static class AzRebitBlobExtensions
     /// </summary>
     /// <param name="client"></param>
     /// <returns>null or int</returns>
-    internal static async Task<int?> GetCurrentResubmitCount(this BlobClient client)
-    {
-        string tagKey = ISavePayloadsHandler.BlobTagResubmitCount;
-        var existingTags = await client.GetTagsAsync();
-        if (existingTags.Value is null || existingTags.Value.Tags is null)
-            return null;
+    //internal static async Task<int?> GetCurrentResubmitCount(this BlobClient client)
+    //{
+    //    string tagKey = ISavePayloadsHandler.BlobTagResubmitCount;
+    //    var existingTags = await client.GetTagsAsync();
+    //    if (existingTags.Value is null || existingTags.Value.Tags is null)
+    //        return null;
 
-        if (!existingTags.Value.Tags.TryGetValue(tagKey, out var resubmitCountValue))
-        {
-            return null;
-        }
-        return int.TryParse(resubmitCountValue, out var resubmitCount) ? resubmitCount : null;
-    }
+    //    if (!existingTags.Value.Tags.TryGetValue(tagKey, out var resubmitCountValue))
+    //    {
+    //        return null;
+    //    }
+    //    return int.TryParse(resubmitCountValue, out var resubmitCount) ? resubmitCount : null;
+    //}
 
     /// <summary>
     /// if <c>ResubmitCount</c> tag is available it will raise the count and update the tag
@@ -35,35 +35,34 @@ public static class AzRebitBlobExtensions
     /// <param name="createTag">defaults to <c>true</c>to create the tag if there is none. If false then method will do nothing</param>
     /// <param name="setTo">optionalyy pass in a fixed value</param>
     /// <returns>final count</returns>
-    internal static async Task<IDictionary<string,string>> RaiseResubmitCount(this BlobClient client,bool createTag=true, int? setTo=null)
-    {
-        string tagKey = ISavePayloadsHandler.BlobTagResubmitCount;
-        var existingTags = await client.GetTagsAsync();
-        if (existingTags.Value is null || existingTags.Value.Tags is null)
-            return new Dictionary<string,string>();
+    //internal static async Task<IDictionary<string,string>> RaiseResubmitCount(this BlobClient client,bool createTag=true, int? setTo=null)
+    //{
+    //    var existingTags = await client.GetTagsAsync();
+    //    if (existingTags.Value is null || existingTags.Value.Tags is null)
+    //        return new Dictionary<string,string>();
         
-        if (!existingTags.Value.Tags.TryGetValue(tagKey, out var resubmitCountValue))
-        {
-            if (!createTag)
-                return existingTags.Value.Tags;
-        }
+    //    if (!existingTags.Value.Tags.TryGetValue(tagKey, out var resubmitCountValue))
+    //    {
+    //        if (!createTag)
+    //            return existingTags.Value.Tags;
+    //    }
 
-        var allTags = existingTags.Value.Tags;
-        if (setTo is not null)
-        {
-            allTags[tagKey] = setTo.ToString();
-        }else
-        {
-            bool isParsedOk=int.TryParse(resubmitCountValue,out int currentCount);
-            if (!isParsedOk) 
-                currentCount = 0;
+    //    var allTags = existingTags.Value.Tags;
+    //    if (setTo is not null)
+    //    {
+    //        allTags[tagKey] = setTo.ToString();
+    //    }else
+    //    {
+    //        bool isParsedOk=int.TryParse(resubmitCountValue,out int currentCount);
+    //        if (!isParsedOk) 
+    //            currentCount = 0;
 
-            allTags[tagKey] = (currentCount + 1).ToString();
-        }
+    //        allTags[tagKey] = (currentCount + 1).ToString();
+    //    }
         
-        await client.SetTagsAsync(allTags);
-        return allTags;
-    }
+    //    await client.SetTagsAsync(allTags);
+    //    return allTags;
+    //}
 
     /// <summary>
     /// Deletes a saved blob from the resubmission container

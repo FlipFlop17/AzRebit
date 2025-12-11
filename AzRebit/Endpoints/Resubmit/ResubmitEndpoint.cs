@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Reflection;
 
 using AzRebit.Model;
 using AzRebit.Shared;
@@ -8,16 +9,12 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+using static System.Runtime.InteropServices.JavaScript.JSType;
 using static AzRebit.ResubmitFunctionWorkerExtension;
 
 namespace AzRebit.Endpoints.Resubmit;
 
-public class ResubmitResponse
-{
-    public bool IsSuccess { get; set; }
-    public string Message { get; set; } = "Resubmit succeeded";
-    public object? InvokedFunctionResponse { get; set; }
-}
+public record ResubmitResponse(bool IsSuccess,string Message, string? FunctionName=null,string? InvocationId=null);
 
 
 internal class ResubmitEndpoint
@@ -40,32 +37,36 @@ internal class ResubmitEndpoint
 
     //TODO:Do we need an endpoint that will fetch all resubmitions done. Maybe track them in a storage table. last 3 days ?? 
 
+    /// <summary>
+    /// Resubmits a specified file or a request by creating a new request to the specified function. Via http or blob or queueu
+    /// </summary>
+    /// <param name="req"></param>
+    /// <param name="executionContext"></param>
+    /// <returns>ResubmitResponse</returns>
     [Function("Resubmit")]
     public async Task<HttpResponseData> RunResubmit(
-        [HttpTrigger(AuthorizationLevel.Anonymous, ["post","get"], Route = "resubmit")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, ["get"], Route = "resubmit")] HttpRequestData req,
         FunctionContext executionContext)
     {
-        var resubmitResult = new ResubmitResponse();
         // Extract query parameters
         var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
         var functionName = query["functionName"];
-        var invocationId = query["invocationId"];
-
-        if(!ValidateRequest(functionName, invocationId))
+        var invocationIdToResubmit = query["invocationId"];
+        (bool isValid, string msg) = ValidateRequest(functionName,invocationIdToResubmit);
+        if(!isValid)
         {
-            var badRequestResponse = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-            resubmitResult.IsSuccess = false;
-            resubmitResult.Message = "Invalid request parameters";
+            var badRequestResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+            var resubmitResult = new ResubmitResponse(false,msg,functionName,invocationIdToResubmit);
             await badRequestResponse.WriteAsJsonAsync(resubmitResult);
             return badRequestResponse;
         }
 
         try
         {
-            _logger.LogInformation("Resubmit request received for function: {FunctionName} with invocationId: {InvocationId}", functionName, invocationId);
+            _logger.LogInformation("Resubmit request received for function: {FunctionName} with invocationId: {InvocationId}", functionName, invocationIdToResubmit);
 
-            var handlerResult=await HandleResubmit(functionName!, invocationId!);
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
+            var handlerResult=await HandleResubmit(functionName!, invocationIdToResubmit!);
+            var response = req.CreateResponse(HttpStatusCode.OK);
 
             if (!handlerResult.IsSuccess)
             {
@@ -74,23 +75,19 @@ internal class ResubmitEndpoint
                    AzRebitErrorType.BlobResubmitFileNotFound => HttpStatusCode.NotFound,
                    _=>HttpStatusCode.InternalServerError
                 };
-                resubmitResult.IsSuccess = false;
-                resubmitResult.Message = handlerResult.Message ?? "Resubmit success";
+                string handlerMsg = handlerResult.Message ?? "Resubmit success";
+                var resubmitFailResult = new ResubmitResponse(false, msg,functionName,invocationIdToResubmit);
+                await response.WriteAsJsonAsync(resubmitFailResult);
+                return response;
             }
-            
-            await response.WriteAsJsonAsync(new
-            {
-                resubmitResult.IsSuccess,
-                resubmitResult.Message,
-                FunctionName=functionName,
-                InvocationId=invocationId,
-                Timestamp = DateTime.UtcNow
-            });
+            //TODO: Ne vrati novi invocation id, treba bi vratiti novi invocation id - stari ionako user napravi u requestu
+            var resubmitResult = new ResubmitResponse(true, "Sucessful resubmition", functionName, invocationIdToResubmit);
+            await response.WriteAsJsonAsync(resubmitResult);
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing resubmit request for function: {FunctionName} with invocationId: {InvocationId}", functionName, invocationId);
+            _logger.LogError(ex, "Error processing resubmit request for function: {FunctionName} with invocationId: {InvocationId}", functionName, invocationIdToResubmit);
             var errorResponse = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
             await errorResponse.WriteAsJsonAsync(new { Error = "Internal server error" });
             return errorResponse;
@@ -112,29 +109,29 @@ internal class ResubmitEndpoint
         return handlerResponse;
     }
 
-    private bool ValidateRequest(string? functionName, string? invocationId)
+    private (bool,string) ValidateRequest(string? functionName, string? invocationId)
     {
         // Validate required parameters
         if (string.IsNullOrWhiteSpace(functionName))
         {
             _logger.LogWarning("Validation failed: Missing required query parameter: functionName");
-            return false;
+            return (false, "Missing required query parameter: functionName");
         }
 
         if (string.IsNullOrWhiteSpace(invocationId))
         {
             _logger.LogWarning("Validation failed: Missing required query parameter: invocationId");
-            return false;
+            return (false, "Missing required query parameter: invocationId");
         }
 
         // Validate function exists
         if (!_availableFunctions.Any(fn => fn.Name.Equals(functionName)))
         {
             _logger.LogWarning("Validation failed: Function '{FunctionName}' not found", functionName);
-            return false;
+            return (false, $"Function '{functionName}' not found");
         }
 
-        return true;
+        return (true,string.Empty);
     }
 
 

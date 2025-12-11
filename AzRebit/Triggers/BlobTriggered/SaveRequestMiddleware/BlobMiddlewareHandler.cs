@@ -61,7 +61,7 @@ public class BlobMiddlewareHandler : ISavePayloadsHandler
         catch (BlobOperationException blobE)
         {
             _logger.LogError(blobE, "Unexpected Error on SaveBlobForResubmitionAsync() {InvocationId}", invocationId);
-            return RebitActionResult.Failure(blobE.Message);
+            return RebitActionResult.Failure(blobE.Description);
         }
         catch (Exception e)
         {
