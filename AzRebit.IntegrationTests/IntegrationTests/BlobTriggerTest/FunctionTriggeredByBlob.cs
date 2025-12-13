@@ -1,17 +1,19 @@
 ﻿using AwesomeAssertions;
 
 using AzRebit.HelperExtensions;
+using AzRebit.IntegrationTests;
 using AzRebit.Shared;
 using AzRebit.Triggers.BlobTriggered.Middleware;
 
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 
 using Xunit.Abstractions;
 
-namespace AzRebit.IntegrationTests.BlobTriggerTest;
+namespace AzRebit.Tests.IntegrationTests.BlobTriggerTest;
 
 [Collection("FunctionApp")]
 public class FunctionTriggeredByBlob
@@ -30,12 +32,13 @@ public class FunctionTriggeredByBlob
             .GetBlobContainerClient("files-for-resubmit");
         _httpClientFactory = functionHost.ServiceProvider.GetRequiredService<IHttpClientFactory>();
     }
-    [Fact]
-    public async Task GivenAFunctionIsTriggeredByANewBlob_WhenABlobIsCreatedOrUpdated_ShouldSaveTheBlobAtResubmitLocation()
+    [Theory]
+    [InlineData("TransferCats")]
+    public async Task GivenAFunctionIsTriggeredByANewBlob_WhenABlobIsCreatedOrUpdated_ShouldSaveTheBlobAtResubmitLocation(string functionName)
     {
         //arrange
         var blobName = $"blob-{Guid.NewGuid().ToString()}.txt";
-        var blobResubmitName = $"{BlobMiddlewareHandler.BlobResubmitSavePath}/{blobName}";
+        var blobResubmitName = $"{BlobMiddlewareHandler.BlobResubmitSavePath}/{functionName}/{blobName}";
         var inputBlobClient = new BlobClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"),"cats-container",blobName);
         byte[] data = System.Text.Encoding.UTF8.GetBytes("A blob has been added");
         using var stream = new MemoryStream(data);
@@ -53,12 +56,21 @@ public class FunctionTriggeredByBlob
     }
 
     [Theory]
-    [InlineData("TransferCats", "f9812b30-56f7-4be6-bfc4-53f511b3bba6")]
-    public async Task GivenAResubmitEndpointIsCalled_WhenABlobTriggeredFunctionIsSpecifiedInTheRequest_ShouldCopyTheBlobFileFromResubmitContainerToFunctionsInputContainer(string functionName,string runId)
+    [InlineData("TransferCats")]
+    public async Task GivenAResubmitEndpointIsCalled_WhenABlobTriggeredFunctionIsSpecifiedInTheRequest_ShouldCopyTheBlobFileFromResubmitContainerToFunctionsInputContainer(string functionName)
     {
         //arrange
         HttpClient httpClient = _httpClientFactory.CreateClient("resubmit");
+        string runId = string.Empty;
+        await foreach (BlobItem blobItem in _blobResubmitContainerClient.GetBlobsAsync(BlobTraits.Tags))
+        {
+            blobItem.Tags.TryGetValue(ISavePayloadsHandler.BlobTagInvocationId, out runId);
+            break;
+        }
+
         string query = $"?functionName={functionName}&invocationId={runId}";
+
+        //act
         var resubmitResult=await httpClient.GetAsync(query);
         _testOutput.WriteLine(await resubmitResult.Content.ReadAsStringAsync());
         resubmitResult.IsSuccessStatusCode.Should().BeTrue();

@@ -1,10 +1,8 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 
-using Microsoft.AspNetCore.Mvc.ViewComponents;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 

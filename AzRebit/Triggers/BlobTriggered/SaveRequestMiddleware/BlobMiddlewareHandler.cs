@@ -48,7 +48,7 @@ public class BlobMiddlewareHandler : ISavePayloadsHandler
             var blobClient = inputData.OfType<BlobClient>().FirstOrDefault();
             if (blobClient != null)
             {
-                var destinationPath=$"{BlobResubmitSavePath}/{blobClient.Name}";
+                var destinationPath=$"{BlobResubmitSavePath}/{context.FunctionDefinition.Name}/{blobClient.Name}";
                 await _blobStorage.SaveFileAtResubmitLocation(
                     blobClient, 
                     destinationPath,
