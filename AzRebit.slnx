@@ -1,5 +1,5 @@
 <Solution>
   <Project Path="AzRebit.FunctionExample/AzRebit.FunctionExample.csproj" />
-  <Project Path="AzRebit.IntegrationTests/AzRebit.Tests.csproj" Id="2a04a2d5-ca89-47cb-8c9d-8e1434feb3be" />
   <Project Path="AzRebit/AzRebit.csproj" />
+  <Project Path="AzRebitTests/AzRebitTests.csproj" Id="50bb7005-d89b-4a71-814e-310dc6d84796" />
 </Solution>

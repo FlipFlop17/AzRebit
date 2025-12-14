@@ -1,9 +1,10 @@
 ﻿using AwesomeAssertions;
 
 using AzRebit.HelperExtensions;
-using AzRebit.IntegrationTests;
-using AzRebit.Shared;
+using AzRebit.Infrastructure;
 using AzRebit.Triggers.BlobTriggered.Middleware;
+
+using AzRebitTests.IntegrationTests;
 
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -12,8 +13,7 @@ using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 
 using Xunit.Abstractions;
-
-namespace AzRebit.Tests.IntegrationTests.BlobTriggerTest;
+namespace IntegrationTests.BlobTriggerTest;
 
 [Collection("FunctionApp")]
 public class FunctionTriggeredByBlob
@@ -52,7 +52,7 @@ public class FunctionTriggeredByBlob
         var blobThere = await blobClient.ExistsAsync();
         blobThere.Value.Should().Be(true);
         var tags = await blobClient.GetClonedTagsAsync();
-        tags.FirstOrDefault(tag => tag.Key.Equals(ISavePayloadsHandler.BlobTagInvocationId)).Should().NotBeNull();
+        tags.FirstOrDefault(tag => tag.Key.Equals(IResubmitStorage.BlobTagInvocationId)).Should().NotBeNull();
     }
 
     [Theory]
@@ -64,7 +64,7 @@ public class FunctionTriggeredByBlob
         string runId = string.Empty;
         await foreach (BlobItem blobItem in _blobResubmitContainerClient.GetBlobsAsync(BlobTraits.Tags))
         {
-            blobItem.Tags.TryGetValue(ISavePayloadsHandler.BlobTagInvocationId, out runId);
+            blobItem.Tags.TryGetValue(IResubmitStorage.BlobTagInvocationId, out runId);
             break;
         }
 

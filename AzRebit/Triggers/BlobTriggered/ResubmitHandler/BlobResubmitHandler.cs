@@ -1,4 +1,6 @@
-﻿using AzRebit.HelperExtensions;
+﻿using System.Runtime.CompilerServices;
+
+using AzRebit.HelperExtensions;
 using AzRebit.Infrastructure;
 using AzRebit.Model;
 using AzRebit.Shared;
@@ -81,7 +83,7 @@ internal class BlobResubmitHandler : IResubmitHandler
 
     private void CleanUpAnyResubmitTags(IDictionary<string,string> tags)
     {
-        tags.Remove(ISavePayloadsHandler.BlobTagInvocationId);
+        tags.Remove(IResubmitStorage.BlobTagInvocationId);
     }
 
 }

@@ -3,6 +3,7 @@
 using AwesomeAssertions;
 
 using AzRebit.Infrastructure;
+using AzRebit.Middleware;
 using AzRebit.Triggers.BlobTriggered.Middleware;
 
 using Azure.Storage.Blobs;
@@ -16,9 +17,9 @@ using NSubstitute;
 
 using Xunit.Abstractions;
 
-namespace AzRebit.Tests.UnitTests.Triggers.BlobTest;
+namespace UnitTests.Triggers.BlobTest;
 
-public class TestsSaveIncomingFile
+public class BlobMiddlewareHandlerTests
 {
     public ITestOutputHelper TestOutput { get; set; }
     private  ILogger<BlobMiddlewareHandler> fakeLogger;
@@ -46,7 +47,7 @@ public class TestsSaveIncomingFile
     private IAzureClientFactory<BlobServiceClient> fakeBlobClientFactory;
     private BlobClient fakeBlobClient;
 
-    public TestsSaveIncomingFile()
+    public BlobMiddlewareHandlerTests()
     {
         fakeLogger = Substitute.For<ILogger<BlobMiddlewareHandler>>();
         context = Substitute.For<FunctionContext>();
@@ -96,7 +97,7 @@ public class TestsSaveIncomingFile
         var sut = new BlobMiddlewareHandler(fakeLogger, resubmitStorage);
 
         // //act
-        var blobSaveResult=await sut.SaveIncomingRequest(context);
+        var blobSaveResult=await sut.SaveIncomingRequest(new SavePayloadCommand(context));
 
         //assert
         blobSaveResult.IsSuccess.Should().BeTrue();

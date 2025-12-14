@@ -6,6 +6,7 @@ namespace AzRebit.Infrastructure;
 
 public interface IResubmitStorage
 {
+    public const string BlobTagInvocationId = "InvocationId";
     static string IncomingFilesParentDirectory=string.Empty;
     Task<BlobClient?> FindAsync(string invocationId);
     Task SaveFileAtResubmitLocation(BlobClient sourceBlob, string destinationFullPath, IDictionary<string, string>? destinationFileTags=default);

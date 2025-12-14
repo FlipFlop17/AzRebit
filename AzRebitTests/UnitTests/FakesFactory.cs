@@ -6,7 +6,7 @@ using Microsoft.Extensions.Azure;
 
 using NSubstitute;
 
-namespace AzRebit.Tests;
+namespace AzRebitTests;
 
 internal static class FakesFactory
 {

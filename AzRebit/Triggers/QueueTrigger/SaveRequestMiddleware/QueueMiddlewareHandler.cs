@@ -1,4 +1,6 @@
-﻿using AzRebit.Infrastructure;
+﻿using System.Data;
+
+using AzRebit.Infrastructure;
 using AzRebit.Model;
 using AzRebit.Shared;
 
@@ -10,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AzRebit.Triggers.QueueTrigger.SaveRequestMiddleware;
 
-internal class QueueMiddlewareHandler : ISavePayloadsHandler
+internal class QueueMiddlewareHandler : ISavePayloadHandler
 {
     private readonly ILogger<QueueMiddlewareHandler> _logger;
     private readonly IResubmitStorage _blobResubmit;
@@ -23,9 +25,9 @@ internal class QueueMiddlewareHandler : ISavePayloadsHandler
         _blobResubmit = blobResubmit;
     }
 
-    public async Task<RebitActionResult> SaveIncomingRequest(FunctionContext context)
+    public async Task<RebitActionResult> SaveIncomingRequest(ISavePayloadCommand command)
     {
-        string invocationId = context.InvocationId;
+        string invocationId = command.Context.InvocationId;
 
         return RebitActionResult.Failure("not implemented");
             //var triggerProperties = context.FunctionDefinition.Parameters

@@ -9,6 +9,6 @@ internal class QueueTriggerServiceCollection: ITriggersServiceCollection
     public void RegisterServices(IServiceCollection services)
     {
         services.AddTransient<IResubmitHandler, StorageQueueResubmitHandler>();
-        services.AddSingleton<ISavePayloadsHandler, QueueMiddlewareHandler>();
+        services.AddSingleton<ISavePayloadHandler, QueueMiddlewareHandler>();
     }
 }

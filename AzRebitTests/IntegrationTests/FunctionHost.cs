@@ -6,7 +6,7 @@ using Azure.Storage.Queues;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace AzRebit.IntegrationTests;
+namespace AzRebitTests.IntegrationTests;
 
 [CollectionDefinition("FunctionApp")]
 public class FunctionAppCollection : ICollectionFixture<FunctionAppFixture>

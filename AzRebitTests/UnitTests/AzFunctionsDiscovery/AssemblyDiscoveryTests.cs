@@ -2,15 +2,16 @@
 
 using AwesomeAssertions;
 
+using AzRebit;
 using AzRebit.Model;
 
 using Microsoft.Extensions.DependencyInjection;
 
 using NSubstitute;
 
-namespace AzRebit.Tests.UnitTests.AzFunctionsDiscovery;
+namespace UnitTests.AzFunctionsDiscovery;
 
-public sealed class AssemblyDiscoveryTests
+public class AssemblyDiscoveryTests
 {
     public AssemblyDiscoveryTests()
     {
@@ -22,7 +23,7 @@ public sealed class AssemblyDiscoveryTests
     [InlineData("MyBlobConnection", "AzureWebJobsStorage__MyBlobConnection")]
     [InlineData("SpecialStorageAccount", "AzureWebJobsStorage:SpecialStorageAccount")]
     [InlineData("", "AzureWebJobsStorage")]
-    public void GivenDifferentConnectionStringNames_WhenFunctionProjectStarts_ShouldSuccessfullyAssignProperConnectionNames(string connectionInAzureTriggerDefinition,string expectedAppSettingDefinedName)
+    public void Discovers_connection_string_from_appsettings(string connectionInAzureTriggerDefinition,string expectedAppSettingDefinedName)
     {
         Environment.SetEnvironmentVariable(expectedAppSettingDefinedName, "ConnectionString=DefaultStorageAccountSomething");
         var appsettingName=AssemblyDiscovery.ResolveConnectionStringAppSettingName(connectionInAzureTriggerDefinition);
@@ -32,7 +33,7 @@ public sealed class AssemblyDiscoveryTests
 
     [Theory]
     [InlineData("GetCats", "CheckCats", "TransferCats", "TransformCats")]
-    public void GivenAzFunctionProject_WhenAzureFunctionsExists_ShouldDiscoverAll(params string[] availableFunctions)
+    public void Discovers_all_functions_in_assembly(params string[] availableFunctions)
     {
         //arrange
         Environment.SetEnvironmentVariable("AzureWebJobsStorage", "ConnectionStringPlaceHolder");
@@ -47,7 +48,7 @@ public sealed class AssemblyDiscoveryTests
 
     [Theory]
     [InlineData("getcats")]
-    public void GivenAzFunctionProject_WhenAzureFunctionsExists_ShouldExcludeDefinedFunctionNames(params string[] excludedFunctions)
+    public void Excludes_specified_functions_from_assembly_discovery(params string[] excludedFunctions)
     {
         //arrange
         var serviceCollection = Substitute.For<IServiceCollection>();
@@ -59,8 +60,7 @@ public sealed class AssemblyDiscoveryTests
         //assert
         allFunctions.Should().HaveCountGreaterThan(0);
         
-        allFunctions.Should().NotContain(f => excludedFunctions.ToList()
-        .Contains(f.Name),because: "that function is on the excluded list");
+        allFunctions.Should().NotContain(f => excludedFunctions.Contains(f.Name),because: "that function is on the excluded list");
 
     }
 

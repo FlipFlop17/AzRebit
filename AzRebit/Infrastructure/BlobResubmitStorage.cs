@@ -1,9 +1,7 @@
-﻿using System.Runtime.CompilerServices;
-using System.Text;
+﻿using System.Text;
 
 using AzRebit.HelperExtensions;
 using AzRebit.Model.Exceptions;
-using AzRebit.Shared;
 
 using Azure;
 using Azure.Storage.Blobs;
@@ -31,7 +29,7 @@ internal class BlobResubmitStorage : IResubmitStorage
 
     public async Task<BlobClient?> FindAsync(string invocationId)
     {
-        string tagFilter = $"\"{ISavePayloadsHandler.BlobTagInvocationId}\" = '{invocationId}'";
+        string tagFilter = $"\"{IResubmitStorage.BlobTagInvocationId}\" = '{invocationId}'";
 
         await foreach (TaggedBlobItem taggedBlob in _resubmitContainerClient.FindBlobsByTagsAsync(tagFilter))
         {

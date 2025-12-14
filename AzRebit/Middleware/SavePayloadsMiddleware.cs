@@ -8,6 +8,9 @@ using Microsoft.Extensions.Logging;
 
 namespace AzRebit.Middleware;
 
+public record SavePayloadCommand(FunctionContext Context) : ISavePayloadCommand;
+
+
 /// <summary>
 /// Main entry middleware that will discover the trigger type and call the appropriate middleware handler to save the incoming request for resubmission.
 /// </summary>
@@ -15,9 +18,9 @@ namespace AzRebit.Middleware;
 public sealed class SavePayloadsMiddleware : IFunctionsWorkerMiddleware
 {
     private readonly ILogger<SavePayloadsMiddleware> _logger;
-    private readonly IEnumerable<ISavePayloadsHandler> _middlewareHandlers;
+    private readonly IEnumerable<ISavePayloadHandler> _middlewareHandlers;
     public static EventId SkipAutoSave = new EventId(1000, "SkipAutoSave");
-    public SavePayloadsMiddleware(ILogger<SavePayloadsMiddleware> logger,IEnumerable<ISavePayloadsHandler> middlewareHandlers)
+    public SavePayloadsMiddleware(ILogger<SavePayloadsMiddleware> logger,IEnumerable<ISavePayloadHandler> middlewareHandlers)
     {
         _logger = logger;
         _middlewareHandlers = middlewareHandlers;
@@ -49,8 +52,9 @@ public sealed class SavePayloadsMiddleware : IFunctionsWorkerMiddleware
                         binding.Type,
                         matchingHandler.GetType().Name,
                         context.FunctionDefinition.Name);
-
-                    await matchingHandler.SaveIncomingRequest(context);
+                    
+                    ISavePayloadCommand command = new SavePayloadCommand(context);
+                    await matchingHandler.SaveIncomingRequest(command);
                     // Exit after finding and processing the first matching handler
                     break;
                 }

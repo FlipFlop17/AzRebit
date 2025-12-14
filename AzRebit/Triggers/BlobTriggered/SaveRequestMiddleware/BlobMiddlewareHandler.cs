@@ -5,16 +5,16 @@ using AzRebit.Shared;
 
 using Azure.Storage.Blobs;
 
-using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Context.Features;
 using Microsoft.Extensions.Logging;
 
 namespace AzRebit.Triggers.BlobTriggered.Middleware;
 
+
 /// <summary>
 /// Middleware handler for incoming blob payloads. Depending on blob triggered params it saves the blob for resubmission.
 /// </summary>
-public class BlobMiddlewareHandler : ISavePayloadsHandler
+public class BlobMiddlewareHandler : ISavePayloadHandler
 {
     private readonly ILogger<BlobMiddlewareHandler> _logger;
     private readonly IResubmitStorage _blobStorage;
@@ -31,28 +31,28 @@ public class BlobMiddlewareHandler : ISavePayloadsHandler
         _blobStorage = blobStorage;
     }
 
-    public async Task<RebitActionResult> SaveIncomingRequest(FunctionContext context)
+    public async Task<RebitActionResult> SaveIncomingRequest(ISavePayloadCommand command)
     {
-        string invocationId = context.InvocationId;
+        string invocationId = command.Context.InvocationId;
         try
         {
-            var inputBindingFeature = context.Features.Get<IFunctionInputBindingFeature>();
+            var inputBindingFeature = command.Context.Features.Get<IFunctionInputBindingFeature>();
             if (inputBindingFeature is null)
             {
                 return RebitActionResult.Failure("There is not input bindings specified");
             }
 
-            var data = await inputBindingFeature.BindFunctionInputAsync(context);
+            var data = await inputBindingFeature.BindFunctionInputAsync(command.Context);
             var inputData = data.Values;
 
             var blobClient = inputData.OfType<BlobClient>().FirstOrDefault();
             if (blobClient != null)
             {
-                var destinationPath=$"{BlobResubmitSavePath}/{context.FunctionDefinition.Name}/{blobClient.Name}";
+                var destinationPath=$"{BlobResubmitSavePath}/{command.Context.FunctionDefinition.Name}/{blobClient.Name}";
                 await _blobStorage.SaveFileAtResubmitLocation(
                     blobClient, 
                     destinationPath,
-                    new Dictionary<string,string>() { { ISavePayloadsHandler.BlobTagInvocationId,invocationId } }
+                    new Dictionary<string,string>() { { IResubmitStorage.BlobTagInvocationId,invocationId } }
                     );
                 return RebitActionResult.Success(invocationId);
             }

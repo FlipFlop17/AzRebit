@@ -9,7 +9,12 @@
 
   <ItemGroup>
     <PackageReference Include="AwesomeAssertions" Version="9.3.0" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.26.0" />
+    <PackageReference Include="Azure.Storage.Queues" Version="12.24.0" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Azure" Version="1.13.1" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     <PackageReference Include="NSubstitute" Version="5.3.0" />
     <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.17">
       <PrivateAssets>all</PrivateAssets>
@@ -23,12 +28,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AzRebit.FunctionExample\AzRebit.FunctionExample.csproj" />
-    <ProjectReference Include="..\AzRebit\AzRebit.csproj" />
+    <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Xunit" />
+    <Folder Include="UnitTests\TriggersTest\HttpTests\" />
+    <Folder Include="UnitTests\TriggersTest\QueueTests\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AzRebit.FunctionExample\AzRebit.FunctionExample.csproj" />
+    <ProjectReference Include="..\AzRebit\AzRebit.csproj" />
   </ItemGroup>
 
 </Project>

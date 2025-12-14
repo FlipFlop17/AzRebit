@@ -9,6 +9,6 @@ internal class HttpTriggerServiceCollection:ITriggersServiceCollection
      public void RegisterServices(IServiceCollection services)
     {
         services.AddSingleton<IResubmitHandler, HttpResubmitHandler>();
-        services.AddSingleton<ISavePayloadsHandler, HttpMiddlewareHandler>();
+        services.AddSingleton<ISavePayloadHandler, HttpMiddlewareHandler>();
     }
 }

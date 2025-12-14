@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AzRebit.Triggers.HttpTriggered.Middleware;
 
-public class HttpMiddlewareHandler:ISavePayloadsHandler
+public class HttpMiddlewareHandler:ISavePayloadHandler
 {
     private readonly ILogger<HttpMiddlewareHandler> _logger;
     private readonly IResubmitStorage _resubmitStorage;
@@ -37,13 +37,13 @@ public class HttpMiddlewareHandler:ISavePayloadsHandler
     /// </summary>
     /// <param name="context"></param>
     /// <returns></returns>
-    public async Task<RebitActionResult> SaveIncomingRequest(FunctionContext context)
+    public async Task<RebitActionResult> SaveIncomingRequest(ISavePayloadCommand command)
     {
-        string invocationId = context.InvocationId;
+        string invocationId = command.Context.InvocationId;
 
         try
         {
-            var httpRequestData = await context.GetHttpRequestDataAsync();
+            var httpRequestData = await command.Context.GetHttpRequestDataAsync();
 
             if (httpRequestData is null)
             {
@@ -67,7 +67,7 @@ public class HttpMiddlewareHandler:ISavePayloadsHandler
             {
 
                 var payloadToSave= await PrepareHttpRequestForSaveAsync(httpRequestData,invocationId);
-                var destinationPath = $"{HttpResubmitVirtualPath}/{context.FunctionDefinition.Name}/{invocationId}.http.json";
+                var destinationPath = $"{HttpResubmitVirtualPath}/{command.Context.FunctionDefinition.Name}/{invocationId}.http.json";
                 
                 await _resubmitStorage.SaveFileAtResubmitLocation(payloadToSave, destinationPath);
             }

@@ -1,4 +1,6 @@
-﻿using AzRebit.Middleware;
+﻿ using System.ComponentModel;
+
+using AzRebit.Middleware;
 using AzRebit.Model;
 using AzRebit.Shared;
 using AzRebit.Triggers.BlobTriggered.Middleware;
@@ -13,7 +15,7 @@ using Microsoft.Extensions.Logging;
 
 using NSubstitute;
 
-namespace Middleware;
+namespace UnitTests.Middleware;
 
 
 public static class MiddlewareHandlerFactory
@@ -31,9 +33,9 @@ public static class MiddlewareHandlerFactory
             fakeBlobServiceClient.GetBlobContainerClient(Arg.Any<string>())
                 .Returns(fakeContainerClient);
 
-            var blobHandler=Substitute.For<ISavePayloadsHandler>();
+            var blobHandler=Substitute.For<ISavePayloadHandler>();
             blobHandler.BindingName.Returns("blobTrigger");
-            blobHandler.SaveIncomingRequest(Arg.Any<FunctionContext>()).Returns(Task.FromResult(RebitActionResult.Success()));
+            blobHandler.SaveIncomingRequest(Arg.Any<SavePayloadCommand>()).Returns(Task.FromResult(RebitActionResult.Success()));
             var meta = Substitute.For<BindingMetadata>();
             meta.Type.Returns("blobTrigger");
             IEnumerable<BindingMetadata> functionInputBindings = [meta];
@@ -43,28 +45,27 @@ public static class MiddlewareHandlerFactory
             meta.Type.Returns("httpTrigger");
             functionInputBindings = [meta];
             var loggerHttp = Substitute.For<ILogger<HttpMiddlewareHandler>>();
-            var httpHandlerFake=Substitute.For<ISavePayloadsHandler>();
+            var httpHandlerFake=Substitute.For<ISavePayloadHandler>();
             httpHandlerFake.BindingName.Returns("httpTrigger");
-            httpHandlerFake.SaveIncomingRequest(Arg.Any<FunctionContext>()).Returns(Task.FromResult(RebitActionResult.Success()));
+            var functionContext = Substitute.For<FunctionContext>();
+            httpHandlerFake.SaveIncomingRequest(Arg.Any<SavePayloadCommand>()).Returns(Task.FromResult(RebitActionResult.Success()));
             yield return new object[] { httpHandlerFake, functionInputBindings };
             //
         }
     }
 
 }
-
-[TestClass]
-public class AzRebitMiddleware
+public class SavePayloadsMiddlewareTests
 {
 
-    [TestMethod]
+    [Theory]
     [Description("When a middleware is actived from the Resubmit endpoint it should skip it since we are not saving request if they are from the Resubmit endpoint")]
-    [DataRow("Resubmit")]
-    public async Task GivenAFunctionNamedResubmitIsTriggered_WhenAMiddlewareIsActivated_ShouldReturnWithoutCallingMiddlewareHandler(string functionName)
+    [InlineData("Resubmit")]
+    public async Task When_resubmit_endpoint_is_triggered_should_not_invoke_middleware_handler(string functionName)
     {
         //arrange
         var logger = Substitute.For<ILogger<SavePayloadsMiddleware>>();
-        var handlers = Enumerable.Empty<ISavePayloadsHandler>();
+        var handlers = Enumerable.Empty<ISavePayloadHandler>();
         var sut = new SavePayloadsMiddleware(logger, handlers);
         //prepare func context
         var funcContext = CreateDefaultFunctionContext();
@@ -83,14 +84,14 @@ public class AzRebitMiddleware
             Arg.Any<Func<object, Exception, string>>());
     }
 
-    [TestMethod]
+    [Theory]
     [Description("When a middleware is actived it should invoke the middleware handler depending on the type of trigger")]
-    [DynamicData(nameof(MiddlewareHandlerFactory.GetMiddlewareHandlers),typeof(MiddlewareHandlerFactory))]
-    public async Task GivenAFunctionIsTriggered_WhenAMiddlewareIsActivated_ShouldCallMiddlewareHandler(ISavePayloadsHandler handlerToTest,IEnumerable<BindingMetadata> meta)
+    [MemberData(nameof(MiddlewareHandlerFactory.GetMiddlewareHandlers), MemberType = typeof(MiddlewareHandlerFactory))]
+    public async Task When_resubmit_endpoint_is_triggered_should_invoke_middleware_handler(ISavePayloadHandler handlerToTest,IEnumerable<BindingMetadata> meta)
     {
         //arrange
         var logger = Substitute.For<ILogger<SavePayloadsMiddleware>>();
-        IEnumerable<ISavePayloadsHandler> handlers = [handlerToTest];
+        IEnumerable<ISavePayloadHandler> handlers = [handlerToTest];
         var sut = new SavePayloadsMiddleware(logger, handlers);
         var funcContext = CreateDefaultFunctionContext();
         var funcDefinition = Substitute.For<FunctionDefinition>();
@@ -100,7 +101,7 @@ public class AzRebitMiddleware
         //act
         await sut.Invoke(funcContext, nextDelegate);
         //assert check if the saveincomingpayloadmethod is calledupon
-        await handlerToTest.Received(1).SaveIncomingRequest(funcContext);
+        await handlerToTest.Received(1).SaveIncomingRequest(new SavePayloadCommand(funcContext));
     }
 
     private FunctionContext CreateDefaultFunctionContext()

@@ -31,8 +31,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="AzRebit.Tests" />
-    <InternalsVisibleTo Include="AzRebit.IntegrationTests" />
+    <InternalsVisibleTo Include="AzRebitTests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 
   <ItemGroup>

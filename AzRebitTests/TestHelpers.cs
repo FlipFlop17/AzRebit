@@ -5,7 +5,7 @@ using System.Text;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 
-namespace AzRebit.Tests;
+namespace AzRebitTests;
 
 internal static class TestHelpers
 {
