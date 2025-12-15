@@ -6,6 +6,8 @@ using AzRebit.Shared;
 using AzRebit.Triggers.HttpTriggered.Middleware;
 using AzRebit.Triggers.HttpTriggered.Model;
 
+using Microsoft.Extensions.Logging;
+
 using static AzRebit.Model.TriggerTypes;
 
 namespace AzRebit.Triggers.HttpTriggered.Handler;
@@ -15,23 +17,26 @@ internal class HttpResubmitHandler:IResubmitHandler
     public const string HttpResubmitOriginalFileId = "x-resubmit-originalid";
     private readonly IHttpClientFactory _httpFact;
     private readonly IResubmitStorage _resubmitStorage;
+    private readonly ILogger<HttpResubmitHandler> _logger;
 
     public TriggerName HandlerType => TriggerName.Http;
 
-    public HttpResubmitHandler(IHttpClientFactory httpFact,IResubmitStorage resubmitStorage)
+    public HttpResubmitHandler(IHttpClientFactory httpFact,IResubmitStorage resubmitStorage,ILogger<HttpResubmitHandler> logger)
     {
         _httpFact = httpFact;
         _resubmitStorage = resubmitStorage;
+        _logger = logger;
     }
     
-    public async Task<RebitActionResult> HandleResubmitAsync(string invocationId, AzFunction function)
+    public async Task<RebitActionResult<ResubmitHandlerResponse>> HandleResubmitAsync(string invocationId, AzFunction function)
     {
         var blobForResubmit = await _resubmitStorage.FindAsync(invocationId);
 
         if (blobForResubmit is null)
         {
-            return RebitActionResult.Failure("Cannot find the file for resubmiting");
+            return RebitActionResult<ResubmitHandlerResponse>.Failure("Cannot find the file for resubmiting");
         }
+        _logger.LogInformation("Resubmiting file {FileForResubmit}",blobForResubmit.Name);
         var downloadResponse = await blobForResubmit.DownloadAsync();
         using var streamReader = new StreamReader(downloadResponse.Value.Content);
         var httpRequestContent =JsonSerializer.Deserialize<HttpRequestDto>(await streamReader.ReadToEndAsync());
@@ -55,7 +60,7 @@ internal class HttpResubmitHandler:IResubmitHandler
         var response = await azFuncEndpointclient.SendAsync(httpRequestMessage);
 
         return response.IsSuccessStatusCode 
-            ? RebitActionResult.Success(await response.Content.ReadAsStringAsync()) 
-            : RebitActionResult.Failure(await response.Content.ReadAsStringAsync());
+            ? RebitActionResult<ResubmitHandlerResponse>.Success(new ResubmitHandlerResponse(blobForResubmit.Name),await response.Content.ReadAsStringAsync()) 
+            : RebitActionResult<ResubmitHandlerResponse>.Failure(await response.Content.ReadAsStringAsync());
     }
 }

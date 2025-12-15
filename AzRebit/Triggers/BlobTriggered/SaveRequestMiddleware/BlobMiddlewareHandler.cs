@@ -18,11 +18,6 @@ public class BlobMiddlewareHandler : ISavePayloadHandler
 {
     private readonly ILogger<BlobMiddlewareHandler> _logger;
     private readonly IResubmitStorage _blobStorage;
-
-    /// <summary>
-    /// the name of the container where blobs for resubmition are stored
-    /// </summary>
-    public const string BlobResubmitSavePath = "blob-resubmits";
     public string BindingName => "blobTrigger";
 
     public BlobMiddlewareHandler(ILogger<BlobMiddlewareHandler> logger,IResubmitStorage blobStorage)
@@ -48,7 +43,7 @@ public class BlobMiddlewareHandler : ISavePayloadHandler
             var blobClient = inputData.OfType<BlobClient>().FirstOrDefault();
             if (blobClient != null)
             {
-                var destinationPath=$"{BlobResubmitSavePath}/{command.Context.FunctionDefinition.Name}/{blobClient.Name}";
+                var destinationPath=$"{command.Context.FunctionDefinition.Name}/{blobClient.Name}";
                 await _blobStorage.SaveFileAtResubmitLocation(
                     blobClient, 
                     destinationPath,

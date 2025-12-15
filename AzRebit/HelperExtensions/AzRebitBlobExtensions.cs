@@ -1,4 +1,5 @@
-﻿using AzRebit.Shared;
+﻿using AzRebit.Infrastructure;
+using AzRebit.Shared;
 using AzRebit.Triggers.BlobTriggered.Middleware;
 
 using Azure;
@@ -73,7 +74,7 @@ public static class AzRebitBlobExtensions
     {
         var containerClient = new BlobContainerClient(
             Environment.GetEnvironmentVariable("AzureWebJobsStorage"),
-            BlobMiddlewareHandler.BlobResubmitSavePath);
+            BlobResubmitStorage.ResubmitContainerName);
 
         if (!await containerClient.ExistsAsync())
         {

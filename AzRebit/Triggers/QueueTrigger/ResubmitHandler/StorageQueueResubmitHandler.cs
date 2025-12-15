@@ -21,11 +21,11 @@ internal class StorageQueueResubmitHandler : IResubmitHandler
         _blobStorage = blobStorage;
         _queueServiceClientFactory = queueClient;
     }
-    public async Task<RebitActionResult> HandleResubmitAsync(string invocationId, AzFunction function)
+    public async Task<RebitActionResult<ResubmitHandlerResponse>> HandleResubmitAsync(string invocationId, AzFunction function)
     {
         var storedMessage = await _blobStorage.FindAsync(invocationId);
         if (storedMessage is null)
-            return RebitActionResult.Failure("Queue message not found");
+            return RebitActionResult<ResubmitHandlerResponse>.Failure("Queue message not found");
         
         var msg=await storedMessage.DownloadContentAsync(); //since queue messages are small we can download them eniterly
 
@@ -37,10 +37,10 @@ internal class StorageQueueResubmitHandler : IResubmitHandler
         
         if (msgResult.Value.MessageId is not null) { 
             var msgToReturn = msgResult.Value.ToString() ?? "Message added to the queue (resubmited)";
-            return RebitActionResult.Success(msgToReturn);
+            return RebitActionResult<ResubmitHandlerResponse>.Success(new ResubmitHandlerResponse(storedMessage.Name), msgToReturn);
         }
 
-        return RebitActionResult.Failure("Failed to add message to the queue");
+        return RebitActionResult<ResubmitHandlerResponse>.Failure("Failed to add message to the queue");
     }
 
     private QueueClient CreateQueueClient(string functionName,string queueName)

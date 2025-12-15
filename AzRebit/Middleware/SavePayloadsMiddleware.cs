@@ -62,11 +62,11 @@ public sealed class SavePayloadsMiddleware : IFunctionsWorkerMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(
+            _logger.LogError(
                 ex,
                 "Failed to auto-save blob for resubmission in function {FunctionName}",
                 context.FunctionDefinition.Name);
-            //we just log the warning, we dont want to stop the function execution if the save fails. just log it.
+            //we dont want to stop the function execution if the save fails. just log it.
         }
 
         await next(context);

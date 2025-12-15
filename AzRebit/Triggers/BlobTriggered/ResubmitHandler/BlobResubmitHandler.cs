@@ -35,7 +35,7 @@ internal class BlobResubmitHandler : IResubmitHandler
         _resubmitStorage = resubmitStorage;
     }
 
-    public async Task<RebitActionResult> HandleResubmitAsync(string invocationId, AzFunction function)
+    public async Task<RebitActionResult<ResubmitHandlerResponse>> HandleResubmitAsync(string invocationId, AzFunction function)
     {
         try
         {
@@ -43,11 +43,12 @@ internal class BlobResubmitHandler : IResubmitHandler
             function.TriggerMetadata.TryGetValue("container", out string? triggerContainerName);
 
             BlobClient? blobForResubmitClient = await _resubmitStorage.FindAsync(invocationId);
+           
             if (blobForResubmitClient is null)
             {
-                return RebitActionResult.Failure("No blob found for invocation id {invocationId} in dedicated resubmit container",AzRebitErrorType.BlobResubmitFileNotFound);
+                return RebitActionResult<ResubmitHandlerResponse>.Failure($"No blob found for invocation id {invocationId} in dedicated resubmit container",AzRebitErrorType.BlobResubmitFileNotFound);
             }
-
+            _logger.LogInformation("Resubmiting file {ResubmitingFile}", blobForResubmitClient.Name);
             var existingTagsResponse = await blobForResubmitClient.GetClonedTagsAsync();
             var existingMetaResponse = await blobForResubmitClient.GetClonedMetadataAsync();
             CleanUpAnyResubmitTags(existingTagsResponse); //we dont want 'old' tags used for first resubmit save. we want a clean slate for retries
@@ -65,12 +66,12 @@ internal class BlobResubmitHandler : IResubmitHandler
 
             await copyOp.WaitForCompletionAsync();
             //todo at this point add that the record of this resubmition to azure table
-            return RebitActionResult.Success();
+            return RebitActionResult<ResubmitHandlerResponse>.Success(new ResubmitHandlerResponse(blobForResubmitClient.Name));
         }
         catch (Exception e)
         {
             _logger.LogError(e,"Unexpected error while trying to resubmit the file {InvocationId}",invocationId);
-            return RebitActionResult.Failure(e.Message,AzRebitErrorType.UnexpectedError);
+            return RebitActionResult<ResubmitHandlerResponse>.Failure(e.Message,AzRebitErrorType.UnexpectedError);
         }
 
     }

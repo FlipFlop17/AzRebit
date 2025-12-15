@@ -19,11 +19,11 @@ internal class BlobResubmitStorage : IResubmitStorage
     /// <summary>
     /// Name of the container where all incoming files are saved
     /// </summary>
-    public static string IncomingFilesParentDirectory = "files-for-resubmit";
+    public static string ResubmitContainerName => "files-for-resubmit";
     public BlobResubmitStorage(IAzureClientFactory<BlobServiceClient> blobFact)
     {
         _resubmitContainerClient = blobFact.CreateClient(ResubmitFunctionWorkerExtension.BlobResubmitServiceClientName)
-            .GetBlobContainerClient(IncomingFilesParentDirectory);
+            .GetBlobContainerClient(ResubmitContainerName);
     }
 
 

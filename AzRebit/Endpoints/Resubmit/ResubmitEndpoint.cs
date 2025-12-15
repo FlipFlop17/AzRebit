@@ -14,8 +14,7 @@ using static AzRebit.ResubmitFunctionWorkerExtension;
 
 namespace AzRebit.Endpoints.Resubmit;
 
-public record ResubmitResponse(bool IsSuccess,string Message, string? FunctionName=null,string? InvocationId=null);
-
+public record ResubmitResponse(bool IsSuccess,string Message, string? FunctionName=null,string? ResubmitedFileName=null);
 
 internal class ResubmitEndpoint
 {
@@ -75,13 +74,13 @@ internal class ResubmitEndpoint
                    AzRebitErrorType.BlobResubmitFileNotFound => HttpStatusCode.NotFound,
                    _=>HttpStatusCode.InternalServerError
                 };
-                string handlerMsg = handlerResult.Message ?? "Resubmit success";
-                var resubmitFailResult = new ResubmitResponse(false, msg,functionName,invocationIdToResubmit);
+                string handlerMsg = handlerResult.Message ?? "Resubmit is not successfull";
+                var resubmitFailResult = new ResubmitResponse(false, handlerMsg, functionName,invocationIdToResubmit);
                 await response.WriteAsJsonAsync(resubmitFailResult);
                 return response;
             }
-            //TODO: Ne vrati novi invocation id, treba bi vratiti novi invocation id - stari ionako user napravi u requestu
-            var resubmitResult = new ResubmitResponse(true, "Sucessful resubmition", functionName, invocationIdToResubmit);
+
+            var resubmitResult = new ResubmitResponse(true, "Sucessful resubmition", functionName, handlerResult.Data?.ResubmitingFileName);
             await response.WriteAsJsonAsync(resubmitResult);
             return response;
         }
@@ -94,7 +93,7 @@ internal class ResubmitEndpoint
         }
     }
 
-    private async Task<RebitActionResult> HandleResubmit(string functionName,string invocationId)
+    private async Task<RebitActionResult<ResubmitHandlerResponse>> HandleResubmit(string functionName,string invocationId)
     {
         var functionForResubmit = _availableFunctions.First(fn => fn.Name.Equals(functionName));
         var functionsTriggerMetadata = functionForResubmit.TriggerMetadata;

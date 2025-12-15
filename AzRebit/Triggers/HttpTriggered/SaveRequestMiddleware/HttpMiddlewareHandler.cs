@@ -17,14 +17,11 @@ public class HttpMiddlewareHandler:ISavePayloadHandler
 {
     private readonly ILogger<HttpMiddlewareHandler> _logger;
     private readonly IResubmitStorage _resubmitStorage;
-
-    /// <summary>
-    /// Container name where the http requests are saved for resubmiting
-    /// </summary>
-    public const string HttpResubmitVirtualPath = "http-resubmits";
     public string BindingName => "httpTrigger";
-    public const string HeaderInvocationId = "x-azrebit-invocationid"; //optional header to specify custom invocation id
-    //public const string HeaderResubmitFlag = "x-azrebit-resubmit"; //optional header to specify this is a resubmission request
+    /// <summary>
+    /// Headers that mark that the invocation id should be taken from the header and not of the FunctionContext
+    /// </summary>
+    public const string HeaderInvocationId = "x-azrebit-invocationid"; 
     public HttpMiddlewareHandler(ILogger<HttpMiddlewareHandler> logger, IResubmitStorage resubmitStorage)
     {
         _logger = logger;
@@ -67,9 +64,11 @@ public class HttpMiddlewareHandler:ISavePayloadHandler
             {
 
                 var payloadToSave= await PrepareHttpRequestForSaveAsync(httpRequestData,invocationId);
-                var destinationPath = $"{HttpResubmitVirtualPath}/{command.Context.FunctionDefinition.Name}/{invocationId}.http.json";
+                var destinationPath = $"{command.Context.FunctionDefinition.Name}/{invocationId}.http.json";
                 
-                await _resubmitStorage.SaveFileAtResubmitLocation(payloadToSave, destinationPath);
+                await _resubmitStorage.SaveFileAtResubmitLocation(payloadToSave, 
+                    destinationPath, 
+                    new Dictionary<string, string>() { { IResubmitStorage.BlobTagInvocationId, invocationId } });
             }
 
             return RebitActionResult<object>.Success(new {  InvocationId= invocationId });

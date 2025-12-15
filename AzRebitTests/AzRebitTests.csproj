@@ -32,11 +32,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="UnitTests\TriggersTest\HttpTests\" />
-    <Folder Include="UnitTests\TriggersTest\QueueTests\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\AzRebit.FunctionExample\AzRebit.FunctionExample.csproj" />
     <ProjectReference Include="..\AzRebit\AzRebit.csproj" />
   </ItemGroup>

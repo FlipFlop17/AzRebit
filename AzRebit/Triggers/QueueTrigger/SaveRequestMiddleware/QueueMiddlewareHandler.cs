@@ -18,7 +18,6 @@ internal class QueueMiddlewareHandler : ISavePayloadHandler
     private readonly IResubmitStorage _blobResubmit;
 
     public string BindingName => "queueTrigger";
-    public const string ResubmitContainerNameName = "queue-resubmits";
     public QueueMiddlewareHandler(ILogger<QueueMiddlewareHandler> logger,IAzureClientFactory<BlobServiceClient> blobService,IResubmitStorage blobResubmit)
     {
         _logger = logger;

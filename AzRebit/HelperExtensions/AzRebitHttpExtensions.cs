@@ -18,11 +18,12 @@ public static class AzRebitHttpExtensions
     /// <returns></returns>
     public static async Task ProcessResubmitRequest(HttpRequestData req)
     {
-        req.Headers.TryGetValues(HttpResubmitHandler.HttpResubmitOriginalFileId, out var resubmitOriginalId);
-        var resubmitFileName = $"{resubmitOriginalId?.First()}.json";
-        BlobServiceClient blobServiceClient = new BlobServiceClient(blobConnectionString);
-        var container = blobServiceClient.GetBlobContainerClient(HttpMiddlewareHandler.HttpResubmitVirtualPath);
-        BlobClient resubmitClient = container.GetBlobClient(resubmitFileName);
+        //todo refactor to save all this in az tables
+        //req.Headers.TryGetValues(HttpResubmitHandler.HttpResubmitOriginalFileId, out var resubmitOriginalId);
+        //var resubmitFileName = $"{resubmitOriginalId?.First()}.json";
+        //BlobServiceClient blobServiceClient = new BlobServiceClient(blobConnectionString);
+        //var container = blobServiceClient.GetBlobContainerClient();
+        //BlobClient resubmitClient = container.GetBlobClient(resubmitFileName);
 
     }
 }
