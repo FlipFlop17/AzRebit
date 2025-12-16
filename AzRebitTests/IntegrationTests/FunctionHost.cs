@@ -51,7 +51,7 @@ public class FunctionAppFixture : IAsyncLifetime
         serviceCollection.AddAzureClients(clients =>
         {
             clients.AddBlobServiceClient(storageSetting).WithName("resubmitContainer");
-            clients.AddQueueServiceClient(storageSetting).WithName("funcOutput");
+            clients.AddQueueServiceClient(storageSetting).WithName("queueClient");
         });
         ServiceProvider = serviceCollection.BuildServiceProvider();
     }

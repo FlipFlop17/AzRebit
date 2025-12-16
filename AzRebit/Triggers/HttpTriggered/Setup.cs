@@ -14,7 +14,7 @@ namespace AzRebit.Triggers.HttpTriggered;
 /// </summary>
 internal class Setup : TriggerSetupBase
 {
-    public override TriggerName TriggerName => TriggerName.Blob;
+    public override TriggerName TriggerName => TriggerName.Http;
     public override Type TriggerAttribute => typeof(HttpTriggerAttribute);
     public override AzFunction TryCreateAzFunction(string functionName, TriggerBindingAttribute triggerAttribute, IServiceCollection services)
     {

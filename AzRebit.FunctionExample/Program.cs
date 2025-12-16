@@ -16,6 +16,7 @@ builder.Services
     .AddApplicationInsightsTelemetryWorkerService()
     .ConfigureFunctionsApplicationInsights()
     .AddHttpClient();
+
 builder.Services.AddAzureClients(clients =>
 {
     clients.AddQueueServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"))
@@ -24,10 +25,17 @@ builder.Services.AddAzureClients(clients =>
         c.MessageEncoding = Azure.Storage.Queues.QueueMessageEncoding.Base64;
     });
 });
+
 builder.Services.AddSingleton<IFunctionOutput, QueueStorage>();
 builder.AddResubmitEndpoint();
+
 if(builder.Environment.IsDevelopment())
 {
     builder.Logging.AddSeq();
-}
+};
+builder.Logging.AddFilter("Azure.Core", LogLevel.Error);
+builder.Logging.AddFilter("Azure.Storage", LogLevel.Error);
+builder.Logging.AddFilter("Host.General", LogLevel.Warning);
+builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
+
 builder.Build().Run();

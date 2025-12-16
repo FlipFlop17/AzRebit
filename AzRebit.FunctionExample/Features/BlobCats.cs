@@ -14,6 +14,12 @@ using Microsoft.Extensions.Logging;
 
 namespace AzRebit.FunctionExample.Features;
 
+
+public class Cat
+{
+    public string Name { get; set; }
+    public string Color { get; set; }
+}
 public class BlobCats
 {
     private readonly ILogger<BlobCats> _logger;
@@ -43,5 +49,41 @@ public class BlobCats
             await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
         await _output.PostOutputAsync("Function processed-"+funcContext.InvocationId);
+    }
+
+    /// <summary>
+    /// Blob trigger example
+    /// </summary>
+    /// <param name="req"></param>
+    /// <returns></returns>
+    [Function("TransferCats-streambind")]
+    public async Task RunCatTransferStream(
+        [BlobTrigger("cats-container-stream/{blobName}", Connection = "AzureWebJobsStorage")]
+        Stream blobStream, FunctionContext funcContext)
+    {
+        _logger.LogInformation("incoming payload saved");
+        //optional but recomended - if processing was successfull delete the file as we won't need it for resubmition
+        if (deleteResubmitionFile)
+            await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+
+        await _output.PostOutputAsync("Function processed-" + funcContext.InvocationId);
+    }
+
+    /// <summary>
+    /// Blob trigger example
+    /// </summary>
+    /// <param name="req"></param>
+    /// <returns></returns>
+    [Function("TransferCats-custom")]
+    public async Task RunCatTransferJson(
+        [BlobTrigger("cats-container-custom/{blobObjectPath}", Connection = "AzureWebJobsStorage")]
+        Cat catObject, FunctionContext funcContext)
+    {
+        _logger.LogInformation("incoming payload saved");
+        //optional but recomended - if processing was successfull delete the file as we won't need it for resubmition
+        if (deleteResubmitionFile)
+            await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+
+        await _output.PostOutputAsync("Function processed-" + funcContext.InvocationId);
     }
 }

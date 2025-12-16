@@ -5,6 +5,7 @@ using AzRebit.Triggers.BlobTriggered.Middleware;
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
 
 namespace AzRebit.HelperExtensions;
 public static class AzRebitBlobExtensions
@@ -124,6 +125,32 @@ public static class AzRebitBlobExtensions
 
         return string.Join("/", segments.Where(s => !string.IsNullOrEmpty(s)));
     }
+
+    /// <summary>
+    /// Gets tags
+    /// </summary>
+    /// <param name="blobClient"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static async Task<IDictionary<string, string>> GetClonedTagsAsync(
+       this BlobBaseClient blobClient,
+       CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await blobClient.GetTagsAsync(cancellationToken: cancellationToken);
+
+            return response.Value?.Tags != null
+                ? new Dictionary<string, string>(response.Value.Tags)
+                : new Dictionary<string, string>();
+        }
+        catch (RequestFailedException)
+        {
+            // If tags are not supported or missing, return empty
+            return new Dictionary<string, string>();
+        }
+    }
+
 
     /// <summary>
     /// Gets tags

@@ -1,9 +1,5 @@
-using System.Text.Json;
-
 using AzRebit.HelperExtensions;
-using Azure.Storage.Blobs;
 
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
@@ -17,7 +13,7 @@ public class HttpCats
 {
     private readonly ILogger<HttpCats> _logger;
     private readonly List<string> _cats=new List<string> { "Tom", "Garfield", "Sylvester" };
-    private bool deleteResubmitionFile = Environment.GetEnvironmentVariable("AZREBIT_DELETE_RESUBMITION_FILE") == "true";
+    private bool shouldDeleteResubmitionFile = Environment.GetEnvironmentVariable("AZREBIT_DELETE_RESUBMITION_FILE") == "true";
     public HttpCats(ILogger<HttpCats> logger)
     {
         _logger = logger;
@@ -39,7 +35,7 @@ public class HttpCats
 
         //cleanup
         //optional but recomended - if processing was successfull delete the file as we probably won't need it for resubmition to save storage space
-        if (deleteResubmitionFile)
+        if (shouldDeleteResubmitionFile)
             await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
         await response.WriteAsJsonAsync(_cats);

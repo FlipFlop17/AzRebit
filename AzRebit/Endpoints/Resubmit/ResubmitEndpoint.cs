@@ -35,7 +35,7 @@ internal class ResubmitEndpoint
 
 
     //TODO:Do we need an endpoint that will fetch all resubmitions done. Maybe track them in a storage table. last 3 days ?? 
-
+    //TODO:Loging should be done with source generators and not using iloggerdirectly
     /// <summary>
     /// Resubmits a specified file or a request by creating a new request to the specified function. Via http or blob or queueu
     /// </summary>

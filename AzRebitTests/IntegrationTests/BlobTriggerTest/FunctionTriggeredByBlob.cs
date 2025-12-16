@@ -2,6 +2,7 @@
 
 using AzRebit.HelperExtensions;
 using AzRebit.Infrastructure;
+using AzRebit.Triggers.BlobTriggered.Middleware;
 
 using AzRebitTests.IntegrationTests;
 
@@ -36,8 +37,8 @@ public class FunctionTriggeredByBlob
     public async Task When_a_blob_is_created_or_updated_Should_save_it_at_resubmit_container(string functionName)
     {
         //arrange
-        var blobName = $"blob-{DateTime.Now:dd_MM_yyyy_HH_mm_ss}.txt";
-        var blobResubmitName = $"{functionName}/{blobName}";
+        var blobName = $"transferdata-{DateTime.Now:dd_MM_yyyy_HH_mm_ss}.txt";
+        var blobResubmitName = $"{functionName}/{BlobMiddlewareHandler.ResubmitFilePrefix}-{blobName}";
         var inputBlobClient = new BlobClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"),"cats-container",blobName);
         byte[] data = System.Text.Encoding.UTF8.GetBytes("A blob has been added");
         using var stream = new MemoryStream(data);
@@ -62,7 +63,8 @@ public class FunctionTriggeredByBlob
         HttpClient httpClient = _httpClientFactory.CreateClient("resubmit");
         string runId = string.Empty;
         //just get any blob with invocation id
-        await foreach (BlobItem blobItem in _blobResubmitContainerClient.GetBlobsAsync(BlobTraits.Tags))
+        var searchPrefix = $"{functionName}/{BlobMiddlewareHandler.ResubmitFilePrefix}";
+        await foreach (BlobItem blobItem in _blobResubmitContainerClient.GetBlobsAsync(BlobTraits.Tags,prefix:searchPrefix))
         {
             blobItem.Tags.TryGetValue(IResubmitStorage.BlobTagInvocationId, out runId);
             break;

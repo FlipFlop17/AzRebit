@@ -1,12 +1,9 @@
-﻿using System.Reflection;
-
-using AzRebit.Model;
+﻿using AzRebit.Model;
 using AzRebit.Shared;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
 using Microsoft.Extensions.Azure;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 using static AzRebit.Model.TriggerTypes;
@@ -34,7 +31,7 @@ internal class QueueFeatureSetup : TriggerSetupBase
             });
             functionMeta.Add("QueueName", queueName);
 
-             return new AzFunction(functionName, TriggerName.Blob, functionMeta);
+            return new AzFunction(functionName, TriggerName, functionMeta);
         }
         catch (Exception e)
         {

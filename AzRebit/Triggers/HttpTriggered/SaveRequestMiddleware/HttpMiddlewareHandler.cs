@@ -19,6 +19,11 @@ public class HttpMiddlewareHandler:ISavePayloadHandler
     private readonly IResubmitStorage _resubmitStorage;
     public string BindingName => "httpTrigger";
     /// <summary>
+    /// prefix for triggertype
+    /// </summary>
+    private const string _prefix = "t_http";
+    public static string ResubmitFilePrefix=>_prefix;
+    /// <summary>
     /// Headers that mark that the invocation id should be taken from the header and not of the FunctionContext
     /// </summary>
     public const string HeaderInvocationId = "x-azrebit-invocationid"; 
@@ -64,7 +69,7 @@ public class HttpMiddlewareHandler:ISavePayloadHandler
             {
 
                 var payloadToSave= await PrepareHttpRequestForSaveAsync(httpRequestData,invocationId);
-                var destinationPath = $"{command.Context.FunctionDefinition.Name}/{invocationId}.http.json";
+                var destinationPath = $"{command.Context.FunctionDefinition.Name}/{_prefix}-{invocationId}.json";
                 
                 await _resubmitStorage.SaveFileAtResubmitLocation(payloadToSave, 
                     destinationPath, 

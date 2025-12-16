@@ -6,6 +6,7 @@ using AzRebit.Model.Exceptions;
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
 
 using Microsoft.Extensions.Azure;
 
@@ -49,7 +50,7 @@ internal class BlobResubmitStorage : IResubmitStorage
     /// <exception cref="BlobOperationException"></exception>
     /// <exception cref="BlobTagCountException"></exception>
     /// <exception cref="Exception"></exception>
-    public async Task SaveFileAtResubmitLocation(BlobClient sourceBlob, string destinationFullPath,IDictionary<string,string>? destinationFileTags)
+    public async Task SaveFileAtResubmitLocation(BlobBaseClient sourceBlob, string destinationFullPath,IDictionary<string,string>? destinationFileTags)
     {
         try
         {
@@ -140,5 +141,36 @@ internal class BlobResubmitStorage : IResubmitStorage
         }
     }
 
+    public async Task SaveFileAtResubmitLocation(Stream payload, string destinationFullPath, IDictionary<string, string>? destinationFileTags = null, Encoding? encoding = null)
+    {
+        try
+        {
+            var tagsToAdd = destinationFileTags ?? new Dictionary<string, string>();
 
+            if (tagsToAdd.Count > MaxTagCount)
+                throw new BlobTagCountException("SaveFileAtResubmitLocation", "Invalid tag count", new Exception("Tag size reached"));
+
+            BlobClient blobClient = _resubmitContainerClient.GetBlobClient(destinationFullPath);
+
+            var options = new BlobUploadOptions
+            {
+                Tags = tagsToAdd,
+            };
+            await blobClient.UploadAsync(payload, options);
+        }
+        catch (BlobTagCountException)
+        {
+            throw;
+        }
+        catch (RequestFailedException ex)
+        {
+            throw new BlobOperationException("SaveFileAtResubmitLocation",
+                $"Failed saving blob '{destinationFullPath}' from stream", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new BlobOperationException("SaveBlobForResubmitionAsync",
+                $"Unexpected failure while saving blob '{destinationFullPath}' from stream", ex);
+        }
+    }
 }

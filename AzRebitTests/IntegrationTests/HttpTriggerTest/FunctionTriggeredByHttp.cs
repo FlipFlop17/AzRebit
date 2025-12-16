@@ -4,11 +4,13 @@ using AwesomeAssertions;
 
 using AzRebit.HelperExtensions;
 using AzRebit.Infrastructure;
+using AzRebit.Triggers.HttpTriggered.Handler;
 using AzRebit.Triggers.HttpTriggered.Middleware;
 
 using AzRebitTests.IntegrationTests;
 
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,8 +51,8 @@ public class FunctionTriggeredByHttp
 
         //act
         var response=await client.SendAsync(request);
-
         //assert
+        _testOutput.WriteLine(await response.Content.ReadAsStringAsync());
         response.IsSuccessStatusCode.Should().BeTrue();
         
     }
@@ -58,9 +60,10 @@ public class FunctionTriggeredByHttp
     public async Task Given_header_with_invocationid_When_a_http_request_is_received_Should_copy_at_resubmit_container()
     {
         //arrange
+        string functionName = "GetCats";
         string jsonPayload = "{ \"TestType\":\"With header id\" }";
         HttpClient client = _httpClientFactory.CreateClient();
-        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, $"{_functionHost.BaseUrl}/api/GetCats")
+        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, $"{_functionHost.BaseUrl}/api/{functionName}")
         {
             Content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json")
         };
@@ -70,13 +73,36 @@ public class FunctionTriggeredByHttp
         var response = await client.SendAsync(request);
         response.IsSuccessStatusCode.Should().BeTrue();
         //assert
-        _testOutput.WriteLine($"{customInvocationId}.http.json");
-        var blob=_blobResubmitContainerClient.GetBlobClient($"GetCats/{customInvocationId}.http.json");
+        _testOutput.WriteLine($"{functionName}/{HttpMiddlewareHandler.ResubmitFilePrefix}-{customInvocationId}.json");
+        var blob=_blobResubmitContainerClient.GetBlobClient($"{functionName}/{HttpMiddlewareHandler.ResubmitFilePrefix}-{customInvocationId}.json");
         (await blob.ExistsAsync()).Value.Should().Be(true);
         //check for tags as well
         (await blob.GetClonedTagsAsync())
         .Should()
         .Contain(IResubmitStorage.BlobTagInvocationId, customInvocationId);
 
+    }
+    [Fact]
+    public async Task When_resubmit_handler_is_invoked_should_create_new_http_request_to_azure_function()
+    {
+        string functionName = "GetCats";
+        //arrange
+        HttpClient httpClient = _httpClientFactory.CreateClient("resubmit");
+        string runId = string.Empty;
+        //just get any blob with invocation id
+        var searchPrefix = $"{functionName}/{HttpMiddlewareHandler.ResubmitFilePrefix}";
+        await foreach (BlobItem blobItem in _blobResubmitContainerClient.GetBlobsAsync(BlobTraits.Tags, prefix: searchPrefix))
+        {
+            blobItem.Tags.TryGetValue(IResubmitStorage.BlobTagInvocationId, out runId);
+            break;
+        }
+
+        string query = $"?functionName={functionName}&invocationId={runId}";
+
+        //act
+        var resubmitResult = await httpClient.GetAsync(query);
+        _testOutput.WriteLine(await resubmitResult.Content.ReadAsStringAsync());
+        resubmitResult.IsSuccessStatusCode.Should().BeTrue();
+        //assert
     }
 }
