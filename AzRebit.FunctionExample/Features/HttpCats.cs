@@ -1,4 +1,4 @@
-using AzRebit.HelperExtensions;
+using AzRebit.Shared.Extensions;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;

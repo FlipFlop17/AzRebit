@@ -1,10 +1,19 @@
 ﻿using System.Diagnostics;
 
+using AzRebit;
+using AzRebit.Infrastructure.FileStorage;
+using AzRebit.Infrastructure.StateStorage;
+
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 
+using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Containers;
+
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
+
+using Testcontainers.Azurite;
 
 namespace AzRebitTests.IntegrationTests;
 
@@ -18,59 +27,49 @@ public class FunctionAppCollection : ICollectionFixture<FunctionAppFixture>
 
 public class FunctionAppFixture : IAsyncLifetime
 {
-    private Process _funcHostProcess;
-    private readonly string _functionProjectPath;
-    private readonly int _port;
-
-    public HttpClient HttpClient { get; private set; }
-    public string BaseUrl => $"http://localhost:{_port}";
-    public ServiceProvider ServiceProvider { get; set; }
-    public BlobContainerClient BlobResubmitContainer { get; private set; }
-    public QueueClient FunctionOutputQueue { get; private set; }
+    private IContainer _functionContainer;
+    private AzuriteContainer _azuriteContainer;
+    private const int FunctionAppPort = 80;
+    private const int AzuritePort = 10000;
+    private const string FunctionAppImageName = "azrebit-function-app";
+    private const string ContainerNetwork = "azrebit-test-network";
 
     public FunctionAppFixture()
     {
-        Environment.SetEnvironmentVariable("AzureWebJobsStorage", "UseDevelopmentStorage=true");
-        var storageSetting = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
-        // Adjust this path to point to your function project directory
-        var solutionDir = GetSolutionDirectory();
-        _functionProjectPath = Path.Combine(solutionDir, "AzRebit.FunctionExample");
-        _port = FindAvailablePort(); // Find an available port dynamically
-
         HttpClient = new HttpClient
         {
             BaseAddress = new Uri(BaseUrl),
             Timeout = TimeSpan.FromSeconds(30)
         };
-
-        var serviceCollection = new ServiceCollection();
-        serviceCollection.AddHttpClient("resubmit", c =>
-        {
-            c.BaseAddress = new Uri($"{BaseUrl}/api/resubmit");
-        });
-        serviceCollection.AddAzureClients(clients =>
-        {
-            clients.AddBlobServiceClient(storageSetting).WithName("resubmitContainer");
-            clients.AddQueueServiceClient(storageSetting).WithName("queueClient");
-        });
-        ServiceProvider = serviceCollection.BuildServiceProvider();
+       
     }
 
+    public HttpClient HttpClient { get; private set; }
+    public string BaseUrl => $"http://localhost:7080";
+    public ServiceProvider ServiceProvider { get; set; }
+    public BlobContainerClient BlobResubmitContainer { get; private set; }
+    public QueueClient FunctionOutputQueue { get; private set; }
+    public string AzuriteConnectionString { get; private set; } = null!;
     public async Task InitializeAsync()
     {
         try
         {
-            // Kill any orphaned func processes from previous runs
-            await KillOrphanedFuncProcesses();
+            Console.WriteLine("Starting TestContainers setup...");
+            // Create custom network for containers
+            var network = new NetworkBuilder()
+                .WithName(ContainerNetwork)
+                .Build();
+            await network.CreateAsync();
 
-            // Ensure the function project is built
-            await BuildFunctionProject();
+            //---build azurite storage ----
+            _azuriteContainer = new AzuriteBuilder()
+               .WithImage("mcr.microsoft.com/azure-storage/azurite:latest")
+               .Build();
+            await _azuriteContainer.StartAsync();
+            Console.WriteLine($"Azurite container started on port {AzuritePort}");
+            AzuriteConnectionString = _azuriteContainer.GetConnectionString();
 
-            // Start the function host
-            await StartFunctionHost();
-
-            // Wait for the host to be ready
-            await WaitForHostToBeReady();
+            await StartFunctionAppContainer();
         }
         catch (Exception ex)
         {
@@ -83,259 +82,59 @@ public class FunctionAppFixture : IAsyncLifetime
                 $"Error: {ex.Message}", ex);
         }
     }
-
+    private void CreateServiceCollection()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddHttpClient("resubmit", c =>
+        {
+            c.BaseAddress = new Uri($"{BaseUrl}/api/azrebit/resubmit");
+        });
+        serviceCollection.AddHttpClient("workitems", c =>
+        {
+            c.BaseAddress = new Uri($"{BaseUrl}/api/azrebit/funcworkitems");
+        });
+        serviceCollection.AddSingleton<IResubmitStorage, BlobResubmitStorage>();
+        serviceCollection.AddSingleton<IWorkItemStore, StorageTablePersistService>();
+        serviceCollection.AddAzureClients(clients =>
+        {
+            clients.AddBlobServiceClient(AzuriteConnectionString).WithName("resubmitContainer");
+            clients.AddQueueServiceClient(AzuriteConnectionString).WithName("queueClient");
+            clients.AddTableServiceClient(AzuriteConnectionString).WithName(ResubmitFunctionWorkerExtension.InternalRebitStorageTable);
+        });
+        ServiceProvider = serviceCollection.BuildServiceProvider();
+    }
     public async Task DisposeAsync()
     {
-        Console.WriteLine("Disposing FunctionAppFixture - cleaning up resources...");
+        HttpClient?.Dispose();
 
-        try
+        if (_functionContainer != null)
         {
-            HttpClient?.Dispose();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error disposing HttpClient: {ex.Message}");
+            await _functionContainer.DisposeAsync();
         }
 
-        try
+        if (_azuriteContainer != null)
         {
-            if (_funcHostProcess != null)
-            {
-                if (!_funcHostProcess.HasExited)
-                {
-                    Console.WriteLine($"Stopping function host process (PID: {_funcHostProcess.Id})...");
-                    _funcHostProcess.Kill(entireProcessTree: true);
-
-                    // Wait with timeout
-                    var exitTask = _funcHostProcess.WaitForExitAsync();
-                    if (await Task.WhenAny(exitTask, Task.Delay(5000)) == exitTask)
-                    {
-                        Console.WriteLine("Function host stopped successfully");
-                    } else
-                    {
-                        Console.WriteLine("Function host did not stop within 5 seconds");
-                    }
-                } else
-                {
-                    Console.WriteLine($"Function host process already exited with code {_funcHostProcess.ExitCode}");
-                }
-
-                _funcHostProcess.Dispose();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error stopping function host: {ex.Message}");
-        }
-
-        // Extra safety: kill any remaining func.exe processes on our port
-        await KillOrphanedFuncProcesses();
-
-        Console.WriteLine("FunctionAppFixture disposed");
-    }
-
-    private async Task BuildFunctionProject()
-    {
-        Console.WriteLine($"Building function project at: {_functionProjectPath}");
-
-        var buildProcess = new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = "dotnet",
-                Arguments = "build --configuration Debug",
-                WorkingDirectory = _functionProjectPath,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
-        };
-
-        buildProcess.Start();
-        var output = await buildProcess.StandardOutput.ReadToEndAsync();
-        var error = await buildProcess.StandardError.ReadToEndAsync();
-        await buildProcess.WaitForExitAsync();
-
-        if (buildProcess.ExitCode != 0)
-        {
-            Console.Error.WriteLine($"Build output: {output}");
-            Console.Error.WriteLine($"Build error: {error}");
-            throw new InvalidOperationException(
-                $"Function build failed with exit code {buildProcess.ExitCode}. " +
-                $"Error: {error}");
-        }
-
-        Console.WriteLine("Function project built successfully");
-    }
-
-    private async Task StartFunctionHost()
-    {
-        Console.WriteLine($"Starting function host on port {_port}...");
-
-        _funcHostProcess = new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = "func",
-                Arguments = $"start --port {_port}",
-                WorkingDirectory = _functionProjectPath,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
-        };
-
-        // Capture output for debugging
-        _funcHostProcess.OutputDataReceived += (sender, args) =>
-        {
-            if (!string.IsNullOrEmpty(args.Data))
-            {
-                Console.WriteLine($"[FUNC HOST] {args.Data}");
-            }
-        };
-
-        _funcHostProcess.ErrorDataReceived += (sender, args) =>
-        {
-            if (!string.IsNullOrEmpty(args.Data))
-            {
-                Console.Error.WriteLine($"[FUNC HOST ERROR] {args.Data}");
-            }
-        };
-
-        _funcHostProcess.Start();
-        _funcHostProcess.BeginOutputReadLine();
-        _funcHostProcess.BeginErrorReadLine();
-
-        // Give it a moment to start
-        await Task.Delay(2000);
-
-        if (_funcHostProcess.HasExited)
-        {
-            throw new InvalidOperationException(
-                $"Function host exited immediately with code {_funcHostProcess.ExitCode}. " +
-                "Check the error output above for details.");
+            await _azuriteContainer.DisposeAsync();
         }
     }
 
-    private async Task WaitForHostToBeReady(int maxAttempts = 30)
+    private async Task StartFunctionAppContainer()
     {
-        Console.WriteLine("Waiting for function host to be ready...");
+        Console.WriteLine("Starting function app container...");
 
-        for (int i = 0; i < maxAttempts; i++)
-        {
-            // Check if process has crashed
-            if (_funcHostProcess.HasExited)
-            {
-                throw new InvalidOperationException(
-                    $"Function host crashed during startup with exit code {_funcHostProcess.ExitCode}");
-            }
+        _functionContainer = new ContainerBuilder()
+            .WithImage(FunctionAppImageName)
+            .WithPortBinding(7080,true)
+            .WithEnvironment("AzureWebJobsStorage", AzuriteConnectionString)
+            .WithEnvironment("AZURE_FUNCTIONS_ENVIRONMENT", "Development")
+            .WithNetwork(ContainerNetwork)
+            .WithWaitStrategy(
+                Wait.ForUnixContainer()
+                    .UntilHttpRequestIsSucceeded(
+                        req => req.ForPort(FunctionAppPort).ForPath("/admin/host/status")))
+            .Build();
 
-            try
-            {
-                var response = await HttpClient.GetAsync("/admin/host/status");
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine("Function host is ready!");
-                    return;
-                }
-
-                Console.WriteLine($"Attempt {i + 1}/{maxAttempts}: Host not ready yet (Status: {response.StatusCode})");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Attempt {i + 1}/{maxAttempts}: {ex.Message}");
-            }
-
-            await Task.Delay(1000);
-        }
-
-        throw new TimeoutException(
-            $"Function host did not become ready after {maxAttempts} seconds. " +
-            "Check the function host output above for errors.");
-    }
-
-    private static string GetSolutionDirectory()
-    {
-        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-
-        while (directory != null && !directory.GetFiles("*.sln").Any())
-        {
-            directory = directory.Parent;
-        }
-
-        if (directory == null)
-        {
-            throw new InvalidOperationException("Could not find solution directory");
-        }
-
-        return directory.FullName;
-    }
-
-    private static int FindAvailablePort()
-    {
-        // Try default port first
-        if (IsPortAvailable(7071))
-        {
-            return 7071;
-        }
-
-        // Try a range of ports
-        for (int port = 7072; port <= 7100; port++)
-        {
-            if (IsPortAvailable(port))
-            {
-                Console.WriteLine($"Port 7071 is in use, using port {port} instead");
-                return port;
-            }
-        }
-
-        throw new InvalidOperationException("Could not find an available port in range 7071-7100");
-    }
-
-    private static bool IsPortAvailable(int port)
-    {
-        try
-        {
-            var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, port);
-            listener.Start();
-            listener.Stop();
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private async Task KillOrphanedFuncProcesses()
-    {
-        try
-        {
-            // Kill any func.exe processes that might be lingering
-            var funcProcesses = Process.GetProcessesByName("func");
-            if (funcProcesses.Length > 0)
-            {
-                Console.WriteLine($"Found {funcProcesses.Length} orphaned func.exe process(es), killing them...");
-                foreach (var process in funcProcesses)
-                {
-                    try
-                    {
-                        process.Kill(true);
-                        await process.WaitForExitAsync();
-                        process.Dispose();
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Failed to kill process {process.Id}: {ex.Message}");
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error killing orphaned processes: {ex.Message}");
-        }
+        await _functionContainer.StartAsync();
+        Console.WriteLine("Function app container started");
     }
 }

@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using AzRebitTests.IntegrationTests;
 
-using AzRebitTests.IntegrationTests;
-
+using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 
 using Microsoft.Extensions.Azure;
@@ -19,39 +16,55 @@ public class QueueMiddlewareHandlerTests
     private readonly FunctionAppFixture _host;
     private readonly ITestOutputHelper _output;
     private readonly QueueServiceClient _inputQueueClient;
+    private readonly BlobContainerClient _blobResubmitContainerClient;
     private const string StringMessageQueueName = "transform-cats-string";
     private const string BinaryMessageQueueName = "transform-cats-binary";
     private const string ByteMessageQueueName = "transform-cats-byte";
     private const string QueueMessageQueueName = "transform-cats-queuemsg";
 
-    public QueueMiddlewareHandlerTests(FunctionAppFixture host,ITestOutputHelper output)
+    public QueueMiddlewareHandlerTests(FunctionAppFixture host,
+        ITestOutputHelper output)
     {
         _host = host;
         _output = output;
         _inputQueueClient = host.ServiceProvider
             .GetRequiredService<IAzureClientFactory<QueueServiceClient>>()
             .CreateClient("queueClient");
+        _blobResubmitContainerClient = host.ServiceProvider
+            .GetRequiredService<IAzureClientFactory<BlobServiceClient>>()
+            .CreateClient("resubmitContainer")
+            .GetBlobContainerClient("files-for-resubmit");
     }
 
 
-    [Fact]
-    public async Task AddQueueMessages()
+    [Theory]
+    [InlineData(QueueMessageQueueName)]
+    [InlineData(StringMessageQueueName)]
+    [InlineData(ByteMessageQueueName)]
+    [InlineData(BinaryMessageQueueName)]
+    public async Task AddQueueMessages(string queueName)
     {
-        var stringMessage = "This is a simple text message.";
-        var jsonMessage = "{\"name\": \"Whiskers\", \"type\": \"cat\"}";
-        var binaryPayload = Encoding.UTF8.GetBytes("This is raw binary content.");
-        // --- 1. STRING QUEUE: Send a plain text message ---
-        await SendMessageAsync(StringMessageQueueName, stringMessage);
-        // --- 2. QUEUE MESSAGE QUEUE: Send a JSON string (will be read via QueueMessage) ---
-        await SendMessageAsync(QueueMessageQueueName, jsonMessage);
+        var jsonMessage = "{\"Name\": \"Whiskers\", \"Color\": \"black\"}";
+        await SendMessageAsync(queueName, jsonMessage);
     }
 
     private async Task SendMessageAsync(string queueName, string message)
     {
         var queueClient =_inputQueueClient.GetQueueClient(queueName);
-
-        // Send the message. The SDK handles Base64 encoding.
         await queueClient.SendMessageAsync(message);
         Console.WriteLine($"Sent string message to {queueName}.");
     }
+
+    [Theory]
+    [InlineData(QueueMessageQueueName, "{\"Name\": \"Whiskers\", \"Color\": \"black\"}")]
+    public async Task When_Message_is_added_to_queue_Should_copy_it_in_resubmit_storage(string queueName,string queueMessage)
+    {
+        //arrange
+        var queueClient = _inputQueueClient.GetQueueClient(queueName);
+        //act
+        await queueClient.SendMessageAsync(queueMessage);
+        //assert
+
+    }
+
 }

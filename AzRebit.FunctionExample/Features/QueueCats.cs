@@ -47,4 +47,12 @@ internal class QueueCats
         return dogMessage.ToString() + ";has been processed";
 
     }
+    [Function("TransformCats-CustomObj")]
+    [QueueOutput("transform-cats-output")]
+    public string RunCustom([QueueTrigger("transform-cats-custom")] Cat cat)
+    {
+        _logger.LogInformation("custom queueMessage: " + cat.Name.ToString());
+        return cat.Name.ToString() + ";has been processed";
+
+    }
 }

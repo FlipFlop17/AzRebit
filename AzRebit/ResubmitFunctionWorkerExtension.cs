@@ -1,6 +1,6 @@
-﻿using AzRebit.Infrastructure;
+﻿using AzRebit.Infrastructure.FileStorage;
+using AzRebit.Infrastructure.StateStorage;
 using AzRebit.Middleware;
-using AzRebit.Model;
 
 using Azure.Data.Tables;
 
@@ -9,6 +9,7 @@ using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using AzRebit.Domain.Entities;
 
 namespace AzRebit;
 
@@ -46,6 +47,7 @@ public static class ResubmitFunctionWorkerExtension
         var discoveredFunctions = AssemblyDiscovery.DiscoverAndAddAzFunctions(builder.Services,options.ExcludedFunctionNames).ToList();
         builder.Services.AddSingleton<IReadOnlyCollection<AzFunction>>(discoveredFunctions);
         builder.Services.AddSingleton<IResubmitStorage, BlobResubmitStorage>();
+        builder.Services.AddSingleton<IWorkItemStore, StorageTablePersistService>();
         builder.Services.AddAzureClients(c=>
         {
             c.AddBlobServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")).WithName(BlobResubmitServiceClientName);

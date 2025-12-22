@@ -2,10 +2,9 @@
 
 using AwesomeAssertions;
 
-using AzRebit.HelperExtensions;
-using AzRebit.Infrastructure;
-using AzRebit.Triggers.HttpTriggered.Handler;
-using AzRebit.Triggers.HttpTriggered.Middleware;
+using AzRebit.Features.HttpTriggered.SaveRequestMiddleware;
+using AzRebit.Infrastructure.FileStorage;
+using AzRebit.Shared.Extensions;
 
 using AzRebitTests.IntegrationTests;
 

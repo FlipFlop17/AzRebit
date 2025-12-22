@@ -1,6 +1,7 @@
 using System.Text.Json;
 
-using AzRebit.HelperExtensions;
+using AzRebit.Shared.Extensions;
+
 using Azure.Storage.Blobs;
 
 using Microsoft.AspNetCore.Mvc;

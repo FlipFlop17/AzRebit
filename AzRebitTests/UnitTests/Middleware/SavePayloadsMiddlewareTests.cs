@@ -1,10 +1,8 @@
-﻿ using System.ComponentModel;
+﻿using System.ComponentModel;
 
+using AzRebit.Features.BlobTriggered.SaveRequestMiddleware;
+using AzRebit.Features.HttpTriggered.SaveRequestMiddleware;
 using AzRebit.Middleware;
-using AzRebit.Model;
-using AzRebit.Shared;
-using AzRebit.Triggers.BlobTriggered.Middleware;
-using AzRebit.Triggers.HttpTriggered.Middleware;
 
 using Azure.Storage.Blobs;
 
@@ -14,6 +12,8 @@ using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 
 using NSubstitute;
+using AzRebit.Domain.Results;
+using AzRebit.Domain.Abstractions;
 
 namespace UnitTests.Middleware;
 

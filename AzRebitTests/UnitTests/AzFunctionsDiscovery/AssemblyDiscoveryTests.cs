@@ -3,7 +3,7 @@
 using AwesomeAssertions;
 
 using AzRebit;
-using AzRebit.Model;
+using AzRebit.Domain.Entities;
 
 using Microsoft.Extensions.DependencyInjection;
 

@@ -1,8 +1,8 @@
 ﻿using AwesomeAssertions;
 
-using AzRebit.HelperExtensions;
-using AzRebit.Infrastructure;
-using AzRebit.Triggers.BlobTriggered.Middleware;
+using AzRebit.Features.BlobTriggered.SaveRequestMiddleware;
+using AzRebit.Infrastructure.FileStorage;
+using AzRebit.Shared.Extensions;
 
 using AzRebitTests.IntegrationTests;
 

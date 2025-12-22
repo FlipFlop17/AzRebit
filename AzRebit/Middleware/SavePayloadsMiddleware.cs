@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-using AzRebit.Shared;
+using AzRebit.Domain.Abstractions;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Middleware;

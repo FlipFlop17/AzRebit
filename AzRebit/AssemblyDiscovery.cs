@@ -1,9 +1,7 @@
-﻿using System;
-using System.Diagnostics;
-using System.Reflection;
+﻿using System.Reflection;
 
-using AzRebit.Model;
-using AzRebit.Shared;
+using AzRebit.Domain.Abstractions;
+using AzRebit.Domain.Entities;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
