@@ -22,6 +22,8 @@ public class FunctionTriggeredByBlob
     private readonly ITestOutputHelper _testOutput;
     BlobContainerClient _blobResubmitContainerClient;
     IHttpClientFactory _httpClientFactory;
+    private BlobContainerClient _catsContainer;
+
     public FunctionTriggeredByBlob(FunctionAppFixture functionHost,ITestOutputHelper testOutput)
     {
         _functionHost = functionHost;
@@ -31,6 +33,10 @@ public class FunctionTriggeredByBlob
             .CreateClient("resubmitContainer")
             .GetBlobContainerClient("files-for-resubmit");
         _httpClientFactory = functionHost.ServiceProvider.GetRequiredService<IHttpClientFactory>();
+        _catsContainer = _functionHost.ServiceProvider
+            .GetRequiredService<IAzureClientFactory<BlobServiceClient>>()
+            .CreateClient("catsContainer")
+            .GetBlobContainerClient("cats-container");
     }
     [Theory]
     [InlineData("TransferCats")]
@@ -39,7 +45,7 @@ public class FunctionTriggeredByBlob
         //arrange
         var blobName = $"transferdata-{DateTime.Now:dd_MM_yyyy_HH_mm_ss}.txt";
         var blobResubmitName = $"{functionName}/{BlobMiddlewareHandler.ResubmitFilePrefix}-{blobName}";
-        var inputBlobClient = new BlobClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"),"cats-container",blobName);
+        var inputBlobClient = _catsContainer.GetBlobClient(blobName);
         byte[] data = System.Text.Encoding.UTF8.GetBytes("A blob has been added");
         using var stream = new MemoryStream(data);
         //act

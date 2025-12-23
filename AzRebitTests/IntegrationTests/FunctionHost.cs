@@ -63,19 +63,26 @@ public class FunctionAppFixture : IAsyncLifetime
             await network.CreateAsync();
 
             //---build azurite storage ----
-            _azuriteContainer = new AzuriteBuilder()
-               .WithImage("mcr.microsoft.com/azure-storage/azurite:latest")
-               .WithNetwork(ContainerNetwork)
-               .WithNetworkAliases("azurite")
-                .WithPortBinding(10000, 10000)  // Blob service
-               .WithPortBinding(10001, 10001)  // Queue service  
-               .WithPortBinding(10002, 10002)  // Table service
-               .Build();
+            //_azuriteContainer = new AzuriteBuilder()
+            //   .WithImage("mcr.microsoft.com/azure-storage/azurite:latest")
+            //   .WithNetwork(ContainerNetwork)
+            //   .WithNetworkAliases("azurite")
+            //    .WithPortBinding(10000, 10000)  // Blob service
+            //   .WithPortBinding(10001, 10001)  // Queue service  
+            //   .WithPortBinding(10002, 10002)  // Table service
+            //   .Build();
 
-            await _azuriteContainer.StartAsync();
+            //await _azuriteContainer.StartAsync();
+
             Console.WriteLine($"Azurite container started on port {AzuritePort}");
-            AzuriteHostConnectionString = _azuriteContainer.GetConnectionString();
-            AzuriteAliasConnectionString = AzuriteHostConnectionString.Replace("127.0.0.1", "azurite");
+            var localAzuriteConnectionString = "DefaultEndpointsProtocol=http;" +
+                "AccountName=devstoreaccount1;" +
+                "AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;" +
+                "BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;" +
+                "QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;" +
+                "TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;";
+            AzuriteHostConnectionString = localAzuriteConnectionString;
+            AzuriteAliasConnectionString = AzuriteHostConnectionString.Replace("127.0.0.1", "host.docker.internal");
             await StartFunctionAppContainer();
 
             CreateServiceCollection();
@@ -107,6 +114,7 @@ public class FunctionAppFixture : IAsyncLifetime
         serviceCollection.AddAzureClients(clients =>
         {
             clients.AddBlobServiceClient(AzuriteHostConnectionString).WithName("resubmitContainer");
+            clients.AddBlobServiceClient(AzuriteHostConnectionString).WithName("catsContainer");
             clients.AddQueueServiceClient(AzuriteHostConnectionString).WithName("queueClient");
             clients.AddTableServiceClient(AzuriteHostConnectionString).WithName(ResubmitFunctionWorkerExtension.InternalRebitStorageTable);
         });
