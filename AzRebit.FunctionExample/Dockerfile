@@ -5,6 +5,7 @@ FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated8.0 AS b
 WORKDIR /home/site/wwwroot
 EXPOSE 80
 
+# 2025-12-23 the docker file is not copying the local.settings.json file so this image will not work  since no local settings are avaialble. 
 
 # This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build

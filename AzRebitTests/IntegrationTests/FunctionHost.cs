@@ -49,7 +49,8 @@ public class FunctionAppFixture : IAsyncLifetime
     public ServiceProvider ServiceProvider { get; set; }
     public BlobContainerClient BlobResubmitContainer { get; private set; }
     public QueueClient FunctionOutputQueue { get; private set; }
-    public string AzuriteConnectionString { get; private set; } = null!;
+    public string AzuriteHostConnectionString { get; private set; } = null!;
+    public string AzuriteAliasConnectionString { get; private set; } = null!;
     public async Task InitializeAsync()
     {
         try
@@ -64,12 +65,20 @@ public class FunctionAppFixture : IAsyncLifetime
             //---build azurite storage ----
             _azuriteContainer = new AzuriteBuilder()
                .WithImage("mcr.microsoft.com/azure-storage/azurite:latest")
+               .WithNetwork(ContainerNetwork)
+               .WithNetworkAliases("azurite")
+                .WithPortBinding(10000, 10000)  // Blob service
+               .WithPortBinding(10001, 10001)  // Queue service  
+               .WithPortBinding(10002, 10002)  // Table service
                .Build();
+
             await _azuriteContainer.StartAsync();
             Console.WriteLine($"Azurite container started on port {AzuritePort}");
-            AzuriteConnectionString = _azuriteContainer.GetConnectionString();
-
+            AzuriteHostConnectionString = _azuriteContainer.GetConnectionString();
+            AzuriteAliasConnectionString = AzuriteHostConnectionString.Replace("127.0.0.1", "azurite");
             await StartFunctionAppContainer();
+
+            CreateServiceCollection();
         }
         catch (Exception ex)
         {
@@ -97,9 +106,9 @@ public class FunctionAppFixture : IAsyncLifetime
         serviceCollection.AddSingleton<IWorkItemStore, StorageTablePersistService>();
         serviceCollection.AddAzureClients(clients =>
         {
-            clients.AddBlobServiceClient(AzuriteConnectionString).WithName("resubmitContainer");
-            clients.AddQueueServiceClient(AzuriteConnectionString).WithName("queueClient");
-            clients.AddTableServiceClient(AzuriteConnectionString).WithName(ResubmitFunctionWorkerExtension.InternalRebitStorageTable);
+            clients.AddBlobServiceClient(AzuriteHostConnectionString).WithName("resubmitContainer");
+            clients.AddQueueServiceClient(AzuriteHostConnectionString).WithName("queueClient");
+            clients.AddTableServiceClient(AzuriteHostConnectionString).WithName(ResubmitFunctionWorkerExtension.InternalRebitStorageTable);
         });
         ServiceProvider = serviceCollection.BuildServiceProvider();
     }
@@ -121,17 +130,28 @@ public class FunctionAppFixture : IAsyncLifetime
     private async Task StartFunctionAppContainer()
     {
         Console.WriteLine("Starting function app container...");
+        var functionCoreImage = "mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated8.0";
+        var publishFolder = Path.Combine(
+            CommonDirectoryPath.GetSolutionDirectory().DirectoryPath,
+            "AzRebit.FunctionExample/bin/Release/net8.0/publish");
+        var azureFunctionCoreFolder = "/home/site/wwwroot";
 
         _functionContainer = new ContainerBuilder()
-            .WithImage(FunctionAppImageName)
-            .WithPortBinding(7080,true)
-            .WithEnvironment("AzureWebJobsStorage", AzuriteConnectionString)
+            .WithName("func-integ-test")
+            .WithImage(functionCoreImage)
+            .WithBindMount(publishFolder, azureFunctionCoreFolder, DotNet.Testcontainers.Configurations.AccessMode.ReadWrite)
+            .WithPortBinding(7080,80)
+            .WithEnvironment("AzureWebJobsStorage", AzuriteAliasConnectionString)
             .WithEnvironment("AZURE_FUNCTIONS_ENVIRONMENT", "Development")
+            .WithEnvironment("AzureWebJobsScriptRoot", "/home/site/wwwroot")
+            .WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
+            .WithEnvironment("AZREBIT_DELETE_RESUBMITION_FILE","false")
             .WithNetwork(ContainerNetwork)
             .WithWaitStrategy(
                 Wait.ForUnixContainer()
-                    .UntilHttpRequestIsSucceeded(
-                        req => req.ForPort(FunctionAppPort).ForPath("/admin/host/status")))
+                    .UntilInternalTcpPortIsAvailable(80))
+                    //.UntilHttpRequestIsSucceeded(
+                    //    req => req.ForPort(FunctionAppPort).ForPath("/admin/host/status")))
             .Build();
 
         await _functionContainer.StartAsync();
