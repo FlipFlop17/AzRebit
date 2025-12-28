@@ -50,7 +50,7 @@ internal class BlobResubmitHandler : IResubmitHandler
             {
                 return RebitActionResult<ResubmitHandlerResponse>.Failure($"No blob found for invocation id {invocationId} in dedicated resubmit container",AzRebitErrorType.BlobResubmitFileNotFound);
             }
-            _logger.LogInformation("Resubmiting file {ResubmitingFile}", blobForResubmitClient.Name);
+            _logger.LogResubmitWorkData(invocationId,function.Name,blobForResubmitClient.Name);
             var existingTagsResponse = await blobForResubmitClient.GetClonedTagsAsync();
             var existingMetaResponse = await blobForResubmitClient.GetClonedMetadataAsync();
             CleanUpAnyResubmitTags(existingTagsResponse); //we dont want 'old' tags used for first resubmit save. we want a clean slate for retries
@@ -72,7 +72,7 @@ internal class BlobResubmitHandler : IResubmitHandler
         }
         catch (Exception e)
         {
-            _logger.LogError(e,"Unexpected error while trying to resubmit the file {InvocationId}",invocationId);
+            _logger.LogDebug(e,"Unexpected error while trying to resubmit the file {InvocationId}",invocationId);
             return RebitActionResult<ResubmitHandlerResponse>.Failure(e.Message,AzRebitErrorType.UnexpectedError);
         }
 

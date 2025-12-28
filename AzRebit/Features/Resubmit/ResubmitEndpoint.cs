@@ -5,6 +5,7 @@ using AzRebit.Domain.Abstractions;
 using AzRebit.Domain.Entities;
 using AzRebit.Domain.Exceptions;
 using AzRebit.Domain.Results;
+using AzRebit.Shared.Extensions;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -56,6 +57,7 @@ internal class ResubmitEndpoint
         (bool isValid, string msg) = ValidateRequest(functionName,invocationIdToResubmit);
         if(!isValid)
         {
+            _logger.LogValidationError(msg);
             var badRequestResponse = req.CreateResponse(HttpStatusCode.BadRequest);
             var resubmitResult = new ResubmitResponse(false,msg,functionName,invocationIdToResubmit);
             await badRequestResponse.WriteAsJsonAsync(resubmitResult);
@@ -64,7 +66,7 @@ internal class ResubmitEndpoint
 
         try
         {
-            _logger.LogInformation("Resubmit request received for function: {FunctionName} with invocationId: {InvocationId}", functionName, invocationIdToResubmit);
+            _logger.LogResubmitStart(invocationIdToResubmit,functionName);
 
             var handlerResult=await HandleResubmit(functionName!, invocationIdToResubmit!);
             var response = req.CreateResponse(HttpStatusCode.OK);
@@ -78,17 +80,20 @@ internal class ResubmitEndpoint
                 };
                 string handlerMsg = handlerResult.Message ?? "Resubmit is not successfull";
                 var resubmitFailResult = new ResubmitResponse(false, handlerMsg, functionName,invocationIdToResubmit);
+                _logger.LogResubmitStatus(invocationIdToResubmit, functionName,handlerResult.IsSuccess, handlerMsg);
                 await response.WriteAsJsonAsync(resubmitFailResult);
                 return response;
             }
 
             var resubmitResult = new ResubmitResponse(true, "Sucessful resubmition", functionName, handlerResult.Data?.ResubmitingFileName);
+            _logger.LogResubmitStatus(invocationIdToResubmit, functionName, handlerResult.IsSuccess,null);
             await response.WriteAsJsonAsync(resubmitResult);
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing resubmit request for function: {FunctionName} with invocationId: {InvocationId}", functionName, invocationIdToResubmit);
+            _logger.LogDebug(ex, "Error processing resubmit request for function: {FunctionName} with invocationId: {InvocationId}", functionName, invocationIdToResubmit);
+            _logger.LogResubmitError(ex,invocationIdToResubmit,functionName);
             var errorResponse = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
             await errorResponse.WriteAsJsonAsync(new { Error = "Internal server error" });
             return errorResponse;
@@ -115,20 +120,20 @@ internal class ResubmitEndpoint
         // Validate required parameters
         if (string.IsNullOrWhiteSpace(functionName))
         {
-            _logger.LogWarning("Validation failed: Missing required query parameter: functionName");
+            _logger.LogDebug("Validation failed: Missing required query parameter: functionName");
             return (false, "Missing required query parameter: functionName");
         }
 
         if (string.IsNullOrWhiteSpace(invocationId))
         {
-            _logger.LogWarning("Validation failed: Missing required query parameter: invocationId");
+            _logger.LogDebug("Validation failed: Missing required query parameter: invocationId");
             return (false, "Missing required query parameter: invocationId");
         }
 
         // Validate function exists
         if (!_availableFunctions.Any(fn => fn.Name.Equals(functionName)))
         {
-            _logger.LogWarning("Validation failed: Function '{FunctionName}' not found", functionName);
+            _logger.LogDebug("Validation failed: Function '{FunctionName}' not found", functionName);
             return (false, $"Function '{functionName}' not found");
         }
 

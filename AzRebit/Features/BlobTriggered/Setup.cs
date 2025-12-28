@@ -15,7 +15,6 @@ namespace AzRebit.Features.BlobTriggered;
 /// </summary>
 internal class Setup : TriggerSetupBase
 {
-
     public override TriggerType TriggerName => TriggerType.Blob;
     public override Type TriggerAttribute => typeof(BlobTriggerAttribute);
     public override AzFunction TryCreateAzFunction(string functionName, TriggerBindingAttribute triggerAttribute, IServiceCollection services)

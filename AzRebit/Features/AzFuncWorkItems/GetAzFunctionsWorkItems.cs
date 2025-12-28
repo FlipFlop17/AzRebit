@@ -67,7 +67,7 @@ namespace AzRebit.Features.AzFuncWorkItems
             }
             catch (Exception e)
             {
-                _logger.LogError(e,"Unexpected error in fetching all work items");
+                _logger.LogDebug(e,"Unexpected error in fetching all work items");
                 return RebitActionResult<List<AzFuncWorkItemInfoDto>>.Failure(e.Message);
             }
            

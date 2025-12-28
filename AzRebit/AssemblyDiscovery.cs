@@ -70,7 +70,8 @@ internal static class AssemblyDiscovery
     /// <exception cref="ArgumentNullException"></exception>
     private static TriggerBindingAttribute ResolveTriggerAttribute(ParameterInfo[] allParams, ICollection<TriggerSetupBase> supportedTriggers)
     {
-        var triggerTypes=supportedTriggers.Select(t=>t.TriggerAttribute).ToList();
+        //todo - moramo pokriti opciju ako je na klasi [StorageAccount] atribute takoder
+        var triggerTypes =supportedTriggers.Select(t=>t.TriggerAttribute).ToList();
 
         var triggerParam = allParams
             .Select(p => new

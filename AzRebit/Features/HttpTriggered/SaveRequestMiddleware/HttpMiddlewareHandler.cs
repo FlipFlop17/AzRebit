@@ -57,9 +57,6 @@ public class HttpMiddlewareHandler:ISavePayloadHandler
             {
                 invocationId = functionKeyHeader.First();
             }
-            _logger.LogInformation(
-                "Auto-saving HTTP request for resubmission with invocationId: {invocationId}",
-                invocationId);
 
             //handle if the request is coming from the /resubmit endpoint
             if (httpRequestData.Headers.Contains(HttpResubmitHandler.HttpResubmitOriginalFileId)) 
@@ -80,10 +77,9 @@ public class HttpMiddlewareHandler:ISavePayloadHandler
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Unexpected error while saving incoming http request {InvocationId}",invocationId);
+            _logger.LogDebug(e, "Unexpected error while saving incoming http request {InvocationId}",invocationId);
             return RebitActionResult.Failure(e.Message);
         }
-
         
     }
     private async Task<string> PrepareHttpRequestForSaveAsync(HttpRequestData req,string invocationId)

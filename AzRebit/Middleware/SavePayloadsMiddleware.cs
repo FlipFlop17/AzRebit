@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 
 using AzRebit.Domain.Abstractions;
+using AzRebit.Shared.Extensions;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Middleware;
@@ -41,31 +42,25 @@ public sealed class SavePayloadsMiddleware : IFunctionsWorkerMiddleware
             // Loop through all input bindings to find matching middleware handlers
             foreach (var binding in functionDefinition.InputBindings.Values)
             {
-                // Find the appropriate middleware handler based on binding type
+                // we need to find the handler for this type of request
                 var matchingHandler = _middlewareHandlers.FirstOrDefault(h =>
                     h.BindingName.Equals(binding.Type, StringComparison.OrdinalIgnoreCase));
 
                 if (matchingHandler != null)
                 {
-                    _logger.LogDebug(
-                        "Processing binding type '{BindingType}' with handler '{HandlerType}' for function '{FunctionName}'",
-                        binding.Type,
-                        matchingHandler.GetType().Name,
-                        context.FunctionDefinition.Name);
+                    _logger.LogMiddlewareProcessing(context.InvocationId,context.FunctionDefinition.Name);
                     
                     ISavePayloadCommand command = new SavePayloadCommand(context);
-                    await matchingHandler.SaveIncomingRequest(command);
-                    // Exit after finding and processing the first matching handler
+                    var handlerResult=await matchingHandler.SaveIncomingRequest(command);
+
+                    _logger.LogMiddlewareFinished(context.InvocationId, context.FunctionDefinition.Name,handlerResult.IsSuccess,handlerResult.Message);
                     break;
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(
-                ex,
-                "Failed to auto-save blob for resubmission in function {FunctionName}",
-                context.FunctionDefinition.Name);
+            _logger.LogMiddlewareError(ex,context.InvocationId, context.FunctionDefinition.Name);
             //we dont want to stop the function execution if the save fails. just log it.
         }
 

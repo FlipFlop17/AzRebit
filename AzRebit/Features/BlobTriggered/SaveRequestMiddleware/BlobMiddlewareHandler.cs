@@ -77,7 +77,7 @@ public class BlobMiddlewareHandler : ISavePayloadHandler
                         await _blobStorage.SaveFileAtResubmitLocation(blobClientBase, destinationPath, resubmitTag);
                         break;
                     default:
-                        string serializedPayload = JsonSerializer.Serialize(inputData); //caan be expensive for RAM - suggest using blobclient or stream
+                        string serializedPayload = JsonSerializer.Serialize(inputData); //can be expensive for RAM - user should be using blobclient or stream
                         await _blobStorage.SaveFileAtResubmitLocation(serializedPayload, destinationPath, resubmitTag);
                         break;
                 }
@@ -87,12 +87,12 @@ public class BlobMiddlewareHandler : ISavePayloadHandler
         }
         catch (BlobOperationException blobE)
         {
-            _logger.LogError(blobE, "Unexpected Error on SaveBlobForResubmitionAsync() {InvocationId}", invocationId);
+            _logger.LogDebug(blobE, "Unexpected Error on SaveBlobForResubmitionAsync() {InvocationId}", invocationId);
             return RebitActionResult.Failure(blobE.Description);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Unexpected Error while saving incoming request {InvocationId}", invocationId);
+            _logger.LogDebug(e, "Unexpected Error while saving incoming request {InvocationId}", invocationId);
             return RebitActionResult.Failure(e.Message);
         }
 

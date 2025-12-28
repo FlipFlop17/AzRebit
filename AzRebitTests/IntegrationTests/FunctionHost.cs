@@ -74,7 +74,7 @@ public class FunctionAppFixture : IAsyncLifetime
 
             //await _azuriteContainer.StartAsync();
 
-            Console.WriteLine($"Azurite container started on port {AzuritePort}");
+            //Console.WriteLine($"Azurite container started on port {AzuritePort}");
             var localAzuriteConnectionString = "DefaultEndpointsProtocol=http;" +
                 "AccountName=devstoreaccount1;" +
                 "AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;" +
@@ -151,8 +151,8 @@ public class FunctionAppFixture : IAsyncLifetime
             .WithPortBinding(7080,80)
             .WithEnvironment("AzureWebJobsStorage", AzuriteAliasConnectionString)
             .WithEnvironment("AZURE_FUNCTIONS_ENVIRONMENT", "Development")
-            .WithEnvironment("AzureWebJobsScriptRoot", "/home/site/wwwroot")
-            .WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
+            //.WithEnvironment("AzureWebJobsScriptRoot", "/home/site/wwwroot")
+            //.WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
             .WithEnvironment("AZREBIT_DELETE_RESUBMITION_FILE","false")
             .WithNetwork(ContainerNetwork)
             .WithWaitStrategy(
