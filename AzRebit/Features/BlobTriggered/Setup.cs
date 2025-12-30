@@ -24,14 +24,14 @@ internal class Setup : TriggerSetupBase
             if (triggerAttribute is not BlobTriggerAttribute blobAttr) throw new Exception("Trigger binding attribute is null");
 
             var functionMeta = new Dictionary<string, string>();
-            var connectionName =AssemblyDiscovery.ResolveConnectionStringAppSettingName(blobAttr.Connection);
+            var connectionName = AssemblyDiscovery.ResolveConnectionStringAppSettingName(blobAttr.Connection);
             string connectionString = Environment.GetEnvironmentVariable(connectionName)!; //_config.GetValue<string>(connectionName)!;
             services.AddAzureClients(clientBuilder =>
             {
                 clientBuilder.AddBlobServiceClient(connectionString)
                     .WithName(functionName);
             });
-            var azFunc= new AzFunction(functionName, TriggerType.Blob);
+            var azFunc = new AzFunction(functionName, TriggerType.Blob);
             azFunc.AddFunctionTriggerContainerName(BlobHelpers.ExtractContainerNameFromBlobPath(blobAttr.BlobPath));
             return azFunc;
         }

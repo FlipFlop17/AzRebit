@@ -1,5 +1,7 @@
 ﻿using System.Text;
+
 using AzRebit.Domain.Exceptions;
+using AzRebit.Shared.Extensions;
 
 using Azure;
 using Azure.Storage.Blobs;
@@ -7,15 +9,14 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 
 using Microsoft.Extensions.Azure;
-using AzRebit.Shared.Extensions;
 
 namespace AzRebit.Infrastructure.FileStorage;
 
 internal class BlobResubmitStorage : IResubmitStorage
 {
-    private int  MaxTagCount= 10;
+    private int MaxTagCount = 10;
     public BlobContainerClient _resubmitContainerClient;
-    
+
     /// <summary>
     /// Name of the container where all incoming files are saved
     /// </summary>
@@ -50,13 +51,13 @@ internal class BlobResubmitStorage : IResubmitStorage
     /// <exception cref="BlobOperationException"></exception>
     /// <exception cref="BlobTagCountException"></exception>
     /// <exception cref="Exception"></exception>
-    public async Task SaveFileAtResubmitLocation(BlobBaseClient sourceBlob, string destinationFullPath,IDictionary<string,string>? destinationFileTags)
+    public async Task SaveFileAtResubmitLocation(BlobBaseClient sourceBlob, string destinationFullPath, IDictionary<string, string>? destinationFileTags)
     {
         try
         {
-            var tagsToAdd=destinationFileTags ?? new Dictionary<string, string>();
+            var tagsToAdd = destinationFileTags ?? new Dictionary<string, string>();
             var existingTagsResponse = await sourceBlob.GetClonedTagsAsync();
-            if ((tagsToAdd.Count+existingTagsResponse.Count)>MaxTagCount)
+            if ((tagsToAdd.Count + existingTagsResponse.Count) > MaxTagCount)
             {
                 throw new BlobTagCountException("SaveBlobAtResubmitLocation", "Check tag count", new Exception("Tag count on a blob cannot be more than 10"));
             } else
@@ -98,7 +99,7 @@ internal class BlobResubmitStorage : IResubmitStorage
     /// <summary>
     /// Saves the incoming blob client/file on a dedicated storage account on the specified path
     /// </summary>
-    /// <param name="sourceBlob">incoming blob</param>
+    /// <param name="payload"></param>
     /// <param name="destinationFullPath">virtual path of the location to save the blob</param>
     /// <param name="destinationFileTags">tags to add to the blob file. File can have no more than 10 tags</param>
     /// <param name="encoding">defolts to UTF8 encoding</param>
@@ -109,15 +110,15 @@ internal class BlobResubmitStorage : IResubmitStorage
     {
         try
         {
-            var tagsToAdd=destinationFileTags ?? new Dictionary<string, string>();
+            var tagsToAdd = destinationFileTags ?? new Dictionary<string, string>();
             BlobClient blobClient = _resubmitContainerClient.GetBlobClient(destinationFullPath);
-            var enc=encoding ?? Encoding.UTF8;
+            var enc = encoding ?? Encoding.UTF8;
             using var ms = new MemoryStream(enc.GetBytes(payload));
             var options = new BlobUploadOptions();
             options.Tags = tagsToAdd;
 
-            if(tagsToAdd.Count>MaxTagCount)
-                throw new BlobTagCountException("SaveFileAtResubmitLocation", "Invalid tag count",new Exception("Tag size reached"));
+            if (tagsToAdd.Count > MaxTagCount)
+                throw new BlobTagCountException("SaveFileAtResubmitLocation", "Invalid tag count", new Exception("Tag size reached"));
 
             await blobClient.UploadAsync(ms, options);
 

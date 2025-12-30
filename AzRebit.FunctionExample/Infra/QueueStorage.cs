@@ -4,7 +4,7 @@ using Microsoft.Extensions.Azure;
 
 namespace AzRebit.FunctionExample.Infra;
 
-internal class QueueStorage:IFunctionOutput
+internal class QueueStorage : IFunctionOutput
 {
     private QueueServiceClient queueService;
     private QueueClient queue;

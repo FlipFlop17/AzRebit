@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel;
 
+using AzRebit.Domain.Abstractions;
+using AzRebit.Domain.Results;
 using AzRebit.Features.BlobTriggered.SaveRequestMiddleware;
 using AzRebit.Features.HttpTriggered.SaveRequestMiddleware;
 using AzRebit.Middleware;
@@ -12,10 +14,8 @@ using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 
 using NSubstitute;
-using AzRebit.Domain.Results;
-using AzRebit.Domain.Abstractions;
 
-namespace UnitTests.Middleware;
+namespace AzRebitTests.UnitTests.Middleware;
 
 
 public static class MiddlewareHandlerFactory
@@ -23,7 +23,8 @@ public static class MiddlewareHandlerFactory
 
     public static IEnumerable<object[]> GetMiddlewareHandlers
     {
-        get {
+        get
+        {
             var logger = Substitute.For<ILogger<BlobMiddlewareHandler>>();
             var blobClientFacto = Substitute.For<IAzureClientFactory<BlobServiceClient>>();
             var fakeBlobServiceClient = Substitute.For<BlobServiceClient>();
@@ -33,7 +34,7 @@ public static class MiddlewareHandlerFactory
             fakeBlobServiceClient.GetBlobContainerClient(Arg.Any<string>())
                 .Returns(fakeContainerClient);
 
-            var blobHandler=Substitute.For<ISavePayloadHandler>();
+            var blobHandler = Substitute.For<ISavePayloadHandler>();
             blobHandler.BindingName.Returns("blobTrigger");
             blobHandler.SaveIncomingRequest(Arg.Any<SavePayloadCommand>()).Returns(Task.FromResult(RebitActionResult.Success()));
             var meta = Substitute.For<BindingMetadata>();
@@ -45,7 +46,7 @@ public static class MiddlewareHandlerFactory
             meta.Type.Returns("httpTrigger");
             functionInputBindings = [meta];
             var loggerHttp = Substitute.For<ILogger<HttpMiddlewareHandler>>();
-            var httpHandlerFake=Substitute.For<ISavePayloadHandler>();
+            var httpHandlerFake = Substitute.For<ISavePayloadHandler>();
             httpHandlerFake.BindingName.Returns("httpTrigger");
             var functionContext = Substitute.For<FunctionContext>();
             httpHandlerFake.SaveIncomingRequest(Arg.Any<SavePayloadCommand>()).Returns(Task.FromResult(RebitActionResult.Success()));
@@ -87,7 +88,7 @@ public class SavePayloadsMiddlewareTests
     [Theory]
     [Description("When a middleware is actived it should invoke the middleware handler depending on the type of trigger")]
     [MemberData(nameof(MiddlewareHandlerFactory.GetMiddlewareHandlers), MemberType = typeof(MiddlewareHandlerFactory))]
-    public async Task When_resubmit_endpoint_is_triggered_should_invoke_middleware_handler(ISavePayloadHandler handlerToTest,IEnumerable<BindingMetadata> meta)
+    internal async Task When_resubmit_endpoint_is_triggered_should_invoke_middleware_handler(ISavePayloadHandler handlerToTest, IEnumerable<BindingMetadata> meta)
     {
         //arrange
         var logger = Substitute.For<ILogger<SavePayloadsMiddleware>>();

@@ -1,4 +1,4 @@
-internal class AzFunctionNotCreatedException:Exception
+internal class AzFunctionNotCreatedException : Exception
 {
     public override string Message { get; }
 

@@ -1,15 +1,14 @@
-﻿using AzRebit.Infrastructure.FileStorage;
+﻿using AzRebit.Domain.Entities;
+using AzRebit.Features.RebitSave;
+using AzRebit.Infrastructure.FileStorage;
 using AzRebit.Infrastructure.StateStorage;
 using AzRebit.Middleware;
-
-using Azure.Data.Tables;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using AzRebit.Domain.Entities;
 
 namespace AzRebit;
 
@@ -18,8 +17,21 @@ namespace AzRebit;
 /// </summary>
 public static class ResubmitFunctionWorkerExtension
 {
+    /// <summary>
+    /// Represents the service client name used for resubmitting archived blobs to the storage account.
+    /// </summary>
     public const string BlobResubmitServiceClientName = "StorageAccountResubmitArchive";
+    /// <summary>
+    /// Specifies the name of the internal storage table used for persisting Rebit state information.
+    /// </summary>
+    /// <remarks>
+    ///  [FEATURE NOT ACTIVE]
+    /// </remarks>
     public const string InternalRebitStorageTable = "RebitStatePersistTable";
+    /// <summary>
+    /// Provides options for configuring the resubmit pipeline, including specifying functions to exclude from
+    /// resubmission.
+    /// </summary>
     public class ResubmitOptions
     {
         /// <summary>
@@ -40,15 +52,20 @@ public static class ResubmitFunctionWorkerExtension
     {
         var options = new ResubmitOptions();
         configure?.Invoke(options);
+        bool stateStoragefeatureActive = false;
 
         // register options for dependency injection
         builder.Services.AddSingleton(Options.Create(options));
         // discover and register function names
-        var discoveredFunctions = AssemblyDiscovery.DiscoverAndAddAzFunctions(builder.Services,options.ExcludedFunctionNames).ToList();
+        var discoveredFunctions = AssemblyDiscovery.DiscoverAndAddAzFunctions(builder.Services, options.ExcludedFunctionNames).ToList();
         builder.Services.AddSingleton<IReadOnlyCollection<AzFunction>>(discoveredFunctions);
         builder.Services.AddSingleton<IResubmitStorage, BlobResubmitStorage>();
-        builder.Services.AddSingleton<IWorkItemStore, StorageTablePersistService>();
-        builder.Services.AddAzureClients(c=>
+        builder.Services.AddSingleton<IRebitManualSave, RebitManualSave>();
+        if (stateStoragefeatureActive)
+        {
+            builder.Services.AddSingleton<IWorkItemStore, StorageTablePersistService>();
+        }
+        builder.Services.AddAzureClients(c =>
         {
             c.AddBlobServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")).WithName(BlobResubmitServiceClientName);
             c.AddTableServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")).WithName(InternalRebitStorageTable);

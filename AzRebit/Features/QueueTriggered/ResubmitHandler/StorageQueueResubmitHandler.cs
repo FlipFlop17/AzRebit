@@ -1,15 +1,14 @@
-﻿using System.Reflection.Metadata.Ecma335;
-using System.Text;
+﻿using System.Text;
 
+using AzRebit.Domain.Abstractions;
+using AzRebit.Domain.Entities;
+using AzRebit.Domain.Enums;
+using AzRebit.Domain.Results;
 using AzRebit.Infrastructure.FileStorage;
 
 using Azure.Storage.Queues;
 
 using Microsoft.Extensions.Azure;
-using AzRebit.Domain.Enums;
-using AzRebit.Domain.Entities;
-using AzRebit.Domain.Results;
-using AzRebit.Domain.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace AzRebit.Features.QueueTriggered.ResubmitHandler;
@@ -21,7 +20,7 @@ internal class StorageQueueResubmitHandler : IResubmitHandler
     private readonly ILogger<StorageQueueResubmitHandler> _logger;
 
     public TriggerType HandlerType => TriggerType.Queue;
-    public StorageQueueResubmitHandler(IResubmitStorage blobStorage,IAzureClientFactory<QueueServiceClient> queueClient,ILogger<StorageQueueResubmitHandler> logger)
+    public StorageQueueResubmitHandler(IResubmitStorage blobStorage, IAzureClientFactory<QueueServiceClient> queueClient, ILogger<StorageQueueResubmitHandler> logger)
     {
         _blobStorage = blobStorage;
         _queueServiceClientFactory = queueClient;
@@ -56,12 +55,12 @@ internal class StorageQueueResubmitHandler : IResubmitHandler
         }
         catch (Exception e)
         {
-            _logger.LogDebug(e,"Unexpected error while resubmiting QueueMessage");
+            _logger.LogDebug(e, "Unexpected error while resubmiting QueueMessage");
             return RebitActionResult<ResubmitHandlerResponse>.Failure(e.Message);
         }
     }
 
-    private QueueClient CreateQueueClient(string functionName,string queueName)
+    private QueueClient CreateQueueClient(string functionName, string queueName)
     {
         return _queueServiceClientFactory.CreateClient(functionName).GetQueueClient(queueName);
     }

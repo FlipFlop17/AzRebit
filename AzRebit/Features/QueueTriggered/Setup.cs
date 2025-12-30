@@ -36,7 +36,7 @@ internal class QueueFeatureSetup : TriggerSetupBase
         }
         catch (Exception e)
         {
-            Console.WriteLine("Unexpected error while tyring to create az function with Queue triggert attribute "+e.Message);
+            Console.WriteLine("Unexpected error while tyring to create az function with Queue triggert attribute " + e.Message);
             throw new AzFunctionNotCreatedException(e.Message, e);
         }
     }

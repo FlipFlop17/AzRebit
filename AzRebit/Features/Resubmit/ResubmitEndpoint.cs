@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Reflection;
 
 using AzRebit.Domain.Abstractions;
 using AzRebit.Domain.Entities;
@@ -17,7 +16,14 @@ using static AzRebit.ResubmitFunctionWorkerExtension;
 
 namespace AzRebit.Features.Resubmit;
 
-public record ResubmitResponse(bool IsSuccess,string Message, string? FunctionName=null,string? ResubmitedFileName=null);
+/// <summary>
+/// Represents the result of a resubmission operation, including status, message, and related metadata.
+/// </summary>
+/// <param name="IsSuccess">true if the resubmission was successful; otherwise, false.</param>
+/// <param name="Message">A message describing the outcome of the resubmission operation.</param>
+/// <param name="FunctionName">The name of the function associated with the resubmission, or null if not applicable.</param>
+/// <param name="ResubmitedFileName">The name of the file that was resubmitted, or null if not applicable.</param>
+public record ResubmitResponse(bool IsSuccess, string Message, string? FunctionName = null, string? ResubmitedFileName = null);
 
 internal class ResubmitEndpoint
 {
@@ -36,9 +42,6 @@ internal class ResubmitEndpoint
 
     }
 
-
-    //TODO:Do we need an endpoint that will fetch all resubmitions done. Maybe track them in a storage table. last 3 days ?? 
-    //TODO:Loging should be done with source generators and not using iloggerdirectly
     /// <summary>
     /// Resubmits a specified file or a request by creating a new request to the specified function. Via http or blob or queueu
     /// </summary>
@@ -54,53 +57,60 @@ internal class ResubmitEndpoint
         var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
         var functionName = query["functionName"];
         var invocationIdToResubmit = query["invocationId"];
-        (bool isValid, string msg) = ValidateRequest(functionName,invocationIdToResubmit);
-        if(!isValid)
+        (bool isValid, string msg) = ValidateRequest(functionName, invocationIdToResubmit);
+        if (!isValid)
         {
             _logger.LogValidationError(msg);
             var badRequestResponse = req.CreateResponse(HttpStatusCode.BadRequest);
-            var resubmitResult = new ResubmitResponse(false,msg,functionName,invocationIdToResubmit);
+            var resubmitResult = new ResubmitResponse(false, msg, functionName, invocationIdToResubmit);
             await badRequestResponse.WriteAsJsonAsync(resubmitResult);
             return badRequestResponse;
         }
+        string validFunctionName = invocationIdToResubmit!;
+        string validInvocationId = invocationIdToResubmit!;
+        // ako zovemo endpoint preko httpa onda vrati response accepted i caller moze staviti status 'resubmit sent at'.
+        //ako iz azure workbooka zovcemo caller isto moze defoltno stavit status resubmit sent at. downside workbooka je sta nemremo provjheriti /resubmit response pa ako je rtesponse 404npr nemremo staviti to.
+        //
 
         try
         {
-            _logger.LogResubmitStart(invocationIdToResubmit,functionName);
+            _logger.LogResubmitStart(validInvocationId, validFunctionName);
 
-            var handlerResult=await HandleResubmit(functionName!, invocationIdToResubmit!);
+            var handlerResult = await HandleResubmit(validFunctionName, validInvocationId);
             var response = req.CreateResponse(HttpStatusCode.OK);
 
             if (!handlerResult.IsSuccess)
             {
                 response.StatusCode = handlerResult.ErrorType switch
                 {
-                   AzRebitErrorType.BlobResubmitFileNotFound => HttpStatusCode.NotFound,
-                   _=>HttpStatusCode.InternalServerError
+                    AzRebitErrorType.BlobResubmitFileNotFound => HttpStatusCode.NotFound,
+                    _ => HttpStatusCode.InternalServerError
                 };
                 string handlerMsg = handlerResult.Message ?? "Resubmit is not successfull";
-                var resubmitFailResult = new ResubmitResponse(false, handlerMsg, functionName,invocationIdToResubmit);
-                _logger.LogResubmitStatus(invocationIdToResubmit, functionName,handlerResult.IsSuccess, handlerMsg);
+                var resubmitFailResult = new ResubmitResponse(false, handlerMsg, validFunctionName, validInvocationId);
+                _logger.LogResubmitStatus(validInvocationId, validFunctionName, handlerResult.IsSuccess, handlerMsg);
                 await response.WriteAsJsonAsync(resubmitFailResult);
                 return response;
             }
 
-            var resubmitResult = new ResubmitResponse(true, "Sucessful resubmition", functionName, handlerResult.Data?.ResubmitingFileName);
-            _logger.LogResubmitStatus(invocationIdToResubmit, functionName, handlerResult.IsSuccess,null);
+            var resubmitResult = new ResubmitResponse(true, "Sucessful resubmition", validFunctionName, handlerResult.Data?.ResubmitingFileName);
+            _logger.LogResubmitStatus(validInvocationId, validFunctionName, handlerResult.IsSuccess, null);
             await response.WriteAsJsonAsync(resubmitResult);
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Error processing resubmit request for function: {FunctionName} with invocationId: {InvocationId}", functionName, invocationIdToResubmit);
-            _logger.LogResubmitError(ex,invocationIdToResubmit,functionName);
+            _logger.LogDebug(ex, "Error processing resubmit request for function: {FunctionName} with invocationId: {InvocationId}", validFunctionName, validInvocationId);
+            _logger.LogResubmitError(ex,
+                validInvocationId,
+                validFunctionName);
             var errorResponse = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
             await errorResponse.WriteAsJsonAsync(new { Error = "Internal server error" });
             return errorResponse;
         }
     }
 
-    private async Task<RebitActionResult<ResubmitHandlerResponse>> HandleResubmit(string functionName,string invocationId)
+    private async Task<RebitActionResult<ResubmitHandlerResponse>> HandleResubmit(string functionName, string invocationId)
     {
         var functionForResubmit = _availableFunctions.First(fn => fn.Name.Equals(functionName));
         var functionsTriggerMetadata = functionForResubmit.TriggerMetadata;
@@ -110,12 +120,12 @@ internal class ResubmitEndpoint
             return h.HandlerType == functionForResubmit.TriggerType;
         }) ?? throw new InvalidOperationException($"No trigger handler found for function '{functionName}' with the trigger type {functionForResubmit.TriggerType}");
 
-        var handlerResponse= await handler.HandleResubmitAsync(invocationId, functionForResubmit);
+        var handlerResponse = await handler.HandleResubmitAsync(invocationId, functionForResubmit);
 
         return handlerResponse;
     }
 
-    private (bool,string) ValidateRequest(string? functionName, string? invocationId)
+    private (bool, string) ValidateRequest(string? functionName, string? invocationId)
     {
         // Validate required parameters
         if (string.IsNullOrWhiteSpace(functionName))
@@ -137,7 +147,7 @@ internal class ResubmitEndpoint
             return (false, $"Function '{functionName}' not found");
         }
 
-        return (true,string.Empty);
+        return (true, string.Empty);
     }
 
 

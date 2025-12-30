@@ -4,7 +4,7 @@ using AzRebit.Features.QueueTriggered.SaveRequestMiddleware;
 
 using Microsoft.Extensions.DependencyInjection;
 
-internal class QueueTriggerServiceCollection: ITriggersServiceCollection
+internal class QueueTriggerServiceCollection : ITriggersServiceCollection
 {
     public void RegisterServices(IServiceCollection services)
     {

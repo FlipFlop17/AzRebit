@@ -6,11 +6,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AzRebit.Features.BlobTriggered;
 
-internal class BlobTriggerServiceCollection: ITriggersServiceCollection
+internal class BlobTriggerServiceCollection : ITriggersServiceCollection
 {
     public void RegisterServices(IServiceCollection services)
     {
         services.AddTransient<IResubmitHandler, BlobResubmitHandler>();
-        services.AddSingleton <ISavePayloadHandler, BlobMiddlewareHandler>();
+        services.AddSingleton<ISavePayloadHandler, BlobMiddlewareHandler>();
     }
 }

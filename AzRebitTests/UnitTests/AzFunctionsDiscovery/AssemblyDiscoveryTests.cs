@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using NSubstitute;
 
-namespace UnitTests.AzFunctionsDiscovery;
+namespace AzRebitTests.UnitTests.AzFunctionsDiscovery;
 
 public class AssemblyDiscoveryTests
 {
@@ -23,10 +23,10 @@ public class AssemblyDiscoveryTests
     [InlineData("MyBlobConnection", "AzureWebJobsStorage__MyBlobConnection")]
     [InlineData("SpecialStorageAccount", "AzureWebJobsStorage:SpecialStorageAccount")]
     [InlineData("", "AzureWebJobsStorage")]
-    public void Discovers_connection_string_from_appsettings(string connectionInAzureTriggerDefinition,string expectedAppSettingDefinedName)
+    public void Discovers_connection_string_from_appsettings(string connectionInAzureTriggerDefinition, string expectedAppSettingDefinedName)
     {
         Environment.SetEnvironmentVariable(expectedAppSettingDefinedName, "ConnectionString=DefaultStorageAccountSomething");
-        var appsettingName=AssemblyDiscovery.ResolveConnectionStringAppSettingName(connectionInAzureTriggerDefinition);
+        var appsettingName = AssemblyDiscovery.ResolveConnectionStringAppSettingName(connectionInAzureTriggerDefinition);
 
         appsettingName.Should().Be(expectedAppSettingDefinedName);
     }
@@ -53,14 +53,14 @@ public class AssemblyDiscoveryTests
         //arrange
         var serviceCollection = Substitute.For<IServiceCollection>();
         var excludedSet = new HashSet<string>(excludedFunctions, StringComparer.OrdinalIgnoreCase);
-        
+
         //act
-        IEnumerable<AzFunction> allFunctions = AssemblyDiscovery.DiscoverAndAddAzFunctions(serviceCollection,excludedSet);
+        IEnumerable<AzFunction> allFunctions = AssemblyDiscovery.DiscoverAndAddAzFunctions(serviceCollection, excludedSet);
 
         //assert
         allFunctions.Should().HaveCountGreaterThan(0);
-        
-        allFunctions.Should().NotContain(f => excludedFunctions.Contains(f.Name),because: "that function is on the excluded list");
+
+        allFunctions.Should().NotContain(f => excludedFunctions.Contains(f.Name), because: "that function is on the excluded list");
 
     }
 

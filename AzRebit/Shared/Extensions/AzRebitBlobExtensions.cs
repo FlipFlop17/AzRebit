@@ -1,37 +1,25 @@
-﻿using AzRebit.Infrastructure.FileStorage;
-
-using Azure;
+﻿using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
 
 namespace AzRebit.Shared.Extensions;
+
+/// <summary>
+/// Provides extension methods for working with Azure Blob storage clients, including utilities for extracting blob
+/// names and directory paths, combining blob path segments, and retrieving copies of blob tags and metadata.
+/// </summary>
+/// <remarks>These extension methods are designed to simplify common operations when interacting with Azure Blob
+/// storage. All methods are static and can be called directly on instances of BlobClient or BlobBaseClient. Returned
+/// dictionaries from metadata and tag retrieval methods are copies and can be safely modified without affecting the
+/// underlying blob data.</remarks>
 public static class AzRebitBlobExtensions
-{    
-    /// <summary>
-    /// Deletes a saved blob from the resubmission container
-    /// </summary>
-    /// <param name="invocationId">The uniqueue id of the execution. Usually get from <c>FunctionContext.InvocationId</c></param>
-    /// <returns></returns>
-    public static async Task<bool> DeleteSavedResubmitionBlobAsync(string invocationId)
-    {
-        var containerClient = new BlobContainerClient(
-            Environment.GetEnvironmentVariable("AzureWebJobsStorage"),
-            BlobResubmitStorage.ResubmitContainerName);
-
-        if (!await containerClient.ExistsAsync())
-        {
-            return false;
-        }
-
-        var blobClient = containerClient.GetBlobClient(invocationId);
-        return await blobClient.DeleteIfExistsAsync();
-    }
+{
 
 
     /// <summary>
     /// Extracts the blob name (last segment after last forward slash)
     /// </summary>
-    /// <param name="blobPath">Full blob path including virtual folders</param>
+    /// <param name="blobClient"></param>
     /// <returns>Blob name with extension</returns>
     public static string GetBlobName(this BlobClient blobClient)
     {
@@ -45,7 +33,7 @@ public static class AzRebitBlobExtensions
     /// <summary>
     /// Extracts the directory path (everything before the last forward slash)
     /// </summary>
-    /// <param name="blobPath">Full blob path including virtual folders</param>
+    /// <param name="blobClient"></param>
     /// <returns>Directory path without blob name, empty string if no path</returns>
     public static string GetBlobDirectoryPath(this BlobClient blobClient)
     {
@@ -118,6 +106,16 @@ public static class AzRebitBlobExtensions
         }
     }
 
+    /// <summary>
+    /// Asynchronously retrieves a copy of the metadata associated with the specified blob.
+    /// </summary>
+    /// <remarks>The returned dictionary is a copy of the blob's metadata. Modifying the returned dictionary
+    /// does not affect the metadata stored in the blob.</remarks>
+    /// <param name="blobClient">The <see cref="BlobClient"/> instance representing the blob from which to retrieve metadata.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a dictionary with the blob's
+    /// metadata key-value pairs. Returns an empty dictionary if the blob has no metadata or if metadata is not
+    /// supported.</returns>
     public static async Task<IDictionary<string, string>> GetClonedMetadataAsync(
       this BlobClient blobClient,
       CancellationToken cancellationToken = default)

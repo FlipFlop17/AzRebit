@@ -18,9 +18,9 @@ internal class QueueCats
     [QueueOutput("transform-cats-output")]
     public string RunString([QueueTrigger("transform-cats-string")] string dogMessage)
     {
-        _logger.LogInformation("string queueMessage: "+dogMessage);
+        _logger.LogInformation("string queueMessage: " + dogMessage);
         return dogMessage + ";has been processed";
-        
+
     }
     [Function("TransformCats-QueueMessage")]
     [QueueOutput("transform-cats-output")]

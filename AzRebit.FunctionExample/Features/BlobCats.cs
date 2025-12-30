@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using AzRebit.FunctionExample.Infra;
+﻿using AzRebit.FunctionExample.Infra;
+using AzRebit.Shared;
 using AzRebit.Shared.Extensions;
 
 using Azure.Storage.Blobs;
@@ -20,12 +15,13 @@ public class Cat
     public string Name { get; set; }
     public string Color { get; set; }
 }
+
 public class BlobCats
 {
     private readonly ILogger<BlobCats> _logger;
     private readonly IFunctionOutput _output;
     private bool deleteResubmitionFile = Environment.GetEnvironmentVariable("AZREBIT_DELETE_RESUBMITION_FILE") == "true";
-    public BlobCats(ILogger<BlobCats> logger,IFunctionOutput output)
+    public BlobCats(ILogger<BlobCats> logger, IFunctionOutput output)
     {
         _logger = logger;
         _output = output;
@@ -39,16 +35,16 @@ public class BlobCats
     /// <returns></returns>
     [Function("TransferCats")]
     public async Task RunCatTransfer(
-        [BlobTrigger("cats-container/{blobPath}", Connection = "AzureWebJobsStorage")] 
-        BlobClient blobClient, string blobPath,FunctionContext funcContext)
+        [BlobTrigger("cats-container/{blobPath}", Connection = "AzureWebJobsStorage")]
+        BlobClient blobClient, string blobPath, FunctionContext funcContext)
     {
         _logger.LogInformation("incoming payload saved");
         Console.WriteLine(blobClient.Name);
         //optional but recomended - if processing was successfull delete the file as we won't need it for resubmition
         if (deleteResubmitionFile)
-            await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+            await AzRebitUtils.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
-        await _output.PostOutputAsync("Function processed-"+funcContext.InvocationId);
+        await _output.PostOutputAsync("Function processed-" + funcContext.InvocationId);
     }
 
     /// <summary>
@@ -64,7 +60,7 @@ public class BlobCats
         _logger.LogInformation("incoming payload saved");
         //optional but recomended - if processing was successfull delete the file as we won't need it for resubmition
         if (deleteResubmitionFile)
-            await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+            await AzRebitUtils.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
         await _output.PostOutputAsync("Function processed-" + funcContext.InvocationId);
     }
@@ -82,7 +78,7 @@ public class BlobCats
         _logger.LogInformation("incoming payload saved");
         //optional but recomended - if processing was successfull delete the file as we won't need it for resubmition
         if (deleteResubmitionFile)
-            await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+            await AzRebitUtils.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
         await _output.PostOutputAsync("Function processed-" + funcContext.InvocationId);
     }

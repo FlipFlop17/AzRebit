@@ -2,25 +2,23 @@
 
 using AwesomeAssertions;
 
+using AzRebit.Domain.Enums;
 using AzRebit.Infrastructure.StateStorage;
-
-using AzRebitTests.IntegrationTests;
 
 using Microsoft.Extensions.DependencyInjection;
 
 using Xunit.Abstractions;
-using AzRebit.Domain.Enums;
 
-namespace IntegrationTests.StateStorage;
+namespace AzRebitTests.IntegrationTests.StateStorage;
 
 
 [Collection("FunctionApp")]
-public class ResubmitStateTests:IDisposable
+public class ResubmitStateTests : IDisposable
 {
     private readonly ITestOutputHelper _output;
     private readonly IWorkItemStore _stateTableStorage;
 
-    public ResubmitStateTests(FunctionAppFixture host,ITestOutputHelper output)
+    public ResubmitStateTests(FunctionAppFixture host, ITestOutputHelper output)
     {
         _output = output;
         //_inputQueueClient = host.ServiceProvider
@@ -35,7 +33,7 @@ public class ResubmitStateTests:IDisposable
 
     public void Dispose()
     {
-        
+
     }
 
     [Fact]

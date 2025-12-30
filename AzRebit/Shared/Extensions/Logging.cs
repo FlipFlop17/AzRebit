@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 
 namespace AzRebit.Shared.Extensions;
 
@@ -45,23 +39,26 @@ internal static partial class AzRebitLoggerExtension
        EventId = 1004,
        Level = LogLevel.Information,
        Message = "Resubmit status for invocationId: {InvocationId}, functionName: {FunctionName}, isSuccess: {IsSuccess}, msg:{Message}")]
-    public static partial void LogResubmitStatus(this ILogger logger, string invocationId, string functionName,bool isSuccess,string? message);
+    public static partial void LogResubmitStatus(this ILogger logger, string invocationId, string functionName, bool isSuccess, string? message);
 
     [LoggerMessage(
        EventId = 5003,
        Level = LogLevel.Error,
        Message = "Resubmit failed for invocationId: {InvocationId}, functionName: {FunctionName}")]
-    public static partial void LogResubmitError(this ILogger logger,Exception ex, string invocationId, string functionName);
+    public static partial void LogResubmitError(this ILogger logger, Exception ex, string invocationId, string functionName);
 
     [LoggerMessage(
       EventId = 5004,
       Level = LogLevel.Error,
       Message = "Resubmit validation error {ValidationMessage}")]
-    public static partial void LogValidationError(this ILogger logger,string validationMessage);
+    public static partial void LogValidationError(this ILogger logger, string validationMessage);
 
     [LoggerMessage(
        EventId = 1005,
        Level = LogLevel.Information,
        Message = "Resubmiting work data: {InvocationId}, functionName: {FunctionName}, fileName: {FileName}")]
     public static partial void LogResubmitWorkData(this ILogger logger, string invocationId, string functionName, string fileName);
+
+
+
 }

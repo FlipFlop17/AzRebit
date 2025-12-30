@@ -11,10 +11,11 @@
     <PackageIcon>azrebit-logo-socials (Small).png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
-    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionPrefix>1.0.4</VersionPrefix>
     <VersionSuffix>alpha</VersionSuffix>
     <RepositoryUrl>https://github.com/FlipFlop17/AzRebit</RepositoryUrl>
     <PackageTags>azrebit;azurefunctionretry;azfuncresubmit;isolated-worker</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

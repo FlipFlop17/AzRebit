@@ -46,6 +46,11 @@ internal static class AssemblyDiscovery
                     var triggerBaseSetupClass = supportedTriggers.FirstOrDefault(t => t.TriggerAttribute == triggerType.GetType());
                     if (triggerBaseSetupClass != null)
                     {
+                        if (function.Attr is null)
+                        {
+                            Console.Error.WriteLine("function attribute is null");
+                            break;
+                        }
                         foundFunctions.Add(triggerBaseSetupClass.TryCreateAzFunction(function.Attr.Name, triggerType, services));
                     }
                 }
@@ -71,7 +76,7 @@ internal static class AssemblyDiscovery
     private static TriggerBindingAttribute ResolveTriggerAttribute(ParameterInfo[] allParams, ICollection<TriggerSetupBase> supportedTriggers)
     {
         //todo - moramo pokriti opciju ako je na klasi [StorageAccount] atribute takoder
-        var triggerTypes =supportedTriggers.Select(t=>t.TriggerAttribute).ToList();
+        var triggerTypes = supportedTriggers.Select(t => t.TriggerAttribute).ToList();
 
         var triggerParam = allParams
             .Select(p => new
@@ -107,9 +112,10 @@ internal static class AssemblyDiscovery
             var thisAssembly = AppDomain.CurrentDomain.GetAssemblies()
             .FirstOrDefault(a => a.ManifestModule.Name == "AzRebit.dll");
 
-            var setupTypes = thisAssembly.GetTypes()
+            var setupTypes = thisAssembly?.GetTypes()
             .Where(t => t is { IsClass: true, IsAbstract: false }
-                && typeof(TriggerSetupBase).IsAssignableFrom(t));
+                && typeof(TriggerSetupBase).IsAssignableFrom(t))
+            ?? Enumerable.Empty<Type>();
 
             foreach (var type in setupTypes)
             {
@@ -126,7 +132,7 @@ internal static class AssemblyDiscovery
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Could not load supported trigger feature from");
+            Console.Error.WriteLine($"Could not load supported trigger feature {0}", ex.Message);
         }
         return featureInstances;
 
@@ -142,7 +148,7 @@ internal static class AssemblyDiscovery
         var thisAssembly = AppDomain.CurrentDomain.GetAssemblies()
            .FirstOrDefault(a => a.GetName().Name == "AzRebit");
 
-        var installers = thisAssembly.GetTypes()
+        var installers = thisAssembly?.GetTypes()
                 .Where(t =>
                     !t.IsAbstract &&
                     !t.IsInterface &&
@@ -151,7 +157,7 @@ internal static class AssemblyDiscovery
                 .Cast<ITriggersServiceCollection>()
                 .ToList();
 
-        installers.ForEach(installer => installer.RegisterServices(services));
+        installers?.ForEach(installer => installer.RegisterServices(services));
 
         return services;
     }

@@ -1,15 +1,15 @@
 ﻿using System.Text.Json;
 
-using AzRebit.Infrastructure.FileStorage;
+using AzRebit.Domain.Abstractions;
 using AzRebit.Domain.Exceptions;
+using AzRebit.Domain.Results;
+using AzRebit.Infrastructure.FileStorage;
 
 using Azure.Storage.Blobs.Specialized;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Context.Features;
 using Microsoft.Extensions.Logging;
-using AzRebit.Domain.Results;
-using AzRebit.Domain.Abstractions;
 
 namespace AzRebit.Features.BlobTriggered.SaveRequestMiddleware;
 
@@ -17,15 +17,15 @@ namespace AzRebit.Features.BlobTriggered.SaveRequestMiddleware;
 /// <summary>
 /// Middleware handler for incoming blob payloads. Depending on blob triggered params it saves the blob for resubmission.
 /// </summary>
-public class BlobMiddlewareHandler : ISavePayloadHandler
+internal class BlobMiddlewareHandler : ISavePayloadHandler
 {
     private readonly ILogger<BlobMiddlewareHandler> _logger;
     private readonly IResubmitStorage _blobStorage;
     public string BindingName => "blobTrigger";
 
-    private const string _prefix = "t_blob";
-    public static string ResubmitFilePrefix => _prefix;
-    public BlobMiddlewareHandler(ILogger<BlobMiddlewareHandler> logger,IResubmitStorage blobStorage)
+    //private const string _prefix = "t_blob";
+    public string ResubmitFilePrefix => "t_blob";
+    internal BlobMiddlewareHandler(ILogger<BlobMiddlewareHandler> logger, IResubmitStorage blobStorage)
     {
         _logger = logger;
         _blobStorage = blobStorage;
@@ -45,11 +45,11 @@ public class BlobMiddlewareHandler : ISavePayloadHandler
             var data = await inputBindingFeature.BindFunctionInputAsync(command.Context);
             command.Context.BindingContext.BindingData.TryGetValue("BlobTrigger", out var blobPath);
             if (blobPath is null)
-                throw new BlobOperationException("BindingData.TryGetValue", "Cannot find blob name",new Exception());
+                throw new BlobOperationException("BindingData.TryGetValue", "Cannot find blob name", new Exception());
 
-            string blobName = Path.GetFileName(blobPath.ToString());
-            string destinationPath = $"{command.Context.FunctionDefinition.Name}/{_prefix}-{blobName}";
-            var resubmitTag = new Dictionary<string, string>() { { IResubmitStorage.BlobTagInvocationId, invocationId } };
+            var blobName = Path.GetFileName(blobPath.ToString());
+            string destinationPath = $"{command.Context.FunctionDefinition.Name}/{ResubmitFilePrefix}-{blobName}";
+            var invocationIdTag = new Dictionary<string, string>() { { IResubmitStorage.BlobTagInvocationId, invocationId } };
 
             foreach (var inputData in data.Values)
             {
@@ -58,32 +58,33 @@ public class BlobMiddlewareHandler : ISavePayloadHandler
                     case FunctionContext context:
                         break;
                     case string payload:
-                        await _blobStorage.SaveFileAtResubmitLocation(payload, destinationPath, resubmitTag);
+                        await _blobStorage.SaveFileAtResubmitLocation(payload, destinationPath, invocationIdTag);
                         break;
                     case byte[] payloadByte:
                         using (Stream byteStream = new MemoryStream(payloadByte))
                         {
-                            await _blobStorage.SaveFileAtResubmitLocation(byteStream, destinationPath, resubmitTag);
-                        };
+                            await _blobStorage.SaveFileAtResubmitLocation(byteStream, destinationPath, invocationIdTag);
+                        }
+                        ;
                         break;
                     case Stream payloadStream:
-                        await _blobStorage.SaveFileAtResubmitLocation(payloadStream, destinationPath, resubmitTag);
-                        if(payloadStream.CanSeek)
+                        await _blobStorage.SaveFileAtResubmitLocation(payloadStream, destinationPath, invocationIdTag);
+                        if (payloadStream.CanSeek)
                             payloadStream.Seek(0, SeekOrigin.Begin);
 
                         payloadStream.Position = 0;
                         break;
                     case BlobBaseClient blobClientBase:
-                        await _blobStorage.SaveFileAtResubmitLocation(blobClientBase, destinationPath, resubmitTag);
+                        await _blobStorage.SaveFileAtResubmitLocation(blobClientBase, destinationPath, invocationIdTag);
                         break;
                     default:
                         string serializedPayload = JsonSerializer.Serialize(inputData); //can be expensive for RAM - user should be using blobclient or stream
-                        await _blobStorage.SaveFileAtResubmitLocation(serializedPayload, destinationPath, resubmitTag);
+                        await _blobStorage.SaveFileAtResubmitLocation(serializedPayload, destinationPath, invocationIdTag);
                         break;
                 }
             }
             return RebitActionResult.Success(invocationId);
-            
+
         }
         catch (BlobOperationException blobE)
         {

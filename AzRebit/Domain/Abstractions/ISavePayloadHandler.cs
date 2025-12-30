@@ -4,14 +4,14 @@ using Microsoft.Azure.Functions.Worker;
 
 namespace AzRebit.Domain.Abstractions;
 
-public interface ISavePayloadHandler
+internal interface ISavePayloadHandler
 {
-    static string ResubmitFilePrefix { get; }
+    string ResubmitFilePrefix { get; }
     public string BindingName { get; }
     public Task<RebitActionResult> SaveIncomingRequest(ISavePayloadCommand command);
 }
 
-public interface ISavePayloadCommand
+internal interface ISavePayloadCommand
 {
-    public FunctionContext Context { get;  }
+    public FunctionContext Context { get; }
 }

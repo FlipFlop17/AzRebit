@@ -1,6 +1,4 @@
-﻿using AzRebitTests.IntegrationTests;
-
-using Azure.Storage.Blobs;
+﻿using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 
 using Microsoft.Extensions.Azure;
@@ -8,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Xunit.Abstractions;
 
-namespace IntegrationTests.QueueTriggerTest;
+namespace AzRebitTests.IntegrationTests.QueueTriggerTest;
 
 [Collection("FunctionApp")]
 public class QueueMiddlewareHandlerTests
@@ -50,14 +48,14 @@ public class QueueMiddlewareHandlerTests
 
     private async Task SendMessageAsync(string queueName, string message)
     {
-        var queueClient =_inputQueueClient.GetQueueClient(queueName);
+        var queueClient = _inputQueueClient.GetQueueClient(queueName);
         await queueClient.SendMessageAsync(message);
         Console.WriteLine($"Sent string message to {queueName}.");
     }
 
     [Theory]
     [InlineData(QueueMessageQueueName, "{\"Name\": \"Whiskers\", \"Color\": \"black\"}")]
-    public async Task When_Message_is_added_to_queue_Should_copy_it_in_resubmit_storage(string queueName,string queueMessage)
+    public async Task When_Message_is_added_to_queue_Should_copy_it_in_resubmit_storage(string queueName, string queueMessage)
     {
         //arrange
         var queueClient = _inputQueueClient.GetQueueClient(queueName);

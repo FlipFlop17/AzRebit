@@ -1,12 +1,12 @@
-﻿using AzRebit.Infrastructure.FileStorage;
+﻿using AzRebit.Domain.Abstractions;
+using AzRebit.Domain.Results;
+using AzRebit.Infrastructure.FileStorage;
 
 using Azure.Storage.Blobs;
 
 using Microsoft.Azure.Functions.Worker.Context.Features;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
-using AzRebit.Domain.Results;
-using AzRebit.Domain.Abstractions;
 
 namespace AzRebit.Features.QueueTriggered.SaveRequestMiddleware;
 
@@ -14,7 +14,6 @@ internal class QueueMiddlewareHandler : ISavePayloadHandler
 {
     private readonly ILogger<QueueMiddlewareHandler> _logger;
     private readonly IResubmitStorage _blobResubmit;
-    private const string _prefix = "t_qu";
 
     public QueueMiddlewareHandler(ILogger<QueueMiddlewareHandler> logger,
         IAzureClientFactory<BlobServiceClient> blobService,
@@ -24,7 +23,7 @@ internal class QueueMiddlewareHandler : ISavePayloadHandler
         _blobResubmit = blobResubmit;
     }
 
-    public static string ResubmitFilePrefix => _prefix;
+    public string ResubmitFilePrefix => "t_qu";
     public string BindingName => "queueTrigger";
 
 
@@ -46,7 +45,7 @@ internal class QueueMiddlewareHandler : ISavePayloadHandler
             {
                 return RebitActionResult.Success(messageContent);
             }
-            var destinationPath = $"{command.Context.FunctionDefinition.Name}/{_prefix}-{invocationId}.txt";
+            var destinationPath = $"{command.Context.FunctionDefinition.Name}/{ResubmitFilePrefix}-{invocationId}.txt";
             await _blobResubmit.SaveFileAtResubmitLocation(
                       messageContent,
                       destinationPath,
@@ -56,7 +55,7 @@ internal class QueueMiddlewareHandler : ISavePayloadHandler
         }
         catch (Exception e)
         {
-            _logger.LogDebug(e,"Unexpected erorr while trying to save incoming QueueMessage");
+            _logger.LogDebug(e, "Unexpected erorr while trying to save incoming QueueMessage");
             return RebitActionResult.Failure(e.Message);
         }
 

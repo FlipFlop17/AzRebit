@@ -4,7 +4,6 @@ using AzRebit.FunctionExample.Infra;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Azure;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -30,10 +29,11 @@ builder.Services.AddAzureClients(clients =>
 builder.Services.AddSingleton<IFunctionOutput, QueueStorage>();
 builder.AddResubmitEndpoint();
 
-if(builder.Environment.IsDevelopment())
+if (builder.Environment.IsDevelopment())
 {
     builder.Logging.AddSeq();
-};
+}
+;
 builder.Logging.AddFilter("Azure.Core", LogLevel.Error);
 builder.Logging.AddFilter("Azure.Storage", LogLevel.Error);
 builder.Logging.AddFilter("Host.General", LogLevel.Warning);

@@ -1,3 +1,4 @@
+using AzRebit.Shared;
 using AzRebit.Shared.Extensions;
 
 using Microsoft.Azure.Functions.Worker;
@@ -12,7 +13,7 @@ namespace AzRebit.FunctionExample.Features;
 public class HttpCats
 {
     private readonly ILogger<HttpCats> _logger;
-    private readonly List<string> _cats=new List<string> { "Tom", "Garfield", "Sylvester" };
+    private readonly List<string> _cats = new List<string> { "Tom", "Garfield", "Sylvester" };
     private bool shouldDeleteResubmitionFile = Environment.GetEnvironmentVariable("AZREBIT_DELETE_RESUBMITION_FILE") == "true";
     public HttpCats(ILogger<HttpCats> logger)
     {
@@ -25,10 +26,10 @@ public class HttpCats
     /// <param name="req"></param>
     /// <returns></returns>
     [Function("GetCats")]
-    public async Task<HttpResponseData> RunGet([HttpTrigger(AuthorizationLevel.Anonymous, "get","post")] 
-    HttpRequestData req,FunctionContext funcContext)
+    public async Task<HttpResponseData> RunGet([HttpTrigger(AuthorizationLevel.Anonymous, "get","post")]
+    HttpRequestData req, FunctionContext funcContext)
     {
-        var response=req.CreateResponse();
+        var response = req.CreateResponse();
         response.StatusCode = System.Net.HttpStatusCode.OK;
 
         // ... some important work
@@ -36,7 +37,7 @@ public class HttpCats
         //cleanup
         //optional but recomended - if processing was successfull delete the file as we probably won't need it for resubmition to save storage space
         if (shouldDeleteResubmitionFile)
-            await AzRebitBlobExtensions.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+            await AzRebitUtils.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
 
         await response.WriteAsJsonAsync(_cats);
 

@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 
 
-namespace AzRebit.Triggers.HttpTriggered;
+namespace AzRebit.Features.HttpTriggered;
 
 /// <summary>
 /// Setup is needed for the assembly discovery process to find and register this feature
@@ -27,7 +27,7 @@ internal class Setup : TriggerSetupBase
         }
         catch (Exception e)
         {
-            throw new AzFunctionNotCreatedException(e.Message,e);
+            throw new AzFunctionNotCreatedException(e.Message, e);
         }
 
     }

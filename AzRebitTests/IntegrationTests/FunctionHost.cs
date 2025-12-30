@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-using AzRebit;
+﻿using AzRebit;
 using AzRebit.Infrastructure.FileStorage;
 using AzRebit.Infrastructure.StateStorage;
 
@@ -36,15 +34,15 @@ public class FunctionAppFixture : IAsyncLifetime
 
     public FunctionAppFixture()
     {
-        HttpClient = new HttpClient
+        HostHttpClient = new HttpClient
         {
             BaseAddress = new Uri(BaseUrl),
             Timeout = TimeSpan.FromSeconds(30)
         };
-       
+
     }
 
-    public HttpClient HttpClient { get; private set; }
+    public HttpClient HostHttpClient { get; private set; }
     public string BaseUrl => $"http://localhost:7080";
     public ServiceProvider ServiceProvider { get; set; }
     public BlobContainerClient BlobResubmitContainer { get; private set; }
@@ -98,6 +96,8 @@ public class FunctionAppFixture : IAsyncLifetime
                 $"Error: {ex.Message}", ex);
         }
     }
+    public HttpClient CreateResubmitClient()
+        => ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("resubmit");
     private void CreateServiceCollection()
     {
         var serviceCollection = new ServiceCollection();
@@ -122,7 +122,7 @@ public class FunctionAppFixture : IAsyncLifetime
     }
     public async Task DisposeAsync()
     {
-        HttpClient?.Dispose();
+        HostHttpClient?.Dispose();
 
         if (_functionContainer != null)
         {
@@ -148,18 +148,18 @@ public class FunctionAppFixture : IAsyncLifetime
             .WithName("func-integ-test")
             .WithImage(functionCoreImage)
             .WithBindMount(publishFolder, azureFunctionCoreFolder, DotNet.Testcontainers.Configurations.AccessMode.ReadWrite)
-            .WithPortBinding(7080,80)
+            .WithPortBinding(7080, 80)
             .WithEnvironment("AzureWebJobsStorage", AzuriteAliasConnectionString)
             .WithEnvironment("AZURE_FUNCTIONS_ENVIRONMENT", "Development")
             //.WithEnvironment("AzureWebJobsScriptRoot", "/home/site/wwwroot")
             //.WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
-            .WithEnvironment("AZREBIT_DELETE_RESUBMITION_FILE","false")
+            .WithEnvironment("AZREBIT_DELETE_RESUBMITION_FILE", "false")
             .WithNetwork(ContainerNetwork)
             .WithWaitStrategy(
                 Wait.ForUnixContainer()
                     .UntilInternalTcpPortIsAvailable(80))
-                    //.UntilHttpRequestIsSucceeded(
-                    //    req => req.ForPort(FunctionAppPort).ForPath("/admin/host/status")))
+            //.UntilHttpRequestIsSucceeded(
+            //    req => req.ForPort(FunctionAppPort).ForPath("/admin/host/status")))
             .Build();
 
         await _functionContainer.StartAsync();

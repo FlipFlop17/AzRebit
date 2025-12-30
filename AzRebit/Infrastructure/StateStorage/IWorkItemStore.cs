@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using AzRebit.Domain.Enums;
-
-using Azure;
+﻿using AzRebit.Domain.Enums;
 
 namespace AzRebit.Infrastructure.StateStorage;
 
@@ -34,7 +26,7 @@ internal interface IWorkItemStore
     /// <returns></returns>
     public Task<PagedResult<WorkItemEntity>> GetAsync(string? continuationToken);
 
-    public Task<bool> DeleteEntry(string invocationId,string functionName);
+    public Task<bool> DeleteEntry(string invocationId, string functionName);
     Task<WorkItemEntity?> GetEntityByInvocationId(string invocationId);
 
 }

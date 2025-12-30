@@ -1,15 +1,14 @@
-﻿using System.IO.Pipes;
+﻿using System.ComponentModel;
 
 using AzRebit.Domain.Enums;
 
-using Azure;
 using Azure.Data.Tables;
 
 using Microsoft.Extensions.Azure;
 
 namespace AzRebit.Infrastructure.StateStorage;
 
-
+[Description("Feature not implemented and not used. May be needed in the future for package expansion")]
 internal class StorageTablePersistService : IWorkItemStore
 {
     private readonly TableClient _tableClient;
@@ -18,13 +17,13 @@ internal class StorageTablePersistService : IWorkItemStore
     {
         _tableClient = storage
             .CreateClient(ResubmitFunctionWorkerExtension.InternalRebitStorageTable)
-            .GetTableClient("AzRebitStatePersist");
+            .GetTableClient("AzRebitResubmitStatus");
         _tableClient.CreateIfNotExists();
     }
 
-    public async Task<bool> DeleteEntry(string invocationId,string functionName)
+    public async Task<bool> DeleteEntry(string invocationId, string functionName)
     {
-        var isDeleted=await _tableClient.DeleteEntityAsync(functionName,invocationId);
+        var isDeleted = await _tableClient.DeleteEntityAsync(functionName, invocationId);
 
         return !isDeleted.IsError;
     }
@@ -41,8 +40,8 @@ internal class StorageTablePersistService : IWorkItemStore
             NextToken = page?.ContinuationToken
         };
     }
-    
-    public async Task<bool> LogProcessingState(string invocationId,string filePath,string functionName,TriggerType triggerType)
+
+    public async Task<bool> LogProcessingState(string invocationId, string filePath, string functionName, TriggerType triggerType)
     {
         var existingData = await GetEntityByInvocationId(invocationId);
         existingData?.RaiseResubmitCount();
@@ -50,7 +49,7 @@ internal class StorageTablePersistService : IWorkItemStore
         if (existingData is not null)
         {
             existingData.RaiseResubmitCount();
-            newResubmitCount= existingData.ResubmitCount;
+            newResubmitCount = existingData.ResubmitCount;
         }
 
         var data = new WorkItemEntity()
@@ -59,14 +58,14 @@ internal class StorageTablePersistService : IWorkItemStore
             FilePath = filePath,
             PartitionKey = functionName,
             TriggerType = triggerType,
-            ResubmitCount=newResubmitCount
+            ResubmitCount = newResubmitCount
         };
 
-        var response=await _tableClient.UpsertEntityAsync(data);
+        var response = await _tableClient.UpsertEntityAsync(data);
 
         return !response.IsError;
     }
-    public async Task<WorkItemEntity?> GetEntityByInvocationId (string invocationId)
+    public async Task<WorkItemEntity?> GetEntityByInvocationId(string invocationId)
     {
         var results = await _tableClient
             .QueryAsync<WorkItemEntity>(e => e.RowKey.Equals(invocationId))

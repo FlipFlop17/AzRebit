@@ -13,9 +13,9 @@ using Microsoft.Extensions.Logging;
 
 
 
-namespace AzRebit.Features.HttpTriggered.Handler;
+namespace AzRebit.Features.HttpTriggered.ResubmitHandler;
 
-internal class HttpResubmitHandler:IResubmitHandler
+internal class HttpResubmitHandler : IResubmitHandler
 {
     public const string HttpResubmitOriginalFileId = "x-resubmit-originalid";
     private readonly IHttpClientFactory _httpFact;
@@ -24,13 +24,13 @@ internal class HttpResubmitHandler:IResubmitHandler
 
     public TriggerType HandlerType => TriggerType.Http;
 
-    public HttpResubmitHandler(IHttpClientFactory httpFact,IResubmitStorage resubmitStorage,ILogger<HttpResubmitHandler> logger)
+    public HttpResubmitHandler(IHttpClientFactory httpFact, IResubmitStorage resubmitStorage, ILogger<HttpResubmitHandler> logger)
     {
         _httpFact = httpFact;
         _resubmitStorage = resubmitStorage;
         _logger = logger;
     }
-    
+
     public async Task<RebitActionResult<ResubmitHandlerResponse>> HandleResubmitAsync(string invocationId, AzFunction function)
     {
         try
@@ -71,7 +71,7 @@ internal class HttpResubmitHandler:IResubmitHandler
         }
         catch (Exception e)
         {
-            _logger.LogDebug(e,"Unexpected error while resubmiting http request type");
+            _logger.LogDebug(e, "Unexpected error while resubmiting http request type");
             return RebitActionResult<ResubmitHandlerResponse>.Failure(e.Message);
         }
 

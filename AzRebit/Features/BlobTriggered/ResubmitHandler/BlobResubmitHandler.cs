@@ -1,17 +1,16 @@
-﻿using System.Runtime.CompilerServices;
-using AzRebit.Infrastructure.FileStorage;
+﻿using AzRebit.Domain.Abstractions;
+using AzRebit.Domain.Entities;
+using AzRebit.Domain.Enums;
 using AzRebit.Domain.Exceptions;
+using AzRebit.Domain.Results;
+using AzRebit.Infrastructure.FileStorage;
+using AzRebit.Shared.Extensions;
 
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
-using AzRebit.Domain.Enums;
-using AzRebit.Domain.Entities;
-using AzRebit.Domain.Results;
-using AzRebit.Domain.Abstractions;
-using AzRebit.Shared.Extensions;
 
 
 
@@ -30,7 +29,7 @@ internal class BlobResubmitHandler : IResubmitHandler
     public TriggerType HandlerType => TriggerType.Blob;
 
     public BlobResubmitHandler(ILogger<BlobResubmitHandler> logger,
-        IAzureClientFactory<BlobServiceClient> blobFact,IResubmitStorage resubmitStorage)
+        IAzureClientFactory<BlobServiceClient> blobFact, IResubmitStorage resubmitStorage)
     {
         _logger = logger;
         _blobFact = blobFact;
@@ -42,19 +41,19 @@ internal class BlobResubmitHandler : IResubmitHandler
         try
         {
             IDictionary<string, string> tags = new Dictionary<string, string>();
-            var triggerContainerName=function.GetFunctionTriggerContainerName();
+            var triggerContainerName = function.GetFunctionTriggerContainerName();
 
             BlobClient? blobForResubmitClient = await _resubmitStorage.FindAsync(invocationId);
-           
+
             if (blobForResubmitClient is null)
             {
-                return RebitActionResult<ResubmitHandlerResponse>.Failure($"No blob found for invocation id {invocationId} in dedicated resubmit container",AzRebitErrorType.BlobResubmitFileNotFound);
+                return RebitActionResult<ResubmitHandlerResponse>.Failure($"No blob found for invocation id {invocationId} in dedicated resubmit container", AzRebitErrorType.BlobResubmitFileNotFound);
             }
-            _logger.LogResubmitWorkData(invocationId,function.Name,blobForResubmitClient.Name);
+            _logger.LogResubmitWorkData(invocationId, function.Name, blobForResubmitClient.Name);
             var existingTagsResponse = await blobForResubmitClient.GetClonedTagsAsync();
             var existingMetaResponse = await blobForResubmitClient.GetClonedMetadataAsync();
             CleanUpAnyResubmitTags(existingTagsResponse); //we dont want 'old' tags used for first resubmit save. we want a clean slate for retries
-            
+
             BlobCopyFromUriOptions options = new()
             {
                 Tags = existingTagsResponse,
@@ -67,24 +66,24 @@ internal class BlobResubmitHandler : IResubmitHandler
             var copyOp = await inputBlob.StartCopyFromUriAsync(blobForResubmitClient.Uri, options);
 
             await copyOp.WaitForCompletionAsync();
-            //todo at this point add that the record of this resubmition to azure table
+
             return RebitActionResult<ResubmitHandlerResponse>.Success(new ResubmitHandlerResponse(blobForResubmitClient.Name));
         }
         catch (Exception e)
         {
-            _logger.LogDebug(e,"Unexpected error while trying to resubmit the file {InvocationId}",invocationId);
-            return RebitActionResult<ResubmitHandlerResponse>.Failure(e.Message,AzRebitErrorType.UnexpectedError);
+            _logger.LogDebug(e, "Unexpected error while trying to resubmit the file {InvocationId}", invocationId);
+            return RebitActionResult<ResubmitHandlerResponse>.Failure(e.Message, AzRebitErrorType.UnexpectedError);
         }
 
     }
 
-    private BlobContainerClient CreateInputContainerClient(string functionName , string containerName)
+    private BlobContainerClient CreateInputContainerClient(string functionName, string containerName)
     {
         return _blobFact.CreateClient(functionName).GetBlobContainerClient(containerName);
     }
 
 
-    private void CleanUpAnyResubmitTags(IDictionary<string,string> tags)
+    private void CleanUpAnyResubmitTags(IDictionary<string, string> tags)
     {
         tags.Remove(IResubmitStorage.BlobTagInvocationId);
     }

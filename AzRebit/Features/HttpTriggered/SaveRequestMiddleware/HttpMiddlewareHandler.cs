@@ -1,25 +1,22 @@
 ﻿using System.Text.Json;
 
-using AzRebit.Features.HttpTriggered.Handler;
+using AzRebit.Domain.Abstractions;
+using AzRebit.Domain.Results;
 using AzRebit.Features.HttpTriggered.Model;
 using AzRebit.Infrastructure.FileStorage;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using AzRebit.Domain.Results;
-using AzRebit.Domain.Abstractions;
-using AzRebit.Shared.Extensions;
 
 namespace AzRebit.Features.HttpTriggered.SaveRequestMiddleware;
 
-public class HttpMiddlewareHandler:ISavePayloadHandler
+internal class HttpMiddlewareHandler : ISavePayloadHandler
 {
     private readonly ILogger<HttpMiddlewareHandler> _logger;
     private readonly IResubmitStorage _resubmitStorage;
-    private const string _prefix = "t_http";
 
-    public HttpMiddlewareHandler(ILogger<HttpMiddlewareHandler> logger, IResubmitStorage resubmitStorage)
+    internal HttpMiddlewareHandler(ILogger<HttpMiddlewareHandler> logger, IResubmitStorage resubmitStorage)
     {
         _logger = logger;
         _resubmitStorage = resubmitStorage;
@@ -28,16 +25,18 @@ public class HttpMiddlewareHandler:ISavePayloadHandler
     /// <summary>
     /// Prefix added when saving file to resubmit storage
     /// </summary>
-    public static string ResubmitFilePrefix => _prefix;
+    public string ResubmitFilePrefix => "t_http";
+
     /// <summary>
-    /// Headers that mark that the invocation id should be taken from the header and not of the FunctionContext
+    /// Headers that marks that the invocation id should be taken from the header and not of the FunctionContext
     /// </summary>
     public const string HeaderInvocationId = "x-azrebit-invocationid";
     public string BindingName => "httpTrigger";
+
     /// <summary>
     /// Saves the incoming HTTP request before the users endpoint starts processing for potential resubmission later.
     /// </summary>
-    /// <param name="context"></param>
+    /// <param name="command"></param>
     /// <returns></returns>
     public async Task<RebitActionResult> SaveIncomingRequest(ISavePayloadCommand command)
     {
@@ -46,6 +45,7 @@ public class HttpMiddlewareHandler:ISavePayloadHandler
         try
         {
             var httpRequestData = await command.Context.GetHttpRequestDataAsync();
+
 
             if (httpRequestData is null)
             {
@@ -58,31 +58,24 @@ public class HttpMiddlewareHandler:ISavePayloadHandler
                 invocationId = functionKeyHeader.First();
             }
 
-            //handle if the request is coming from the /resubmit endpoint
-            if (httpRequestData.Headers.Contains(HttpResubmitHandler.HttpResubmitOriginalFileId)) 
-            {
-                await AzRebitHttpExtensions.ProcessResubmitRequest(httpRequestData);
-            } else
-            {
+            var payloadToSave = await PrepareHttpRequestForSaveAsync(httpRequestData, invocationId);
+            var destinationPath = $"{command.Context.FunctionDefinition.Name}/{ResubmitFilePrefix}-{invocationId}.json";
 
-                var payloadToSave= await PrepareHttpRequestForSaveAsync(httpRequestData,invocationId);
-                var destinationPath = $"{command.Context.FunctionDefinition.Name}/{_prefix}-{invocationId}.json";
-                
-                await _resubmitStorage.SaveFileAtResubmitLocation(payloadToSave, 
-                    destinationPath, 
-                    new Dictionary<string, string>() { { IResubmitStorage.BlobTagInvocationId, invocationId } });
-            }
+            await _resubmitStorage.SaveFileAtResubmitLocation(payloadToSave,
+                destinationPath,
+                new Dictionary<string, string>() { { IResubmitStorage.BlobTagInvocationId, invocationId } });
 
-            return RebitActionResult<object>.Success(new {  InvocationId= invocationId });
+
+            return RebitActionResult<object>.Success(new { InvocationId = invocationId });
         }
         catch (Exception e)
         {
-            _logger.LogDebug(e, "Unexpected error while saving incoming http request {InvocationId}",invocationId);
+            _logger.LogDebug(e, "Unexpected error while saving incoming http request {InvocationId}", invocationId);
             return RebitActionResult.Failure(e.Message);
         }
-        
+
     }
-    private async Task<string> PrepareHttpRequestForSaveAsync(HttpRequestData req,string invocationId)
+    private async Task<string> PrepareHttpRequestForSaveAsync(HttpRequestData req, string invocationId)
     {
         using StreamReader reader = new StreamReader(req.Body);
         var requestPayload = await reader.ReadToEndAsync();

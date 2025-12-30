@@ -8,20 +8,50 @@ namespace AzRebit.Domain.Results;
 /// </summary>
 public class RebitActionResult
 {
+    /// <summary>
+    /// Indicates wheter the operation was successfull
+    /// </summary>
     public bool IsSuccess { get; init; }
+    /// <summary>
+    /// Message returned from the operation
+    /// </summary>
     public string? Message { get; init; }
+
+    /// <summary>
+    /// Error type from AzRebit lib
+    /// </summary>
     public AzRebitErrorType ErrorType { get; init; }
 
+    /// <summary>
+    /// Creates a new instance of <see cref="RebitActionResult"/> that represents a successful result.
+    /// </summary>
+    /// <returns>A <see cref="RebitActionResult"/> instance with <see cref="RebitActionResult.IsSuccess"/> set to <see
+    /// langword="true"/>.</returns>
     public static RebitActionResult Success() => new() { IsSuccess = true };
 
+    /// <summary>
+    /// Creates a successful result with the specified message.
+    /// </summary>
+    /// <param name="message">The message that describes the successful outcome. Can be null or empty if no message is required.</param>
+    /// <returns>A <see cref="RebitActionResult"/> instance representing a successful result with the provided message.</returns>
     public static RebitActionResult Success(string message) => new()
     {
         IsSuccess = true,
         Message = message
     };
 
+    /// <summary>
+    /// Creates a new result that represents a failed action.
+    /// </summary>
+    /// <returns>A <see cref="RebitActionResult"/> instance with <c>IsSuccess</c> set to <see langword="false"/>.</returns>
     public static RebitActionResult Failure() => new() { IsSuccess = false };
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="message"></param>
+    /// <param name="errorType"></param>
+    /// <returns></returns>
     public static RebitActionResult Failure(string message, AzRebitErrorType errorType = AzRebitErrorType.UnexpectedError) => new()
     {
         IsSuccess = false,

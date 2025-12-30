@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace AzRebit.Domain.Exceptions;
 
-namespace AzRebit.Domain.Exceptions;
-
-internal class BlobOperationException:Exception
+internal class BlobOperationException : Exception
 {
     public string Operation { get; }
     public string Description { get; }

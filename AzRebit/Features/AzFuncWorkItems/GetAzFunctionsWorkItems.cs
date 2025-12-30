@@ -13,7 +13,7 @@ namespace AzRebit.Features.AzFuncWorkItems
         private readonly ILogger<GetAzFunctionsWorkItems> _logger;
         private readonly IWorkItemStore _resubmitStateStore;
 
-        public GetAzFunctionsWorkItems(ILogger<GetAzFunctionsWorkItems> logger,IWorkItemStore resubmitStateStore)
+        public GetAzFunctionsWorkItems(ILogger<GetAzFunctionsWorkItems> logger, IWorkItemStore resubmitStateStore)
         {
             _logger = logger;
             _resubmitStateStore = resubmitStateStore;
@@ -22,27 +22,27 @@ namespace AzRebit.Features.AzFuncWorkItems
         [Function("WorkItemInfo")]
         public async Task<HttpResponseData> GetResubmitStatus(
             [HttpTrigger(AuthorizationLevel.Anonymous, ["get"], Route = "azrebit/funcworkitems/{invocationId?}")] HttpRequestData req,
-            string? invocationId,FunctionContext executionContext)
+            string? invocationId, FunctionContext executionContext)
         {
             var response = req.CreateResponse();
-            string? continuationToken=default;
-            if (req.Url.Query.Length>0)
+            string? continuationToken = default;
+            if (req.Url.Query.Length > 0)
             {
                 var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
                 continuationToken = query["continuationToken"];
             }
 
             var handlerResponse = await Handle(invocationId, continuationToken);
-            if (handlerResponse.Data?.Count<=0)
+            if (handlerResponse.Data?.Count <= 0)
             {
-                response.StatusCode=System.Net.HttpStatusCode.NotFound;
+                response.StatusCode = System.Net.HttpStatusCode.NotFound;
             }
             await response.WriteAsJsonAsync(handlerResponse);
             return response;
         }
 
 
-        public async Task<RebitActionResult<List<AzFuncWorkItemInfoDto>>> Handle(string? invocationId,string? continuationToken)
+        public async Task<RebitActionResult<List<AzFuncWorkItemInfoDto>>> Handle(string? invocationId, string? continuationToken)
         {
             List<WorkItemEntity> resubmitData = new();
 
@@ -63,14 +63,14 @@ namespace AzRebit.Features.AzFuncWorkItems
                     .Select(i => MapToResponseDto(i))
                     .ToList();
                 var msg = workItems.Count <= 0 ? AzRebitErrorType.NotFound.ToString() : string.Empty;
-                return RebitActionResult<List<AzFuncWorkItemInfoDto>>.Success(workItems,msg);
+                return RebitActionResult<List<AzFuncWorkItemInfoDto>>.Success(workItems, msg);
             }
             catch (Exception e)
             {
-                _logger.LogDebug(e,"Unexpected error in fetching all work items");
+                _logger.LogDebug(e, "Unexpected error in fetching all work items");
                 return RebitActionResult<List<AzFuncWorkItemInfoDto>>.Failure(e.Message);
             }
-           
+
         }
 
         private AzFuncWorkItemInfoDto MapToResponseDto(WorkItemEntity processedItem)
