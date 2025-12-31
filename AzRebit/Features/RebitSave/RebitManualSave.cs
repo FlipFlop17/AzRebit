@@ -2,30 +2,31 @@
 
 using AzRebit.Domain.Results;
 using AzRebit.Infrastructure.FileStorage;
+using Microsoft.Extensions.Configuration;
 
 namespace AzRebit.Features.RebitSave;
 
-internal class RebitManualSave : IRebitManualSave
+internal class RebitManualSave(IResubmitStorage storage) : IRebitManualSave
 {
-    private readonly IResubmitStorage _storage;
-
-    public RebitManualSave(IResubmitStorage storage)
-    {
-        _storage = storage;
-    }
-
-    public async Task<RebitActionResult> SavePayloadForResubmit(string payload, string functionName, string? fileName = null, IDictionary<string, string>? destinationFileTags = null, Encoding? encoding = null)
+    public async Task<RebitActionResult> SavePayloadForResubmit(
+        string payload, 
+        string functionName,
+        string id,
+        string? fileName = null, 
+        IDictionary<string, string>? destinationFileTags = null, 
+        Encoding? encoding = null)
     {
         try
         {
+            var resubmitContainerName=storage.RootSaveDirectory;
             (bool valid, string msg) = IsFunctionNameValid(functionName);
             if (!valid)
                 return RebitActionResult.Failure(msg);
 
             string destinationPath = fileName != null
-                ? $"{BlobResubmitStorage.ResubmitContainerName}/{functionName}/{fileName}"
+                ? $"{resubmitContainerName}/{functionName}/{fileName}"
                 : GenerateDestinationName(functionName);
-            await _storage.SaveFileAtResubmitLocation(payload, destinationPath, destinationFileTags, encoding);
+            await storage.SaveFileAtResubmitLocation(payload, destinationPath, id,destinationFileTags, encoding);
             return RebitActionResult.Success(destinationPath);
         }
         catch (Exception e)
@@ -34,7 +35,7 @@ internal class RebitManualSave : IRebitManualSave
         }
     }
 
-    public async Task<RebitActionResult> SavePayloadForResubmit(Stream payload, string functionName, string? fileName = null, IDictionary<string, string>? destinationFileTags = null, Encoding? encoding = null)
+    public async Task<RebitActionResult> SavePayloadForResubmit(Stream payload, string functionName, string id,string? fileName = null, IDictionary<string, string>? destinationFileTags = null, Encoding? encoding = null)
     {
         try
         {
@@ -43,9 +44,9 @@ internal class RebitManualSave : IRebitManualSave
                 return RebitActionResult.Failure(msg);
 
             string destinationPath = fileName != null
-                ? $"{BlobResubmitStorage.ResubmitContainerName}/{functionName}/{fileName}"
+                ? $"{storage.RootSaveDirectory}/{functionName}/{fileName}"
                 : GenerateDestinationName(functionName);
-            await _storage.SaveFileAtResubmitLocation(payload, destinationPath, destinationFileTags, encoding);
+            await storage.SaveFileAtResubmitLocation(payload, destinationPath, id,destinationFileTags, encoding);
             return RebitActionResult.Success(destinationPath);
         }
         catch (Exception e)
@@ -64,5 +65,5 @@ internal class RebitManualSave : IRebitManualSave
     }
 
     private string GenerateDestinationName(string functionName)
-        => $"{BlobResubmitStorage.ResubmitContainerName}/{functionName}/{Guid.NewGuid()}.txt";
+        => $"{storage.RootSaveDirectory}/{functionName}/{Guid.NewGuid()}.txt";
 }

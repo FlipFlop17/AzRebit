@@ -49,7 +49,7 @@ internal class QueueMiddlewareHandler : ISavePayloadHandler
             await _blobResubmit.SaveFileAtResubmitLocation(
                       messageContent,
                       destinationPath,
-                      new Dictionary<string, string>() { { IResubmitStorage.BlobTagInvocationId, invocationId } }
+                      invocationId
                       );
             return RebitActionResult.Success(invocationId);
         }

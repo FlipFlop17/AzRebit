@@ -53,7 +53,7 @@ public static class ResubmitFunctionWorkerExtension
         var options = new ResubmitOptions();
         configure?.Invoke(options);
         bool stateStoragefeatureActive = false;
-
+        Environment.SetEnvironmentVariable("Rebit__ResubmitContainerName","files-for-resubmit");
         // register options for dependency injection
         builder.Services.AddSingleton(Options.Create(options));
         // discover and register function names

@@ -63,7 +63,7 @@ internal class HttpMiddlewareHandler : ISavePayloadHandler
 
             await _resubmitStorage.SaveFileAtResubmitLocation(payloadToSave,
                 destinationPath,
-                new Dictionary<string, string>() { { IResubmitStorage.BlobTagInvocationId, invocationId } });
+                invocationId);
 
 
             return RebitActionResult<object>.Success(new { InvocationId = invocationId });

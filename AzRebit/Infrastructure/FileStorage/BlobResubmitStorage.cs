@@ -9,29 +9,33 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 
 using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.Configuration;
 
 namespace AzRebit.Infrastructure.FileStorage;
 
 internal class BlobResubmitStorage : IResubmitStorage
 {
-    private int MaxTagCount = 10;
+    private int MaxTagCount = 9;
+    private const string _searchTag="InvocationId";
     public BlobContainerClient _resubmitContainerClient;
 
     /// <summary>
     /// Name of the container where all incoming files are saved
     /// </summary>
-    public static string ResubmitContainerName => "files-for-resubmit";
-    public BlobResubmitStorage(IAzureClientFactory<BlobServiceClient> blobFact)
+    public string RootSaveDirectory {get;init;}
+
+    public BlobResubmitStorage(IAzureClientFactory<BlobServiceClient> blobFact,IConfiguration config)
     {
+        RootSaveDirectory=config.GetValue<string>("Rebit__ResubmitContainerName");
+
         _resubmitContainerClient = blobFact.CreateClient(ResubmitFunctionWorkerExtension.BlobResubmitServiceClientName)
-            .GetBlobContainerClient(ResubmitContainerName);
+            .GetBlobContainerClient(RootSaveDirectory);
         _resubmitContainerClient.CreateIfNotExists();
     }
 
-
     public async Task<BlobClient?> FindAsync(string invocationId)
     {
-        string tagFilter = $"\"{IResubmitStorage.BlobTagInvocationId}\" = '{invocationId}'";
+        string tagFilter = $"\"{_searchTag}\" = '{invocationId}'";
 
         await foreach (TaggedBlobItem taggedBlob in _resubmitContainerClient.FindBlobsByTagsAsync(tagFilter))
         {
@@ -51,15 +55,20 @@ internal class BlobResubmitStorage : IResubmitStorage
     /// <exception cref="BlobOperationException"></exception>
     /// <exception cref="BlobTagCountException"></exception>
     /// <exception cref="Exception"></exception>
-    public async Task SaveFileAtResubmitLocation(BlobBaseClient sourceBlob, string destinationFullPath, IDictionary<string, string>? destinationFileTags)
+    public async Task SaveFileAtResubmitLocation(
+        BlobBaseClient sourceBlob, 
+        string destinationFullPath,
+        string id,
+        IDictionary<string, string>? destinationFileTags)
     {
         try
         {
             var tagsToAdd = destinationFileTags ?? new Dictionary<string, string>();
+            tagsToAdd.Add(_searchTag,id);
             var existingTagsResponse = await sourceBlob.GetClonedTagsAsync();
             if ((tagsToAdd.Count + existingTagsResponse.Count) > MaxTagCount)
             {
-                throw new BlobTagCountException("SaveBlobAtResubmitLocation", "Check tag count", new Exception("Tag count on a blob cannot be more than 10"));
+                throw new BlobTagCountException("SaveBlobAtResubmitLocation", "Invalid tag count", new Exception("Tag size reached"));
             } else
             {
                 foreach (var newTag in tagsToAdd)
@@ -106,11 +115,18 @@ internal class BlobResubmitStorage : IResubmitStorage
     /// <exception cref="BlobOperationException"></exception>
     /// <exception cref="BlobTagCountException"></exception>
     /// <exception cref="Exception"></exception>
-    public async Task SaveFileAtResubmitLocation(string payload, string destinationFullPath, IDictionary<string, string>? destinationFileTags, Encoding? encoding)
+    public async Task SaveFileAtResubmitLocation(
+        string payload, 
+        string destinationFullPath,
+        string id,
+        IDictionary<string, string>? destinationFileTags, 
+        Encoding? encoding)
     {
         try
         {
             var tagsToAdd = destinationFileTags ?? new Dictionary<string, string>();
+            tagsToAdd.Add(_searchTag,id);
+
             BlobClient blobClient = _resubmitContainerClient.GetBlobClient(destinationFullPath);
             var enc = encoding ?? Encoding.UTF8;
             using var ms = new MemoryStream(enc.GetBytes(payload));
@@ -142,12 +158,18 @@ internal class BlobResubmitStorage : IResubmitStorage
         }
     }
 
-    public async Task SaveFileAtResubmitLocation(Stream payload, string destinationFullPath, IDictionary<string, string>? destinationFileTags = null, Encoding? encoding = null)
+    public async Task SaveFileAtResubmitLocation(
+        Stream payload, 
+        string destinationFullPath, 
+        string id,
+        IDictionary<string, string>? destinationFileTags = null,
+        Encoding? encoding = null)
     {
         try
         {
             var tagsToAdd = destinationFileTags ?? new Dictionary<string, string>();
 
+            tagsToAdd.Add(_searchTag,id);
             if (tagsToAdd.Count > MaxTagCount)
                 throw new BlobTagCountException("SaveFileAtResubmitLocation", "Invalid tag count", new Exception("Tag size reached"));
 
