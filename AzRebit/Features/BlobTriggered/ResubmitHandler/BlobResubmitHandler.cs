@@ -85,7 +85,7 @@ internal class BlobResubmitHandler : IResubmitHandler
 
     private void CleanUpAnyResubmitTags(IDictionary<string, string> tags)
     {
-        tags.Remove(IResubmitStorage.BlobTagInvocationId);
+        tags.Remove(_resubmitStorage.SearchTag);
     }
 
 }

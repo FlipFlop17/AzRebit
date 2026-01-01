@@ -16,18 +16,27 @@ namespace AzRebit.Infrastructure.FileStorage;
 internal class BlobResubmitStorage : IResubmitStorage
 {
     private int MaxTagCount = 9;
-    private const string _searchTag="InvocationId";
+
+    /// <summary>
+    /// Tag added to saved blob that is used as the main search attribute when
+    /// </summary>
+    //public const string SearchTag="InvocationId";
     public BlobContainerClient _resubmitContainerClient;
 
     /// <summary>
     /// Name of the container where all incoming files are saved
     /// </summary>
-    public string RootSaveDirectory {get;init;}
+    public string RootSaveDirectory { get; init; }
+    public string SearchTag => "InvocationId";
 
-    public BlobResubmitStorage(IAzureClientFactory<BlobServiceClient> blobFact,IConfiguration config)
+    public BlobResubmitStorage(IAzureClientFactory<BlobServiceClient> blobFact, IConfiguration config)
     {
-        RootSaveDirectory=config.GetValue<string>("Rebit__ResubmitContainerName");
-
+        var blobContainerName = config.GetValue<string>("Rebit__ResubmitContainerName");
+        if (string.IsNullOrEmpty(blobContainerName))
+        {
+            throw new ArgumentException("App setting Rebit__ResubmitContainerName is not defined");
+        }
+        RootSaveDirectory = blobContainerName;
         _resubmitContainerClient = blobFact.CreateClient(ResubmitFunctionWorkerExtension.BlobResubmitServiceClientName)
             .GetBlobContainerClient(RootSaveDirectory);
         _resubmitContainerClient.CreateIfNotExists();
@@ -35,7 +44,7 @@ internal class BlobResubmitStorage : IResubmitStorage
 
     public async Task<BlobClient?> FindAsync(string invocationId)
     {
-        string tagFilter = $"\"{_searchTag}\" = '{invocationId}'";
+        string tagFilter = $"\"{SearchTag}\" = '{invocationId}'";
 
         await foreach (TaggedBlobItem taggedBlob in _resubmitContainerClient.FindBlobsByTagsAsync(tagFilter))
         {
@@ -51,12 +60,13 @@ internal class BlobResubmitStorage : IResubmitStorage
     /// </summary>
     /// <param name="sourceBlob">incoming blob</param>
     /// <param name="destinationFullPath">virtual path of the location to save the blob</param>
+    /// <param name="id">Uniqueue id of the operation</param>
     /// <param name="destinationFileTags">tags to add to the blob file. File can have no more than 10 tags</param>
     /// <exception cref="BlobOperationException"></exception>
     /// <exception cref="BlobTagCountException"></exception>
     /// <exception cref="Exception"></exception>
     public async Task SaveFileAtResubmitLocation(
-        BlobBaseClient sourceBlob, 
+        BlobBaseClient sourceBlob,
         string destinationFullPath,
         string id,
         IDictionary<string, string>? destinationFileTags)
@@ -64,7 +74,7 @@ internal class BlobResubmitStorage : IResubmitStorage
         try
         {
             var tagsToAdd = destinationFileTags ?? new Dictionary<string, string>();
-            tagsToAdd.Add(_searchTag,id);
+            tagsToAdd.Add(SearchTag, id);
             var existingTagsResponse = await sourceBlob.GetClonedTagsAsync();
             if ((tagsToAdd.Count + existingTagsResponse.Count) > MaxTagCount)
             {
@@ -110,22 +120,23 @@ internal class BlobResubmitStorage : IResubmitStorage
     /// </summary>
     /// <param name="payload"></param>
     /// <param name="destinationFullPath">virtual path of the location to save the blob</param>
+    /// <param name="id">Uniqueue id of the operation</param>
     /// <param name="destinationFileTags">tags to add to the blob file. File can have no more than 10 tags</param>
     /// <param name="encoding">defolts to UTF8 encoding</param>
     /// <exception cref="BlobOperationException"></exception>
     /// <exception cref="BlobTagCountException"></exception>
     /// <exception cref="Exception"></exception>
     public async Task SaveFileAtResubmitLocation(
-        string payload, 
+        string payload,
         string destinationFullPath,
         string id,
-        IDictionary<string, string>? destinationFileTags, 
+        IDictionary<string, string>? destinationFileTags,
         Encoding? encoding)
     {
         try
         {
             var tagsToAdd = destinationFileTags ?? new Dictionary<string, string>();
-            tagsToAdd.Add(_searchTag,id);
+            tagsToAdd.Add(SearchTag, id);
 
             BlobClient blobClient = _resubmitContainerClient.GetBlobClient(destinationFullPath);
             var enc = encoding ?? Encoding.UTF8;
@@ -159,8 +170,8 @@ internal class BlobResubmitStorage : IResubmitStorage
     }
 
     public async Task SaveFileAtResubmitLocation(
-        Stream payload, 
-        string destinationFullPath, 
+        Stream payload,
+        string destinationFullPath,
         string id,
         IDictionary<string, string>? destinationFileTags = null,
         Encoding? encoding = null)
@@ -169,7 +180,7 @@ internal class BlobResubmitStorage : IResubmitStorage
         {
             var tagsToAdd = destinationFileTags ?? new Dictionary<string, string>();
 
-            tagsToAdd.Add(_searchTag,id);
+            tagsToAdd.Add(SearchTag, id);
             if (tagsToAdd.Count > MaxTagCount)
                 throw new BlobTagCountException("SaveFileAtResubmitLocation", "Invalid tag count", new Exception("Tag size reached"));
 
@@ -195,5 +206,26 @@ internal class BlobResubmitStorage : IResubmitStorage
             throw new BlobOperationException("SaveBlobForResubmitionAsync",
                 $"Unexpected failure while saving blob '{destinationFullPath}' from stream", ex);
         }
+    }
+
+    public async Task<bool> DeleteFile(string invocationId, string? searchTag = null)
+    {
+        try
+        {
+            var blobClient = await FindAsync(invocationId);
+
+            if (blobClient is null)
+            {
+                throw new FileNotFoundException($"File with the tag {SearchTag}={invocationId} not found");
+            }
+
+            return await blobClient.DeleteIfExistsAsync();
+
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+
     }
 }

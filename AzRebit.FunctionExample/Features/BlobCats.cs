@@ -1,4 +1,5 @@
-﻿using AzRebit.FunctionExample.Infra;
+﻿using AzRebit.Features.RebitClientStore;
+using AzRebit.FunctionExample.Infra;
 using AzRebit.Shared;
 using AzRebit.Shared.Extensions;
 
@@ -20,11 +21,13 @@ public class BlobCats
 {
     private readonly ILogger<BlobCats> _logger;
     private readonly IFunctionOutput _output;
+    private readonly IRebitStoreOperations _rebit;
     private bool deleteResubmitionFile = Environment.GetEnvironmentVariable("AZREBIT_DELETE_RESUBMITION_FILE") == "true";
-    public BlobCats(ILogger<BlobCats> logger, IFunctionOutput output)
+    public BlobCats(ILogger<BlobCats> logger, IFunctionOutput output,IRebitStoreOperations rebit)
     {
         _logger = logger;
         _output = output;
+        _rebit = rebit;
     }
 
 
@@ -42,7 +45,7 @@ public class BlobCats
         Console.WriteLine(blobClient.Name);
         //optional but recomended - if processing was successfull delete the file as we won't need it for resubmition
         if (deleteResubmitionFile)
-            await AzRebitUtils.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+            await _rebit.DeleteResubmitFile(funcContext.InvocationId.ToString());
 
         await _output.PostOutputAsync("Function processed-" + funcContext.InvocationId);
     }
@@ -60,7 +63,7 @@ public class BlobCats
         _logger.LogInformation("incoming payload saved");
         //optional but recomended - if processing was successfull delete the file as we won't need it for resubmition
         if (deleteResubmitionFile)
-            await AzRebitUtils.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+            await _rebit.DeleteResubmitFile(funcContext.InvocationId.ToString());
 
         await _output.PostOutputAsync("Function processed-" + funcContext.InvocationId);
     }
@@ -78,7 +81,7 @@ public class BlobCats
         _logger.LogInformation("incoming payload saved");
         //optional but recomended - if processing was successfull delete the file as we won't need it for resubmition
         if (deleteResubmitionFile)
-            await AzRebitUtils.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+            await _rebit.DeleteResubmitFile(funcContext.InvocationId.ToString());
 
         await _output.PostOutputAsync("Function processed-" + funcContext.InvocationId);
     }

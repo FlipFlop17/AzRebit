@@ -1,5 +1,5 @@
 ﻿using AzRebit.Domain.Entities;
-using AzRebit.Features.RebitSave;
+using AzRebit.Features.RebitClientStore;
 using AzRebit.Infrastructure.FileStorage;
 using AzRebit.Infrastructure.StateStorage;
 using AzRebit.Middleware;
@@ -53,14 +53,14 @@ public static class ResubmitFunctionWorkerExtension
         var options = new ResubmitOptions();
         configure?.Invoke(options);
         bool stateStoragefeatureActive = false;
-        Environment.SetEnvironmentVariable("Rebit__ResubmitContainerName","files-for-resubmit");
+        Environment.SetEnvironmentVariable("Rebit__ResubmitContainerName", "files-for-resubmit");
         // register options for dependency injection
         builder.Services.AddSingleton(Options.Create(options));
         // discover and register function names
         var discoveredFunctions = AssemblyDiscovery.DiscoverAndAddAzFunctions(builder.Services, options.ExcludedFunctionNames).ToList();
         builder.Services.AddSingleton<IReadOnlyCollection<AzFunction>>(discoveredFunctions);
         builder.Services.AddSingleton<IResubmitStorage, BlobResubmitStorage>();
-        builder.Services.AddSingleton<IRebitManualSave, RebitManualSave>();
+        builder.Services.AddSingleton<IRebitStoreOperations, RebitStoreOperations>();
         if (stateStoragefeatureActive)
         {
             builder.Services.AddSingleton<IWorkItemStore, StorageTablePersistService>();

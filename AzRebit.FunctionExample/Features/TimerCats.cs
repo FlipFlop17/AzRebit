@@ -1,4 +1,4 @@
-using AzRebit.Features.RebitSave;
+using AzRebit.Features.RebitClientStore;
 using AzRebit.Shared;
 
 using Microsoft.AspNetCore.Mvc;
@@ -13,13 +13,13 @@ namespace AzRebit.FunctionExample.Features;
 public class TimerCats
 {
     private readonly ILogger<TimerCats> _logger;
-    private readonly IRebitManualSave _manualSave;
+    private readonly IRebitStoreOperations _rebit;
     private readonly List<string> _cats = new List<string> { "Tom", "Garfield", "Sylvester" };
     private bool deleteResubmitionFile = Environment.GetEnvironmentVariable("AZREBIT_DELETE_RESUBMITION_FILE") == "true";
-    public TimerCats(ILogger<TimerCats> logger, IRebitManualSave manualSave)
+    public TimerCats(ILogger<TimerCats> logger, IRebitStoreOperations rebit)
     {
         _logger = logger;
-        _manualSave = manualSave;
+        _rebit = rebit;
     }
 
     /// <summary>
@@ -33,12 +33,14 @@ public class TimerCats
     {
 
         string someFileOrDataContentPickedUpByTheTimerFunction = "A cat's purr has healing properties";
-        var manualSaveResult = await _manualSave.SavePayloadForResubmit(someFileOrDataContentPickedUpByTheTimerFunction, "CheckCats");
-
+        var manualSaveResult = await _rebit.SavePayloadForResubmit(
+            someFileOrDataContentPickedUpByTheTimerFunction, 
+            "CheckCats",
+            funcContext.InvocationId);
 
         //optional but recomended - if processing was successfull delete the file as you probably won't need it for resubmition to save storage space
         if (deleteResubmitionFile)
-            await AzRebitUtils.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+            await _rebit.DeleteResubmitFile(funcContext.InvocationId.ToString());
 
         return new OkObjectResult("Processing completed - triggered by a TimerTrigger");
     }

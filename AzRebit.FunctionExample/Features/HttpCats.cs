@@ -1,3 +1,4 @@
+using AzRebit.Features.RebitClientStore;
 using AzRebit.Shared;
 using AzRebit.Shared.Extensions;
 
@@ -13,11 +14,13 @@ namespace AzRebit.FunctionExample.Features;
 public class HttpCats
 {
     private readonly ILogger<HttpCats> _logger;
+    private readonly IRebitStoreOperations _rebit;
     private readonly List<string> _cats = new List<string> { "Tom", "Garfield", "Sylvester" };
     private bool shouldDeleteResubmitionFile = Environment.GetEnvironmentVariable("AZREBIT_DELETE_RESUBMITION_FILE") == "true";
-    public HttpCats(ILogger<HttpCats> logger)
+    public HttpCats(ILogger<HttpCats> logger,IRebitStoreOperations rebit)
     {
         _logger = logger;
+        _rebit = rebit;
     }
 
     /// <summary>
@@ -37,7 +40,7 @@ public class HttpCats
         //cleanup
         //optional but recomended - if processing was successfull delete the file as we probably won't need it for resubmition to save storage space
         if (shouldDeleteResubmitionFile)
-            await AzRebitUtils.DeleteSavedResubmitionBlobAsync(funcContext.InvocationId.ToString());
+            await _rebit.DeleteResubmitFile(funcContext.InvocationId.ToString());
 
         await response.WriteAsJsonAsync(_cats);
 
