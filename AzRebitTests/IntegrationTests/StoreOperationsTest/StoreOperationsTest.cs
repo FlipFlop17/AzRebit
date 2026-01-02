@@ -3,12 +3,12 @@
 namespace AzRebitTests.IntegrationTests.ManualSaveTest;
 
 [Collection("FunctionApp")]
-public class ManualSaveTests
+public class StoreOperationsTest
 {
     private readonly ITestOutputHelper _output;
     private readonly FunctionAppFixture _host;
 
-    public ManualSaveTests(ITestOutputHelper output, FunctionAppFixture host)
+    public StoreOperationsTest(ITestOutputHelper output, FunctionAppFixture host)
     {
         _output = output;
         _host = host;

@@ -29,11 +29,15 @@ builder.Services.AddAzureClients(clients =>
 builder.Services.AddSingleton<IFunctionOutput, QueueStorage>();
 builder.AddResubmitEndpoint();
 
+Console.WriteLine($"idemoooooo");
+
 if (builder.Environment.IsDevelopment())
 {
-    builder.Logging.AddSeq();
-}
-;
+    var seqServerUrl = Environment.GetEnvironmentVariable("SEQ_SERVER_URL") ?? "http://localhost:5341";
+    Console.WriteLine($"Configuring Seq logging to: {seqServerUrl}");
+    builder.Logging.AddSeq(seqServerUrl);
+};
+
 builder.Logging.AddFilter("Azure.Core", LogLevel.Error);
 builder.Logging.AddFilter("Azure.Storage", LogLevel.Error);
 builder.Logging.AddFilter("Host.General", LogLevel.Warning);

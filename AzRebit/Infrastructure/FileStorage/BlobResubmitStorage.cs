@@ -9,7 +9,6 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 
 using Microsoft.Extensions.Azure;
-using Microsoft.Extensions.Configuration;
 
 namespace AzRebit.Infrastructure.FileStorage;
 
@@ -29,14 +28,11 @@ internal class BlobResubmitStorage : IResubmitStorage
     public string RootSaveDirectory { get; init; }
     public string SearchTag => "InvocationId";
 
-    public BlobResubmitStorage(IAzureClientFactory<BlobServiceClient> blobFact, IConfiguration config)
+    public const string BlobResubmitContainerName = "files-for-resubmit";
+
+    public BlobResubmitStorage(IAzureClientFactory<BlobServiceClient> blobFact)
     {
-        var blobContainerName = config.GetValue<string>("Rebit__ResubmitContainerName");
-        if (string.IsNullOrEmpty(blobContainerName))
-        {
-            throw new ArgumentException("App setting Rebit__ResubmitContainerName is not defined");
-        }
-        RootSaveDirectory = blobContainerName;
+        RootSaveDirectory = BlobResubmitContainerName;
         _resubmitContainerClient = blobFact.CreateClient(ResubmitFunctionWorkerExtension.BlobResubmitServiceClientName)
             .GetBlobContainerClient(RootSaveDirectory);
         _resubmitContainerClient.CreateIfNotExists();

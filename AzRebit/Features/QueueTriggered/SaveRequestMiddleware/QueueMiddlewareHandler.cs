@@ -15,7 +15,7 @@ internal class QueueMiddlewareHandler : ISavePayloadHandler
     private readonly ILogger<QueueMiddlewareHandler> _logger;
     private readonly IResubmitStorage _blobResubmit;
 
-    public QueueMiddlewareHandler(ILogger<QueueMiddlewareHandler> logger,
+    internal QueueMiddlewareHandler(ILogger<QueueMiddlewareHandler> logger,
         IAzureClientFactory<BlobServiceClient> blobService,
         IResubmitStorage blobResubmit)
     {

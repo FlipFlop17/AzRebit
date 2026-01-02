@@ -29,15 +29,17 @@ public class TimerCats
     /// <returns></returns>
     [Function("CheckCats")]
     public async Task<IActionResult> RunTimerCats(
-        [TimerTrigger("* * 1 * * *"/* Every second, every minute, between 01:00 AM and 01:59 AM, every day */)] FunctionContext funcContext)
+        [TimerTrigger("0 * * * * *"/* Runs at second 0 of every minute */)] FunctionContext funcContext)
     {
 
+        _logger.LogInformation("the timer trigger function has started");
         string someFileOrDataContentPickedUpByTheTimerFunction = "A cat's purr has healing properties";
         var manualSaveResult = await _rebit.SavePayloadForResubmit(
-            someFileOrDataContentPickedUpByTheTimerFunction, 
-            "CheckCats",
-            funcContext.InvocationId);
+            payload: someFileOrDataContentPickedUpByTheTimerFunction,
+            functionName: "CheckCats",
+            id: funcContext.InvocationId);
 
+        _logger.LogInformation($"save operation success:{manualSaveResult.IsSuccess}");
         //optional but recomended - if processing was successfull delete the file as you probably won't need it for resubmition to save storage space
         if (deleteResubmitionFile)
             await _rebit.DeleteResubmitFile(funcContext.InvocationId.ToString());

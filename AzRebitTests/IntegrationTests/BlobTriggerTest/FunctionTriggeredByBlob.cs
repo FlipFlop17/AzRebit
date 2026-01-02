@@ -1,5 +1,6 @@
 ﻿using AwesomeAssertions;
 
+using AzRebit;
 using AzRebit.Features.BlobTriggered.SaveRequestMiddleware;
 using AzRebit.Features.HttpTriggered.SaveRequestMiddleware;
 using AzRebit.Infrastructure.FileStorage;
@@ -25,7 +26,7 @@ public class FunctionTriggeredByBlob
     BlobContainerClient _blobResubmitContainerClient;
     IHttpClientFactory _httpClientFactory;
     private BlobContainerClient _catsContainer;
-    private string _httpPrefixCode;
+    private string _blobTypePrefixCode;
 
     public FunctionTriggeredByBlob(FunctionAppFixture functionHost, ITestOutputHelper testOutput)
     {
@@ -33,7 +34,7 @@ public class FunctionTriggeredByBlob
         _testOutput = testOutput;
         _blobResubmitContainerClient = _functionHost.ServiceProvider
             .GetRequiredService<IAzureClientFactory<BlobServiceClient>>()
-            .CreateClient("resubmitContainer")
+            .CreateClient(ResubmitFunctionWorkerExtension.BlobResubmitServiceClientName)
             .GetBlobContainerClient("files-for-resubmit");
         _httpClientFactory = functionHost.ServiceProvider.GetRequiredService<IHttpClientFactory>();
         _catsContainer = _functionHost.ServiceProvider
@@ -41,7 +42,7 @@ public class FunctionTriggeredByBlob
             .CreateClient("catsContainer")
             .GetBlobContainerClient("cats-container");
         var handler = new BlobMiddlewareHandler(Substitute.For<ILogger<BlobMiddlewareHandler>>(), Substitute.For<IResubmitStorage>());
-        _httpPrefixCode = handler.ResubmitFilePrefix;
+        _blobTypePrefixCode = handler.ResubmitFilePrefix;
     }
     [Theory]
     [InlineData("TransferCats")]
@@ -49,7 +50,7 @@ public class FunctionTriggeredByBlob
     {
         //arrange
         var blobName = $"transferdata-{DateTime.Now:dd_MM_yyyy_HH_mm_ss}.txt";
-        var blobResubmitName = $"{functionName}/{_httpPrefixCode}-{blobName}";
+        var blobResubmitName = $"{functionName}/{_blobTypePrefixCode}-{blobName}";
         var inputBlobClient = _catsContainer.GetBlobClient(blobName);
         byte[] data = System.Text.Encoding.UTF8.GetBytes("A blob has been added");
         using var stream = new MemoryStream(data);
@@ -63,7 +64,9 @@ public class FunctionTriggeredByBlob
         var blobThere = await blobClient.ExistsAsync();
         blobThere.Value.Should().Be(true);
         var tags = await blobClient.GetClonedTagsAsync();
-        tags.FirstOrDefault(tag => tag.Key.Equals(IResubmitStorage.BlobTagInvocationId)).Should().NotBeNull();
+        tags.FirstOrDefault(tag => tag.Key.Equals(_functionHost.BlobSearchTag)).Should().NotBeNull();
+        await inputBlobClient.DeleteAsync();
+        await blobClient.DeleteAsync();
     }
 
     [Theory]
@@ -74,10 +77,10 @@ public class FunctionTriggeredByBlob
         HttpClient httpClient = _httpClientFactory.CreateClient("resubmit");
         string runId = string.Empty;
         //just get any blob with invocation id
-        var searchPrefix = $"{functionName}/{_httpPrefixCode}";
+        var searchPrefix = $"{functionName}/{_blobTypePrefixCode}";
         await foreach (BlobItem blobItem in _blobResubmitContainerClient.GetBlobsAsync(BlobTraits.Tags, prefix: searchPrefix))
         {
-            blobItem.Tags.TryGetValue(IResubmitStorage.BlobTagInvocationId, out runId);
+            blobItem.Tags.TryGetValue(_functionHost.BlobSearchTag, out runId);
             break;
         }
 

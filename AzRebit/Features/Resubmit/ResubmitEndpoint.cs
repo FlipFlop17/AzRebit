@@ -31,7 +31,6 @@ internal class ResubmitEndpoint
     private readonly IEnumerable<IResubmitHandler> _triggerHandlers;
     private readonly ILogger<ResubmitEndpoint> _logger;
     public ResubmitEndpoint(
-        IOptions<ResubmitOptions> options,
         IReadOnlyCollection<AzFunction> functionNames,
         IEnumerable<IResubmitHandler> triggerHandlers,
         ILogger<ResubmitEndpoint> logger)

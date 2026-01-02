@@ -4,6 +4,7 @@ using AzRebit.Domain.Abstractions;
 using AzRebit.Domain.Exceptions;
 using AzRebit.Domain.Results;
 using AzRebit.Infrastructure.FileStorage;
+using AzRebit.Shared.Extensions;
 
 using Azure.Storage.Blobs.Specialized;
 

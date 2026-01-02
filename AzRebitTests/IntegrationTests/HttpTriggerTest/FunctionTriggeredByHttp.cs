@@ -1,5 +1,6 @@
 ﻿using AwesomeAssertions;
 
+using AzRebit;
 using AzRebit.Features.HttpTriggered.SaveRequestMiddleware;
 using AzRebit.Infrastructure.FileStorage;
 using AzRebit.Shared.Extensions;
@@ -7,9 +8,9 @@ using AzRebit.Shared.Extensions;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 
-using Castle.Core.Logging;
 
 using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -27,13 +28,14 @@ public class FunctionTriggeredByHttp
     private BlobContainerClient _blobResubmitContainerClient;
     private IHttpClientFactory _httpClientFactory;
     private string _httpPrefixCode { get; }
+
     public FunctionTriggeredByHttp(FunctionAppFixture functionHost, ITestOutputHelper testOutput)
     {
         _functionHost = functionHost;
         _testOutput = testOutput;
         _blobResubmitContainerClient = _functionHost.ServiceProvider
             .GetRequiredService<IAzureClientFactory<BlobServiceClient>>()
-            .CreateClient("resubmitContainer")
+            .CreateClient(ResubmitFunctionWorkerExtension.BlobResubmitServiceClientName)
             .GetBlobContainerClient("files-for-resubmit");
         _httpClientFactory = functionHost.ServiceProvider.GetRequiredService<IHttpClientFactory>();
         var handler = new HttpMiddlewareHandler(Substitute.For<ILogger<HttpMiddlewareHandler>>(), Substitute.For<IResubmitStorage>());
@@ -81,7 +83,7 @@ public class FunctionTriggeredByHttp
         //check for tags as well
         (await blob.GetClonedTagsAsync())
         .Should()
-        .Contain(IResubmitStorage.BlobTagInvocationId, customInvocationId);
+        .Contain(_functionHost.BlobSearchTag, customInvocationId);
 
     }
     [Fact]
@@ -96,7 +98,7 @@ public class FunctionTriggeredByHttp
         var searchPrefix = $"{functionName}/{_httpPrefixCode}";
         await foreach (BlobItem blobItem in _blobResubmitContainerClient.GetBlobsAsync(BlobTraits.Tags, prefix: searchPrefix))
         {
-            blobItem.Tags.TryGetValue(IResubmitStorage.BlobTagInvocationId, out runId);
+            blobItem.Tags.TryGetValue(_functionHost.BlobSearchTag, out runId);
             break;
         }
 

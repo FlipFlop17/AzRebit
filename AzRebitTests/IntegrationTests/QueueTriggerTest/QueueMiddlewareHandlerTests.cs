@@ -1,4 +1,6 @@
-﻿using Azure.Storage.Blobs;
+﻿using AzRebit;
+
+using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 
 using Microsoft.Extensions.Azure;
@@ -30,7 +32,7 @@ public class QueueMiddlewareHandlerTests
             .CreateClient("queueClient");
         _blobResubmitContainerClient = host.ServiceProvider
             .GetRequiredService<IAzureClientFactory<BlobServiceClient>>()
-            .CreateClient("resubmitContainer")
+            .CreateClient(ResubmitFunctionWorkerExtension.BlobResubmitServiceClientName)
             .GetBlobContainerClient("files-for-resubmit");
     }
 

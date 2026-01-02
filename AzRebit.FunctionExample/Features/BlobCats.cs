@@ -42,7 +42,7 @@ public class BlobCats
         BlobClient blobClient, string blobPath, FunctionContext funcContext)
     {
         _logger.LogInformation("incoming payload saved");
-        Console.WriteLine(blobClient.Name);
+        Console.WriteLine("spremio sam "+blobClient.Name);
         //optional but recomended - if processing was successfull delete the file as we won't need it for resubmition
         if (deleteResubmitionFile)
             await _rebit.DeleteResubmitFile(funcContext.InvocationId.ToString());

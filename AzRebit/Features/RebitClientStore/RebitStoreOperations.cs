@@ -13,7 +13,17 @@ internal class RebitStoreOperations(IResubmitStorage storage) : IRebitStoreOpera
 {
 
     public async Task<RebitActionResult> DeleteResubmitFile(string id)
-        => await storage.DeleteFile(id) ? RebitActionResult.Success() : RebitActionResult.Failure();
+    {
+        try
+        {
+            bool isDeleted=await storage.DeleteFile(id);
+            return RebitActionResult.Success($"deleted: {isDeleted}");
+        }
+        catch (Exception e)
+        {
+            return RebitActionResult.Failure(e.Message);
+        }
+    }
 
     public async Task<RebitActionResult> SavePayloadForResubmit(
         string payload,
@@ -25,13 +35,12 @@ internal class RebitStoreOperations(IResubmitStorage storage) : IRebitStoreOpera
     {
         try
         {
-            var resubmitContainerName = storage.RootSaveDirectory;
             (bool valid, string msg) = IsFunctionNameValid(functionName);
             if (!valid)
                 return RebitActionResult.Failure(msg);
 
             string destinationPath = fileName != null
-                ? $"{resubmitContainerName}/{functionName}/{fileName}"
+                ? $"{functionName}/{fileName}"
                 : GenerateDestinationName(functionName);
             await storage.SaveFileAtResubmitLocation(payload, destinationPath, id, destinationFileTags, encoding);
             return RebitActionResult.Success(destinationPath);
@@ -57,7 +66,7 @@ internal class RebitStoreOperations(IResubmitStorage storage) : IRebitStoreOpera
                 return RebitActionResult.Failure(msg);
 
             string destinationPath = fileName != null
-                ? $"{storage.RootSaveDirectory}/{functionName}/{fileName}"
+                ? $"{functionName}/{fileName}"
                 : GenerateDestinationName(functionName);
             await storage.SaveFileAtResubmitLocation(payload, destinationPath, id, destinationFileTags, encoding);
             return RebitActionResult.Success(destinationPath);
@@ -78,5 +87,5 @@ internal class RebitStoreOperations(IResubmitStorage storage) : IRebitStoreOpera
     }
 
     private string GenerateDestinationName(string functionName)
-        => $"{storage.RootSaveDirectory}/{functionName}/{Guid.NewGuid()}.txt";
+        => $"{functionName}/{Guid.NewGuid()}.txt";
 }

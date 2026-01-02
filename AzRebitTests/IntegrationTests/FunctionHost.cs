@@ -7,6 +7,7 @@ using Azure.Storage.Queues;
 
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
+using DotNet.Testcontainers.Images;
 
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,7 @@ public class FunctionAppCollection : ICollectionFixture<FunctionAppFixture>
 public class FunctionAppFixture : IAsyncLifetime
 {
     private IContainer _functionContainer;
+    private IContainer seqContainer;
     private AzuriteContainer _azuriteContainer;
     private const int FunctionAppPort = 80;
     private const int AzuritePort = 10000;
@@ -49,6 +51,7 @@ public class FunctionAppFixture : IAsyncLifetime
     public QueueClient FunctionOutputQueue { get; private set; }
     public string AzuriteHostConnectionString { get; private set; } = null!;
     public string AzuriteAliasConnectionString { get; private set; } = null!;
+    public string BlobSearchTag { get; set; }
     public async Task InitializeAsync()
     {
         try
@@ -81,9 +84,22 @@ public class FunctionAppFixture : IAsyncLifetime
                 "TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;";
             AzuriteHostConnectionString = localAzuriteConnectionString;
             AzuriteAliasConnectionString = AzuriteHostConnectionString.Replace("127.0.0.1", "host.docker.internal");
+            //start seq server
+            seqContainer = new ContainerBuilder()
+                .WithName("seq")
+                .WithNetwork(ContainerNetwork)
+                .WithImage("datalust/seq:latest")
+                .WithEnvironment("ACCEPT_EULA","Y")
+                .WithEnvironment("SEQ_FIRSTRUN_NOAUTHENTICATION", "True")
+                .WithPortBinding(5341,5341)
+                .WithNetworkAliases("seq-container")
+                .WithWaitStrategy(Wait.ForUnixContainer().UntilInternalTcpPortIsAvailable(5341))
+                .Build();
+            await seqContainer.StartAsync();
             await StartFunctionAppContainer();
 
             CreateServiceCollection();
+            BlobSearchTag = ServiceProvider.GetRequiredService<IResubmitStorage>().SearchTag;
         }
         catch (Exception ex)
         {
@@ -113,7 +129,7 @@ public class FunctionAppFixture : IAsyncLifetime
         serviceCollection.AddSingleton<IWorkItemStore, StorageTablePersistService>();
         serviceCollection.AddAzureClients(clients =>
         {
-            clients.AddBlobServiceClient(AzuriteHostConnectionString).WithName("resubmitContainer");
+            clients.AddBlobServiceClient(AzuriteHostConnectionString).WithName(ResubmitFunctionWorkerExtension.BlobResubmitServiceClientName);
             clients.AddBlobServiceClient(AzuriteHostConnectionString).WithName("catsContainer");
             clients.AddQueueServiceClient(AzuriteHostConnectionString).WithName("queueClient");
             clients.AddTableServiceClient(AzuriteHostConnectionString).WithName(ResubmitFunctionWorkerExtension.InternalRebitStorageTable);
@@ -143,7 +159,9 @@ public class FunctionAppFixture : IAsyncLifetime
             CommonDirectoryPath.GetSolutionDirectory().DirectoryPath,
             "AzRebit.FunctionExample/bin/Release/net8.0/publish");
         var azureFunctionCoreFolder = "/home/site/wwwroot";
-
+        var logsDirectory = Path.Combine(
+            CommonDirectoryPath.GetSolutionDirectory().DirectoryPath,
+            "AzRebitTests/test-logs");
         _functionContainer = new ContainerBuilder()
             .WithName("func-integ-test")
             .WithImage(functionCoreImage)
@@ -154,15 +172,21 @@ public class FunctionAppFixture : IAsyncLifetime
             //.WithEnvironment("AzureWebJobsScriptRoot", "/home/site/wwwroot")
             //.WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
             .WithEnvironment("AZREBIT_DELETE_RESUBMITION_FILE", "false")
+            .WithEnvironment("SEQ_SERVER_URL", "http://host.docker.internal:5341")
             .WithNetwork(ContainerNetwork)
             .WithWaitStrategy(
                 Wait.ForUnixContainer()
                     .UntilInternalTcpPortIsAvailable(80))
             //.UntilHttpRequestIsSucceeded(
             //    req => req.ForPort(FunctionAppPort).ForPath("/admin/host/status")))
+            //.WithOutputConsumer(Consume.RedirectStdoutAndStderrToStream(
+            //    new FileStream(Path.Combine(logsDirectory,$"func-container-{DateTime.Now:yyyyMMdd-HHmmss}.log"),
+            //    FileMode.Create,FileAccess.Write,FileShare.Read)))
+            .WithOutputConsumer(Consume.RedirectStdoutAndStderrToConsole())
             .Build();
 
         await _functionContainer.StartAsync();
+
         Console.WriteLine("Function app container started");
     }
 }
