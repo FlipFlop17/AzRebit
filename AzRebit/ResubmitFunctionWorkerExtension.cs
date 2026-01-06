@@ -60,6 +60,7 @@ public static class ResubmitFunctionWorkerExtension
         builder.Services.AddSingleton<IReadOnlyCollection<AzFunction>>(discoveredFunctions);
         builder.Services.AddSingleton<IResubmitStorage, BlobResubmitStorage>();
         builder.Services.AddSingleton<IRebitStoreOperations, RebitStoreOperations>();
+        builder.Services.AddHttpClient();
         if (stateStoragefeatureActive)
         {
             builder.Services.AddSingleton<IWorkItemStore, StorageTablePersistService>();

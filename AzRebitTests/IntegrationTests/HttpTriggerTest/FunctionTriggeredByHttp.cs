@@ -1,4 +1,6 @@
-﻿using AwesomeAssertions;
+﻿using System.Text.Json;
+
+using AwesomeAssertions;
 
 using AzRebit;
 using AzRebit.Features.HttpTriggered.SaveRequestMiddleware;
@@ -76,6 +78,7 @@ public class FunctionTriggeredByHttp
         //act
         var response = await client.SendAsync(request);
         response.IsSuccessStatusCode.Should().BeTrue();
+        
         //assert
         _testOutput.WriteLine($"{functionName}/{_httpPrefixCode}-{customInvocationId}.json");
         var blob = _blobResubmitContainerClient.GetBlobClient($"{functionName}/{_httpPrefixCode}-{customInvocationId}.json");
@@ -91,23 +94,23 @@ public class FunctionTriggeredByHttp
     {
         string functionName = "GetCats";
         //arrange
-        HttpClient httpClient = _httpClientFactory.CreateClient("resubmit");
-        string runId = string.Empty;
-        //just get any blob with invocation id
-       
-        var searchPrefix = $"{functionName}/{_httpPrefixCode}";
-        await foreach (BlobItem blobItem in _blobResubmitContainerClient.GetBlobsAsync(BlobTraits.Tags, prefix: searchPrefix))
-        {
-            blobItem.Tags.TryGetValue(_functionHost.BlobSearchTag, out runId);
-            break;
-        }
+        HttpClient httpResubmitClient = _httpClientFactory.CreateClient("resubmit");
+        string blobName = $"{functionName}/{_httpPrefixCode}-tc-transfercats{DateTime.Now:dd_MM_yyyy_HH_mm_ss}.json";
+        string runId = Guid.NewGuid().ToString();
+        string payload = JsonSerializer.Serialize(TestHelpers.CreateDummyHttpRequestDto());
+        var blobClient = await _blobResubmitContainerClient.CreateDummyBlob(blobName,
+            blobPayload: payload, 
+            invocationIdTag: runId);
 
         string query = $"?functionName={functionName}&invocationId={runId}";
-
+        _testOutput.WriteLine(query);
         //act
-        var resubmitResult = await httpClient.GetAsync(query);
+        var resubmitResult = await httpResubmitClient.GetAsync(query);
         _testOutput.WriteLine(await resubmitResult.Content.ReadAsStringAsync());
-        resubmitResult.IsSuccessStatusCode.Should().BeTrue();
         //assert
+        resubmitResult.IsSuccessStatusCode.Should().BeTrue();
+
+        //teardown
+        await blobClient.DeleteIfExistsAsync();
     }
 }

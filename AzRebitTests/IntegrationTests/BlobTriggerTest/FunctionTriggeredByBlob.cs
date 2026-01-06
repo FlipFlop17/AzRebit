@@ -75,21 +75,24 @@ public class FunctionTriggeredByBlob
     {
         //arrange
         HttpClient httpClient = _httpClientFactory.CreateClient("resubmit");
-        string runId = string.Empty;
-        //just get any blob with invocation id
-        var searchPrefix = $"{functionName}/{_blobTypePrefixCode}";
-        await foreach (BlobItem blobItem in _blobResubmitContainerClient.GetBlobsAsync(BlobTraits.Tags, prefix: searchPrefix))
-        {
-            blobItem.Tags.TryGetValue(_functionHost.BlobSearchTag, out runId);
-            break;
-        }
+        //create dummy blob for resubmit
+        string runId = Guid.NewGuid().ToString();
+
+        string blobName = $"{functionName}/{_blobTypePrefixCode}-tc-transfercats{DateTime.Now:dd_MM_yyyy_HH_mm_ss}.txt";
+        var blobClient=await _blobResubmitContainerClient.CreateDummyBlob(blobName,invocationIdTag:runId);
+        _testOutput.WriteLine($"created dummy: {blobName}");
 
         string query = $"?functionName={functionName}&invocationId={runId}";
 
         //act
-        var resubmitResult = await httpClient.GetAsync(query);
+        //var resubmitResult = await httpClient.GetAsync(query);
+        var resubmitResult = await _functionHost.HostHttpClient.GetAsync(query);
         _testOutput.WriteLine(await resubmitResult.Content.ReadAsStringAsync());
         resubmitResult.IsSuccessStatusCode.Should().BeTrue();
+        
+        //teardown
+        await blobClient.DeleteIfExistsAsync();
+        await _catsContainer.DeleteBlobIfExistsAsync(Path.GetFileName(blobClient.Name));
     }
 
     [Fact]

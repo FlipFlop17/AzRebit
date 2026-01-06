@@ -17,6 +17,7 @@ builder.Services
     .ConfigureFunctionsApplicationInsights()
     .AddHttpClient();
 
+
 builder.Services.AddAzureClients(clients =>
 {
     clients.AddQueueServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"))
@@ -29,12 +30,11 @@ builder.Services.AddAzureClients(clients =>
 builder.Services.AddSingleton<IFunctionOutput, QueueStorage>();
 builder.AddResubmitEndpoint();
 
-Console.WriteLine($"idemoooooo");
-
 if (builder.Environment.IsDevelopment())
 {
     var seqServerUrl = Environment.GetEnvironmentVariable("SEQ_SERVER_URL") ?? "http://localhost:5341";
     Console.WriteLine($"Configuring Seq logging to: {seqServerUrl}");
+    builder.Logging.SetMinimumLevel( LogLevel.Debug );
     builder.Logging.AddSeq(seqServerUrl);
 };
 

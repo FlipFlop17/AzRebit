@@ -65,7 +65,7 @@ internal class ResubmitEndpoint
             await badRequestResponse.WriteAsJsonAsync(resubmitResult);
             return badRequestResponse;
         }
-        string validFunctionName = invocationIdToResubmit!;
+        string validFunctionName = functionName!;
         string validInvocationId = invocationIdToResubmit!;
         // ako zovemo endpoint preko httpa onda vrati response accepted i caller moze staviti status 'resubmit sent at'.
         //ako iz azure workbooka zovcemo caller isto moze defoltno stavit status resubmit sent at. downside workbooka je sta nemremo provjheriti /resubmit response pa ako je rtesponse 404npr nemremo staviti to.
@@ -104,14 +104,16 @@ internal class ResubmitEndpoint
                 validInvocationId,
                 validFunctionName);
             var errorResponse = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
-            await errorResponse.WriteAsJsonAsync(new { Error = "Internal server error" });
+            await errorResponse.WriteAsJsonAsync(new { Error = ex.Message });
             return errorResponse;
         }
     }
 
     private async Task<RebitActionResult<ResubmitHandlerResponse>> HandleResubmit(string functionName, string invocationId)
     {
-        var functionForResubmit = _availableFunctions.First(fn => fn.Name.Equals(functionName));
+        var functionForResubmit = _availableFunctions.First(fn => fn.Name.Equals(functionName)) 
+            ?? throw new InvalidOperationException($"Function {functionName} not available");
+        
         var functionsTriggerMetadata = functionForResubmit.TriggerMetadata;
         //find the handler for this type of trigger
         IResubmitHandler handler = _triggerHandlers.FirstOrDefault(h =>

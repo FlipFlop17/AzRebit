@@ -62,7 +62,7 @@ internal class HttpResubmitHandler : IResubmitHandler
                 }
             }
             httpRequestMessage.Headers.TryAddWithoutValidation(HttpResubmitOriginalFileId, invocationId);
-
+            _logger.LogDebug($"making the request to: {httpRequestMessage.RequestUri}");
             var response = await azFuncEndpointclient.SendAsync(httpRequestMessage);
 
             return response.IsSuccessStatusCode

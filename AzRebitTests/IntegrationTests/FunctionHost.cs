@@ -1,4 +1,6 @@
-﻿using AzRebit;
+﻿using System.Diagnostics;
+
+using AzRebit;
 using AzRebit.Infrastructure.FileStorage;
 using AzRebit.Infrastructure.StateStorage;
 
@@ -57,6 +59,8 @@ public class FunctionAppFixture : IAsyncLifetime
         try
         {
             Console.WriteLine("Starting TestContainers setup...");
+
+            await PublishFunctionApp();
             // Create custom network for containers
             var network = new NetworkBuilder()
                 .WithName(ContainerNetwork)
@@ -172,6 +176,7 @@ public class FunctionAppFixture : IAsyncLifetime
             //.WithEnvironment("AzureWebJobsScriptRoot", "/home/site/wwwroot")
             //.WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
             .WithEnvironment("AZREBIT_DELETE_RESUBMITION_FILE", "false")
+            .WithEnvironment("AZURE_FUNCTION_TEST_BASE_URL", "http://host.docker.internal:7080")
             .WithEnvironment("SEQ_SERVER_URL", "http://host.docker.internal:5341")
             .WithNetwork(ContainerNetwork)
             .WithWaitStrategy(
@@ -188,5 +193,50 @@ public class FunctionAppFixture : IAsyncLifetime
         await _functionContainer.StartAsync();
 
         Console.WriteLine("Function app container started");
+    }
+
+    private async Task PublishFunctionApp()
+    {
+        Console.WriteLine("Publishing function app...");
+
+        var projectPath = Path.Combine(
+            CommonDirectoryPath.GetSolutionDirectory().DirectoryPath,
+            "AzRebit.FunctionExample/AzRebit.FunctionExample.csproj");
+
+        var publishFolder = Path.Combine(
+            CommonDirectoryPath.GetSolutionDirectory().DirectoryPath,
+            "AzRebit.FunctionExample/bin/Release/net8.0/publish");
+
+        // Clean publish folder if it exists
+        if (Directory.Exists(publishFolder))
+        {
+            Directory.Delete(publishFolder, true);
+        }
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"publish \"{projectPath}\" -c Release -o \"{publishFolder}\"",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = Process.Start(startInfo);
+        if (process == null)
+        {
+            throw new InvalidOperationException("Failed to start dotnet publish process");
+        }
+
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0)
+        {
+            var error = await process.StandardError.ReadToEndAsync();
+            throw new InvalidOperationException($"Publish failed: {error}");
+        }
+
+        Console.WriteLine("Function app published successfully");
     }
 }
