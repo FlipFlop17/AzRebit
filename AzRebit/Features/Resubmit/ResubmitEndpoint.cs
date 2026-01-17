@@ -9,10 +9,8 @@ using AzRebit.Shared.Extensions;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 using static System.Runtime.InteropServices.JavaScript.JSType;
-using static AzRebit.ResubmitFunctionWorkerExtension;
 
 namespace AzRebit.Features.Resubmit;
 
@@ -109,11 +107,11 @@ internal class ResubmitEndpoint
         }
     }
 
-    private async Task<RebitActionResult<ResubmitHandlerResponse>> HandleResubmit(string functionName, string invocationId)
+    private async Task<RebitResult<ResubmitHandlerResponse>> HandleResubmit(string functionName, string invocationId)
     {
-        var functionForResubmit = _availableFunctions.First(fn => fn.Name.Equals(functionName)) 
+        var functionForResubmit = _availableFunctions.First(fn => fn.Name.Equals(functionName))
             ?? throw new InvalidOperationException($"Function {functionName} not available");
-        
+
         var functionsTriggerMetadata = functionForResubmit.TriggerMetadata;
         //find the handler for this type of trigger
         IResubmitHandler handler = _triggerHandlers.FirstOrDefault(h =>

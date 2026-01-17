@@ -6,7 +6,7 @@ namespace AzRebit.Domain.Results;
 /// <summary>
 /// Non-generic version for operations without data payload
 /// </summary>
-public class RebitActionResult
+public class RebitResult
 {
     /// <summary>
     /// Indicates wheter the operation was successfull
@@ -23,18 +23,18 @@ public class RebitActionResult
     public AzRebitErrorType ErrorType { get; init; }
 
     /// <summary>
-    /// Creates a new instance of <see cref="RebitActionResult"/> that represents a successful result.
+    /// Creates a new instance of <see cref="RebitResult"/> that represents a successful result.
     /// </summary>
-    /// <returns>A <see cref="RebitActionResult"/> instance with <see cref="RebitActionResult.IsSuccess"/> set to <see
+    /// <returns>A <see cref="RebitResult"/> instance with <see cref="RebitResult.IsSuccess"/> set to <see
     /// langword="true"/>.</returns>
-    public static RebitActionResult Success() => new() { IsSuccess = true };
+    public static RebitResult Success() => new() { IsSuccess = true };
 
     /// <summary>
     /// Creates a successful result with the specified message.
     /// </summary>
     /// <param name="message">The message that describes the successful outcome. Can be null or empty if no message is required.</param>
-    /// <returns>A <see cref="RebitActionResult"/> instance representing a successful result with the provided message.</returns>
-    public static RebitActionResult Success(string message) => new()
+    /// <returns>A <see cref="RebitResult"/> instance representing a successful result with the provided message.</returns>
+    public static RebitResult Success(string message) => new()
     {
         IsSuccess = true,
         Message = message
@@ -43,8 +43,8 @@ public class RebitActionResult
     /// <summary>
     /// Creates a new result that represents a failed action.
     /// </summary>
-    /// <returns>A <see cref="RebitActionResult"/> instance with <c>IsSuccess</c> set to <see langword="false"/>.</returns>
-    public static RebitActionResult Failure() => new() { IsSuccess = false };
+    /// <returns>A <see cref="RebitResult"/> instance with <c>IsSuccess</c> set to <see langword="false"/>.</returns>
+    public static RebitResult Failure() => new() { IsSuccess = false };
 
     /// <summary>
     /// 
@@ -52,7 +52,7 @@ public class RebitActionResult
     /// <param name="message"></param>
     /// <param name="errorType"></param>
     /// <returns></returns>
-    public static RebitActionResult Failure(string message, AzRebitErrorType errorType = AzRebitErrorType.UnexpectedError) => new()
+    public static RebitResult Failure(string message, AzRebitErrorType errorType = AzRebitErrorType.UnexpectedError) => new()
     {
         IsSuccess = false,
         Message = message,
@@ -64,7 +64,7 @@ public class RebitActionResult
 /// Represents the result of an operation, optionally with a data payload
 /// </summary>
 /// <typeparam name="T">The type of the data payload (use object for no specific data)</typeparam>
-public class RebitActionResult<T> : RebitActionResult
+public class  RebitResult<T> : RebitResult
 {
     /// <summary>
     /// The data payload of the operation
@@ -74,7 +74,7 @@ public class RebitActionResult<T> : RebitActionResult
     /// <summary>
     /// Creates a successful operation result with data
     /// </summary>
-    public static RebitActionResult<T> Success(T data) => new RebitActionResult<T>
+    public static RebitResult<T> Success(T data) => new RebitResult<T>
     {
         IsSuccess = true,
         Data = data
@@ -83,7 +83,7 @@ public class RebitActionResult<T> : RebitActionResult
     /// <summary>
     /// Creates a successful operation result with data and message
     /// </summary>
-    public static RebitActionResult<T> Success(T data, string message) => new RebitActionResult<T>
+    public static RebitResult<T> Success(T data, string message) => new RebitResult<T>
     {
         IsSuccess = true,
         Data = data,
@@ -93,12 +93,12 @@ public class RebitActionResult<T> : RebitActionResult
     /// <summary>
     /// Creates a successful operation result without data
     /// </summary>
-    public static new RebitActionResult<T> Success() => new RebitActionResult<T> { IsSuccess = true };
+    public static new RebitResult<T> Success() => new RebitResult<T> { IsSuccess = true };
 
     /// <summary>
     /// Creates a successful operation result without data but with message
     /// </summary>
-    public static new RebitActionResult<T> Success(string message) => new RebitActionResult<T>
+    public static new RebitResult<T> Success(string message) => new RebitResult<T>
     {
         IsSuccess = true,
         Message = message
@@ -107,12 +107,12 @@ public class RebitActionResult<T> : RebitActionResult
     /// <summary>
     /// Creates a failed operation result
     /// </summary>
-    public static new RebitActionResult<T> Failure() => new RebitActionResult<T> { IsSuccess = false };
+    public static new RebitResult<T> Failure() => new() { IsSuccess = false };
 
     /// <summary>
     /// Creates a failed operation result with a message
     /// </summary>
-    public static new RebitActionResult<T> Failure(string message, AzRebitErrorType errorType = AzRebitErrorType.UnexpectedError) => new RebitActionResult<T>
+    public static new RebitResult<T> Failure(string message, AzRebitErrorType errorType = AzRebitErrorType.UnexpectedError) => new RebitResult<T>
     {
         IsSuccess = false,
         Message = message,
@@ -122,6 +122,6 @@ public class RebitActionResult<T> : RebitActionResult
     /// <summary>
     /// Implicit conversion from the data type to a successful operation result
     /// </summary>
-    public static implicit operator RebitActionResult<T>(T data) => Success(data);
+    public static implicit operator RebitResult<T>(T data) => Success(data);
 }
 

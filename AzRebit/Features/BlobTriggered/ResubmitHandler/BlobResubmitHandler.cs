@@ -36,7 +36,7 @@ internal class BlobResubmitHandler : IResubmitHandler
         _resubmitStorage = resubmitStorage;
     }
 
-    public async Task<RebitActionResult<ResubmitHandlerResponse>> HandleResubmitAsync(string invocationId, AzFunction function)
+    public async Task<RebitResult<ResubmitHandlerResponse>> HandleResubmitAsync(string invocationId, AzFunction function)
     {
         try
         {
@@ -47,7 +47,7 @@ internal class BlobResubmitHandler : IResubmitHandler
 
             if (blobForResubmitClient is null)
             {
-                return RebitActionResult<ResubmitHandlerResponse>.Failure($"No blob found for invocation id {invocationId} in dedicated resubmit container", AzRebitErrorType.BlobResubmitFileNotFound);
+                return RebitResult<ResubmitHandlerResponse>.Failure($"No blob found for invocation id {invocationId} in dedicated resubmit container", AzRebitErrorType.BlobResubmitFileNotFound);
             }
             _logger.LogResubmitWorkData(invocationId, function.Name, blobForResubmitClient.Name);
             var existingTagsResponse = await blobForResubmitClient.GetClonedTagsAsync();
@@ -67,12 +67,12 @@ internal class BlobResubmitHandler : IResubmitHandler
 
             await copyOp.WaitForCompletionAsync();
 
-            return RebitActionResult<ResubmitHandlerResponse>.Success(new ResubmitHandlerResponse(blobForResubmitClient.Name));
+            return RebitResult<ResubmitHandlerResponse>.Success(new ResubmitHandlerResponse(blobForResubmitClient.Name));
         }
         catch (Exception e)
         {
             _logger.LogDebug(e, "Unexpected error while trying to resubmit the file {InvocationId}", invocationId);
-            return RebitActionResult<ResubmitHandlerResponse>.Failure(e.Message, AzRebitErrorType.UnexpectedError);
+            return RebitResult<ResubmitHandlerResponse>.Failure(e.Message, AzRebitErrorType.UnexpectedError);
         }
 
     }

@@ -11,8 +11,6 @@ namespace AzRebit.Features.TimerTriggered;
 
 internal class Setup : TriggerSetupBase
 {
-
-    //todo implement timer trigger resubmit feature
     public override TriggerType TriggerName => TriggerType.Timer;
 
     public override Type TriggerAttribute => typeof(TimerTriggerAttribute);

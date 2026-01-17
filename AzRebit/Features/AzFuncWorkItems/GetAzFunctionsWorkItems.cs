@@ -42,7 +42,7 @@ namespace AzRebit.Features.AzFuncWorkItems
         }
 
 
-        public async Task<RebitActionResult<List<AzFuncWorkItemInfoDto>>> Handle(string? invocationId, string? continuationToken)
+        public async Task<RebitResult<List<AzFuncWorkItemInfoDto>>> Handle(string? invocationId, string? continuationToken)
         {
             List<WorkItemEntity> resubmitData = new();
 
@@ -63,12 +63,12 @@ namespace AzRebit.Features.AzFuncWorkItems
                     .Select(i => MapToResponseDto(i))
                     .ToList();
                 var msg = workItems.Count <= 0 ? AzRebitErrorType.NotFound.ToString() : string.Empty;
-                return RebitActionResult<List<AzFuncWorkItemInfoDto>>.Success(workItems, msg);
+                return RebitResult<List<AzFuncWorkItemInfoDto>>.Success(workItems, msg);
             }
             catch (Exception e)
             {
                 _logger.LogDebug(e, "Unexpected error in fetching all work items");
-                return RebitActionResult<List<AzFuncWorkItemInfoDto>>.Failure(e.Message);
+                return RebitResult<List<AzFuncWorkItemInfoDto>>.Failure(e.Message);
             }
 
         }

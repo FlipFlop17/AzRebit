@@ -38,7 +38,7 @@ internal class HttpMiddlewareHandler : ISavePayloadHandler
     /// </summary>
     /// <param name="command"></param>
     /// <returns></returns>
-    public async Task<RebitActionResult> SaveIncomingRequest(ISavePayloadCommand command)
+    public async Task<RebitResult> SaveIncomingRequest(ISavePayloadCommand command)
     {
         string invocationId = command.Context.InvocationId;
 
@@ -49,7 +49,7 @@ internal class HttpMiddlewareHandler : ISavePayloadHandler
 
             if (httpRequestData is null)
             {
-                return RebitActionResult.Failure("Http Request Data is null");
+                return RebitResult.Failure("Http Request Data is null");
             }
 
             httpRequestData.Headers.TryGetValues(HeaderInvocationId, out var functionKeyHeader);
@@ -66,12 +66,12 @@ internal class HttpMiddlewareHandler : ISavePayloadHandler
                 invocationId);
 
 
-            return RebitActionResult<object>.Success(new { InvocationId = invocationId });
+            return RebitResult<object>.Success(new { InvocationId = invocationId });
         }
         catch (Exception e)
         {
             _logger.LogDebug(e, "Unexpected error while saving incoming http request {InvocationId}", invocationId);
-            return RebitActionResult.Failure(e.Message);
+            return RebitResult.Failure(e.Message);
         }
 
     }

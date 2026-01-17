@@ -31,7 +31,7 @@ internal class HttpResubmitHandler : IResubmitHandler
         _logger = logger;
     }
 
-    public async Task<RebitActionResult<ResubmitHandlerResponse>> HandleResubmitAsync(string invocationId, AzFunction function)
+    public async Task<RebitResult<ResubmitHandlerResponse>> HandleResubmitAsync(string invocationId, AzFunction function)
     {
         try
         {
@@ -40,7 +40,7 @@ internal class HttpResubmitHandler : IResubmitHandler
             if (blobForResubmit is null)
             {
                 _logger.LogDebug("Cannot find the file for resubmiting");
-                return RebitActionResult<ResubmitHandlerResponse>.Failure("Cannot find the file for resubmiting");
+                return RebitResult<ResubmitHandlerResponse>.Failure("Cannot find the file for resubmiting");
             }
             _logger.LogResubmitWorkData(invocationId, function.Name, blobForResubmit.Name);
             var downloadResponse = await blobForResubmit.DownloadAsync();
@@ -66,13 +66,13 @@ internal class HttpResubmitHandler : IResubmitHandler
             var response = await azFuncEndpointclient.SendAsync(httpRequestMessage);
 
             return response.IsSuccessStatusCode
-                ? RebitActionResult<ResubmitHandlerResponse>.Success(new ResubmitHandlerResponse(blobForResubmit.Name), await response.Content.ReadAsStringAsync())
-                : RebitActionResult<ResubmitHandlerResponse>.Failure(await response.Content.ReadAsStringAsync());
+                ? RebitResult<ResubmitHandlerResponse>.Success(new ResubmitHandlerResponse(blobForResubmit.Name), await response.Content.ReadAsStringAsync())
+                : RebitResult<ResubmitHandlerResponse>.Failure(await response.Content.ReadAsStringAsync());
         }
         catch (Exception e)
         {
             _logger.LogDebug(e, "Unexpected error while resubmiting http request type");
-            return RebitActionResult<ResubmitHandlerResponse>.Failure(e.Message);
+            return RebitResult<ResubmitHandlerResponse>.Failure(e.Message);
         }
 
     }

@@ -36,6 +36,7 @@ internal sealed class SavePayloadsMiddleware : IFunctionsWorkerMiddleware
             {
                 _logger.LogDebug(eventId: SkipAutoSave, "skiping payload saving for 'Resubmit' endpoint");
                 await next(context);
+            
                 return;
             }
             var functionDefinition = context.FunctionDefinition;
@@ -65,6 +66,6 @@ internal sealed class SavePayloadsMiddleware : IFunctionsWorkerMiddleware
         }
 
         await next(context);
-
+        //todo add in the configuration to be able to delete the file saved for resubmition if we have the flag that the processed finished successfully
     }
 }

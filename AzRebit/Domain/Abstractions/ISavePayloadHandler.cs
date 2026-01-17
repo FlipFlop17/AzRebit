@@ -8,7 +8,7 @@ internal interface ISavePayloadHandler
 {
     string ResubmitFilePrefix { get; }
     public string BindingName { get; }
-    public Task<RebitActionResult> SaveIncomingRequest(ISavePayloadCommand command);
+    public Task<RebitResult> SaveIncomingRequest(ISavePayloadCommand command);
 }
 
 internal interface ISavePayloadCommand

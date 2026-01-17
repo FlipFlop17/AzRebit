@@ -27,7 +27,7 @@ internal class QueueMiddlewareHandler : ISavePayloadHandler
     public string BindingName => "queueTrigger";
 
 
-    public async Task<RebitActionResult> SaveIncomingRequest(ISavePayloadCommand command)
+    public async Task<RebitResult> SaveIncomingRequest(ISavePayloadCommand command)
     {
         string invocationId = command.Context.InvocationId;
         try
@@ -35,7 +35,7 @@ internal class QueueMiddlewareHandler : ISavePayloadHandler
             var inputBindingFeature = command.Context.Features.Get<IFunctionInputBindingFeature>();
             if (inputBindingFeature is null)
             {
-                return RebitActionResult.Failure("There is not input bindings specified");
+                return RebitResult.Failure("There is not input bindings specified");
             }
 
             //queue will always expose the body no matter what type of binding is on the az function
@@ -43,7 +43,7 @@ internal class QueueMiddlewareHandler : ISavePayloadHandler
             string messageContent = messageBody?.ToString() ?? string.Empty;
             if (string.IsNullOrEmpty(messageContent))
             {
-                return RebitActionResult.Success(messageContent);
+                return RebitResult.Success(messageContent);
             }
             var destinationPath = $"{command.Context.FunctionDefinition.Name}/{ResubmitFilePrefix}-{invocationId}.txt";
             await _blobResubmit.SaveFileAtResubmitLocation(
@@ -51,12 +51,12 @@ internal class QueueMiddlewareHandler : ISavePayloadHandler
                       destinationPath,
                       invocationId
                       );
-            return RebitActionResult.Success(invocationId);
+            return RebitResult.Success(invocationId);
         }
         catch (Exception e)
         {
             _logger.LogDebug(e, "Unexpected erorr while trying to save incoming QueueMessage");
-            return RebitActionResult.Failure(e.Message);
+            return RebitResult.Failure(e.Message);
         }
 
     }

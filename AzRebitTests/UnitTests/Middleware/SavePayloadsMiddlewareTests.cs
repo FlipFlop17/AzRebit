@@ -36,7 +36,7 @@ public static class MiddlewareHandlerFactory
 
             var blobHandler = Substitute.For<ISavePayloadHandler>();
             blobHandler.BindingName.Returns("blobTrigger");
-            blobHandler.SaveIncomingRequest(Arg.Any<SavePayloadCommand>()).Returns(Task.FromResult(RebitActionResult.Success()));
+            blobHandler.SaveIncomingRequest(Arg.Any<SavePayloadCommand>()).Returns(Task.FromResult(RebitResult.Success()));
             var meta = Substitute.For<BindingMetadata>();
             meta.Type.Returns("blobTrigger");
             IEnumerable<BindingMetadata> functionInputBindings = [meta];
@@ -49,7 +49,7 @@ public static class MiddlewareHandlerFactory
             var httpHandlerFake = Substitute.For<ISavePayloadHandler>();
             httpHandlerFake.BindingName.Returns("httpTrigger");
             var functionContext = Substitute.For<FunctionContext>();
-            httpHandlerFake.SaveIncomingRequest(Arg.Any<SavePayloadCommand>()).Returns(Task.FromResult(RebitActionResult.Success()));
+            httpHandlerFake.SaveIncomingRequest(Arg.Any<SavePayloadCommand>()).Returns(Task.FromResult(RebitResult.Success()));
             yield return new object[] { httpHandlerFake, functionInputBindings };
             //
         }

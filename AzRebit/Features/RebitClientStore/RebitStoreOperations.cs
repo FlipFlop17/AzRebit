@@ -12,20 +12,20 @@ namespace AzRebit.Features.RebitClientStore;
 internal class RebitStoreOperations(IResubmitStorage storage) : IRebitStoreOperations
 {
 
-    public async Task<RebitActionResult> DeleteResubmitFile(string id)
+    public async Task<RebitResult> DeleteResubmitFile(string id)
     {
         try
         {
-            bool isDeleted=await storage.DeleteFile(id);
-            return RebitActionResult.Success($"deleted: {isDeleted}");
+            bool isDeleted = await storage.DeleteFile(id);
+            return RebitResult.Success($"deleted: {isDeleted}");
         }
         catch (Exception e)
         {
-            return RebitActionResult.Failure(e.Message);
+            return RebitResult.Failure(e.Message);
         }
     }
 
-    public async Task<RebitActionResult> SavePayloadForResubmit(
+    public async Task<RebitResult> SavePayloadForResubmit(
         string payload,
         string functionName,
         string id,
@@ -37,43 +37,43 @@ internal class RebitStoreOperations(IResubmitStorage storage) : IRebitStoreOpera
         {
             (bool valid, string msg) = IsFunctionNameValid(functionName);
             if (!valid)
-                return RebitActionResult.Failure(msg);
+                return RebitResult.Failure(msg);
 
             string destinationPath = fileName != null
                 ? $"{functionName}/{fileName}"
                 : GenerateDestinationName(functionName);
             await storage.SaveFileAtResubmitLocation(payload, destinationPath, id, destinationFileTags, encoding);
-            return RebitActionResult.Success(destinationPath);
+            return RebitResult.Success(destinationPath);
         }
         catch (Exception e)
         {
-            return RebitActionResult.Failure(e.Message);
+            return RebitResult.Failure(e.Message);
         }
     }
 
-    public async Task<RebitActionResult> SavePayloadForResubmit(
-        Stream payload, 
-        string functionName, 
-        string id, 
-        string? fileName = null, 
-        IDictionary<string, string>? destinationFileTags = null, 
+    public async Task<RebitResult> SavePayloadForResubmit(
+        Stream payload,
+        string functionName,
+        string id,
+        string? fileName = null,
+        IDictionary<string, string>? destinationFileTags = null,
         Encoding? encoding = null)
     {
         try
         {
             (bool valid, string msg) = IsFunctionNameValid(functionName);
             if (!valid)
-                return RebitActionResult.Failure(msg);
+                return RebitResult.Failure(msg);
 
             string destinationPath = fileName != null
                 ? $"{functionName}/{fileName}"
                 : GenerateDestinationName(functionName);
             await storage.SaveFileAtResubmitLocation(payload, destinationPath, id, destinationFileTags, encoding);
-            return RebitActionResult.Success(destinationPath);
+            return RebitResult.Success(destinationPath);
         }
         catch (Exception e)
         {
-            return RebitActionResult.Failure(e.Message);
+            return RebitResult.Failure(e.Message);
         }
     }
 

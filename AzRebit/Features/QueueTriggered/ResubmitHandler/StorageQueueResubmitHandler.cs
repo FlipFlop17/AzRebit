@@ -26,20 +26,20 @@ internal class StorageQueueResubmitHandler : IResubmitHandler
         _queueServiceClientFactory = queueClient;
         _logger = logger;
     }
-    public async Task<RebitActionResult<ResubmitHandlerResponse>> HandleResubmitAsync(string invocationId, AzFunction function)
+    public async Task<RebitResult<ResubmitHandlerResponse>> HandleResubmitAsync(string invocationId, AzFunction function)
     {
         try
         {
             var storedMessage = await _blobStorage.FindAsync(invocationId);
             if (storedMessage is null)
-                return RebitActionResult<ResubmitHandlerResponse>.Failure("Queue message not found");
+                return RebitResult<ResubmitHandlerResponse>.Failure("Queue message not found");
 
             var msg = await storedMessage.DownloadContentAsync(); //since queue messages are small we can download them eniterly
 
             var resubmitPayload = msg.Value.Content.ToString();
             var inputQueueName = function.GetFunctionTriggerQueueName();
             if (string.IsNullOrEmpty(inputQueueName))
-                return RebitActionResult<ResubmitHandlerResponse>.Failure("Input queue name not found");
+                return RebitResult<ResubmitHandlerResponse>.Failure("Input queue name not found");
 
             QueueClient destinationQueue = CreateQueueClient(function.Name, inputQueueName!);
 
@@ -48,15 +48,15 @@ internal class StorageQueueResubmitHandler : IResubmitHandler
             if (msgResult.Value.MessageId is not null)
             {
                 var msgToReturn = msgResult.Value.ToString() ?? "Message added to the queue (resubmited)";
-                return RebitActionResult<ResubmitHandlerResponse>.Success(new ResubmitHandlerResponse(storedMessage.Name), msgToReturn);
+                return RebitResult<ResubmitHandlerResponse>.Success(new ResubmitHandlerResponse(storedMessage.Name), msgToReturn);
             }
 
-            return RebitActionResult<ResubmitHandlerResponse>.Failure("Failed to add message to the queue");
+            return RebitResult<ResubmitHandlerResponse>.Failure("Failed to add message to the queue");
         }
         catch (Exception e)
         {
             _logger.LogDebug(e, "Unexpected error while resubmiting QueueMessage");
-            return RebitActionResult<ResubmitHandlerResponse>.Failure(e.Message);
+            return RebitResult<ResubmitHandlerResponse>.Failure(e.Message);
         }
     }
 

@@ -26,7 +26,7 @@ public interface IRebitStoreOperations
     /// <param name="encoding">The text encoding to use when saving the payload. If null, the default encoding is used.</param>
     /// <returns>A task that represents the asynchronous save operation. The task result contains a RebitActionResult indicating
     /// the outcome of the operation.</returns>
-    Task<RebitActionResult> SavePayloadForResubmit(string payload, string functionName, string id, string? fileName = default, IDictionary<string, string>? destinationFileTags = default, Encoding? encoding = default);
+    Task<RebitResult> SavePayloadForResubmit(string payload, string functionName, string id, string? fileName = default, IDictionary<string, string>? destinationFileTags = default, Encoding? encoding = default);
 
     /// <summary>
     /// Saves the specified payload for later resubmission, associating it with a function name and optional file
@@ -40,7 +40,7 @@ public interface IRebitStoreOperations
     /// <param name="encoding">The text encoding to use when saving the payload. If null, the default encoding is used.</param>
     /// <returns>A task that represents the asynchronous save operation. The task result contains a RebitActionResult indicating
     /// the outcome of the operation.</returns>
-    Task<RebitActionResult> SavePayloadForResubmit(Stream payload, string functionName, string id, string? fileName = default, IDictionary<string, string>? destinationFileTags = default, Encoding? encoding = default);
+    Task<RebitResult> SavePayloadForResubmit(Stream payload, string functionName, string id, string? fileName = default, IDictionary<string, string>? destinationFileTags = default, Encoding? encoding = default);
 
     /// <summary>
     /// Deletes the file saved for resubmition of the current running operation
@@ -48,5 +48,5 @@ public interface IRebitStoreOperations
     /// <param name="id">Uniqueue id of the operation usually fetched from context.InvocationId</param>
     /// <returns>A task that represents the asynchronous save operation. The task result contains a RebitActionResult indicating
     /// the outcome of the operation</returns>
-    Task<RebitActionResult> DeleteResubmitFile(string id);
+    Task<RebitResult> DeleteResubmitFile(string id);
 }

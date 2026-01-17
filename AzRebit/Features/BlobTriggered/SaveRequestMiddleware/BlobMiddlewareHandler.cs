@@ -4,7 +4,6 @@ using AzRebit.Domain.Abstractions;
 using AzRebit.Domain.Exceptions;
 using AzRebit.Domain.Results;
 using AzRebit.Infrastructure.FileStorage;
-using AzRebit.Shared.Extensions;
 
 using Azure.Storage.Blobs.Specialized;
 
@@ -30,7 +29,7 @@ internal class BlobMiddlewareHandler : ISavePayloadHandler
         _blobStorage = blobStorage;
     }
 
-    public async Task<RebitActionResult> SaveIncomingRequest(ISavePayloadCommand command)
+    public async Task<RebitResult> SaveIncomingRequest(ISavePayloadCommand command)
     {
         string invocationId = command.Context.InvocationId;
         try
@@ -38,7 +37,7 @@ internal class BlobMiddlewareHandler : ISavePayloadHandler
             var inputBindingFeature = command.Context.Features.Get<IFunctionInputBindingFeature>();
             if (inputBindingFeature is null)
             {
-                return RebitActionResult.Failure("There is not input bindings specified");
+                return RebitResult.Failure("There is not input bindings specified");
             }
 
             var data = await inputBindingFeature.BindFunctionInputAsync(command.Context);
@@ -81,18 +80,18 @@ internal class BlobMiddlewareHandler : ISavePayloadHandler
                         break;
                 }
             }
-            return RebitActionResult.Success(invocationId);
+            return RebitResult.Success(invocationId);
 
         }
         catch (BlobOperationException blobE)
         {
             _logger.LogDebug(blobE, "Unexpected Error on SaveBlobForResubmitionAsync() {InvocationId}", invocationId);
-            return RebitActionResult.Failure(blobE.Description);
+            return RebitResult.Failure(blobE.Description);
         }
         catch (Exception e)
         {
             _logger.LogDebug(e, "Unexpected Error while saving incoming request {InvocationId}", invocationId);
-            return RebitActionResult.Failure(e.Message);
+            return RebitResult.Failure(e.Message);
         }
 
     }
