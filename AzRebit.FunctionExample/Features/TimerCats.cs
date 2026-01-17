@@ -11,7 +11,7 @@ namespace AzRebit.FunctionExample.Features;
 /// <summary>
 /// Examples on how to use the resubmit feature inside Azure Functions
 /// </summary>
-public class TimerCats:ITimerResubmit
+public class TimerCats
 {
     private readonly ILogger<TimerCats> _logger;
     private readonly IRebitStoreOperations _rebit;
