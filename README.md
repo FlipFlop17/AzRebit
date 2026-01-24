@@ -1,6 +1,6 @@
 <div align="center">
   
-  <img src="resources/azrebit-logo.png" alt="Azure Functions Resubmit Logo" width="250"/>
+  <img src="https://raw.githubusercontent.com/FlipFlop17/AzRebit/main/resources/azrebit-logo-socials%20(Small).png" alt="AzRebit Logo" width="250"/>
   
   <h1 style="font-size: 3.5em; margin: 0.2em 0;">AzRebit</h1>
   
@@ -24,9 +24,17 @@ We might run different dashboards, workbooks that are showing our apps run statu
 With this nuget package you can enrich your monitoring by integrating the ``/resubmit`` endpoint to be called directly from your dashboard.
 
 ### How it works
-![Diagram overview](resources/diagram.png)
+![Diagram overview](https://raw.githubusercontent.com/FlipFlop17/AzRebit/main/resources/diagram.png)
 
->The inspiration for this package came from the 🔄 Resubmit  feature in Logic apps.
+## How It Works
+
+The diagram above shows the basic flow of AzRebit. Here's what happens:
+
+1. **Install AzRebit** - Add the NuGet package to your Azure Function project
+2. **Automatic Integration** - AzRebit automatically discovers your functions and registers middleware
+3. **Request Capture** - When your function runs, the incoming request is saved to Azure Functions storage
+4. **Resubmit Endpoint** - AzRebit exposes a Resubmit HTTP endpoint that can re-trigger any captured function
+5. **Simple Resubmission** - Call the endpoint with function name and invocation ID to resubmit any request
 
 
 ## How It Works
@@ -161,30 +169,7 @@ The diagram above illustrates the complete flow of AzRebit. Here's the step-by-s
 
 ### Request Flow
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant FunctionApp as Azure Function App
-    participant Middleware as AzRebit Middleware
-    participant Storage as Azure Blob Storage
-    participant Resubmit as \/resubmit Endpoint
-    
-    Client->>FunctionApp: Invoke Function
-    FunctionApp->>Middleware: Pass Request
-    Middleware->>Storage: Save Request Payload
-    Storage-->>Middleware: Confirm Save
-    Middleware->>FunctionApp: Continue Execution
-    FunctionApp-->>Client: Function Response
-    
-    Note over Client,Resubmit: Later, when resubmission is needed:
-    
-    Client->>Resubmit: POST \/resubmit?functionName=MyFunction&invocationId=123
-    Resubmit->>Storage: Fetch Saved Payload
-    Storage-->>Resubmit: Return Payload
-    Resubmit->>FunctionApp: Re-invoke Function
-    FunctionApp-->>Resubmit: Function Response
-    Resubmit-->>Client: Resubmit Confirmation
-```
+![Request Flow](https://raw.githubusercontent.com/FlipFlop17/AzRebit/main/resources/mermaid-diagram.png)
 
 ## Making a Resubmit Request
 
