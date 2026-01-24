@@ -1,6 +1,6 @@
 <div align="center">
   
-  <img src="https://raw.githubusercontent.com/FlipFlop17/AzRebit/main/resources/azrebit-logo-socials%20(Small).png" alt="AzRebit Logo" width="250"/>
+  <img src="https://raw.githubusercontent.com/FlipFlop17/AzRebit/main/resources/azrebit-logo-socials-small.png" alt="AzRebit Logo" width="250"/>
   
   <h1 style="font-size: 3.5em; margin: 0.2em 0;">AzRebit</h1>
   
