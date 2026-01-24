@@ -1,10 +1,9 @@
-using System.Text.Json;
-
 using AzRebit.Domain.Abstractions;
 using AzRebit.Domain.Entities;
 using AzRebit.Domain.Enums;
 using AzRebit.Domain.Results;
 using AzRebit.Infrastructure.FileStorage;
+using AzRebit.Infrastructure.ServiceBus;
 
 using Azure.Messaging.ServiceBus;
 
@@ -13,117 +12,100 @@ using Microsoft.Extensions.Logging;
 
 namespace AzRebit.Features.ServiceBusTriggered.ResubmitHandler;
 
-/// <summary>
-/// Handles resubmission of Service Bus triggered functions using a "resubmit" queue pattern
-/// </summary>
 internal class ServiceBusResubmitHandler : IResubmitHandler
 {
-    private readonly ILogger<ServiceBusResubmitHandler> _logger;
-    private readonly IAzureClientFactory<ServiceBusClient> _serviceBusClientFactory;
     private readonly IResubmitStorage _blobStorage;
+    private readonly IAzureClientFactory<ServiceBusClient> _serviceBusClientFactory;
+    private readonly ILogger<ServiceBusResubmitHandler> _logger;
 
     public TriggerType HandlerType => TriggerType.ServiceBus;
-    private const string ResubmitQueueName = "azrebit-resubmit";
 
-    internal ServiceBusResubmitHandler(
-        ILogger<ServiceBusResubmitHandler> logger,
-        IAzureClientFactory<ServiceBusClient> serviceBusClientFactory,
-        IResubmitStorage blobStorage)
+    public ServiceBusResubmitHandler(IResubmitStorage blobStorage, 
+        IAzureClientFactory<ServiceBusClient> serviceBusClientFactory, 
+        ILogger<ServiceBusResubmitHandler> logger)
     {
-        _logger = logger;
-        _serviceBusClientFactory = serviceBusClientFactory;
         _blobStorage = blobStorage;
+        _serviceBusClientFactory = serviceBusClientFactory;
+        _logger = logger;
     }
 
     public async Task<RebitResult<ResubmitHandlerResponse>> HandleResubmitAsync(string invocationId, AzFunction function)
     {
         try
         {
-            _logger.LogInformation("Starting Service Bus resubmission for function: {FunctionName}, invocation: {InvocationId}", 
-                function.Name, invocationId);
+            var storedMessage = await _blobStorage.FindAsync(invocationId);
+            if (storedMessage is null)
+                return RebitResult<ResubmitHandlerResponse>.Failure("ServiceBus message not found");
 
-            // Load the saved minimal metadata
-            var blobClient = await _blobStorage.FindAsync(invocationId);
-            if (blobClient is null)
+            var msg = await storedMessage.DownloadContentAsync();
+            var jsonContent = msg.Value.Content.ToString();
+
+            // Deserialize the ServiceBus message data
+            var messageData = System.Text.Json.JsonSerializer.Deserialize<ServiceBusMessageData>(jsonContent);
+            if (messageData == null)
+                return RebitResult<ResubmitHandlerResponse>.Failure("Failed to deserialize ServiceBus message data");
+
+            // Determine destination queue or topic
+            string destinationName;
+            bool isTopic = !string.IsNullOrEmpty(messageData.OriginalTopicName) && 
+                          !string.IsNullOrEmpty(messageData.OriginalSubscriptionName);
+
+            if (isTopic)
             {
-                return RebitResult<ResubmitHandlerResponse>.Failure($"Failed to find metadata for resubmission: {invocationId}");
+                destinationName = messageData.OriginalTopicName!;
+            }
+            else
+            {
+                destinationName = messageData.OriginalQueueName ?? 
+                                function.GetFunctionTriggerQueueName() ?? 
+                                throw new InvalidOperationException("Queue name not found");
             }
 
-            // Download the metadata
-            var downloadResponse = await blobClient.DownloadContentAsync();
-            var metadataJson = downloadResponse.Value.Content.ToString();
-            if (string.IsNullOrEmpty(metadataJson))
-            {
-                return RebitResult<ResubmitHandlerResponse>.Failure("Metadata is empty");
-            }
-
-            // Parse the metadata
-            var metadata = JsonSerializer.Deserialize<ResubmitMetadata>(metadataJson);
-            if (metadata is null)
-            {
-                return RebitResult<ResubmitHandlerResponse>.Failure("Failed to parse metadata");
-            }
-
-            // Get Service Bus client
+            // Create ServiceBus client
             var serviceBusClient = _serviceBusClientFactory.CreateClient(function.Name);
             
-            // Send the message to the resubmit queue
-            await SendToResubmitQueue(serviceBusClient, metadata, invocationId);
-
-            _logger.LogInformation("Service Bus resubmission completed - Function: {FunctionName}, MessageId: {MessageId}, InvocationId: {InvocationId}", 
-                function.Name, metadata.MessageId, invocationId);
-
-            return RebitResult<ResubmitHandlerResponse>.Success(new ResubmitHandlerResponse(invocationId));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Service Bus resubmission failed - Function: {FunctionName}, InvocationId: {InvocationId}", 
-                function.Name, invocationId);
-            return RebitResult<ResubmitHandlerResponse>.Failure($"Service Bus resubmission failed: {ex.Message}");
-        }
-    }
-
-    private async Task SendToResubmitQueue(ServiceBusClient serviceBusClient, ResubmitMetadata metadata, string invocationId)
-    {
-        var sender = serviceBusClient.CreateSender(ResubmitQueueName);
-        
-        try
-        {
-            // Create a new message for the resubmit queue with metadata for tracking
-            var resubmitMessage = new ServiceBusMessage($"Resubmitted message for function: {metadata.FunctionName}")
+            // Recreate the ServiceBus message
+            var serviceBusMessage = new ServiceBusMessage(messageData.Body)
             {
-                MessageId = $"resubmit-{metadata.MessageId ?? Guid.NewGuid().ToString()}",
-                CorrelationId = metadata.CorrelationId,
-                Subject = metadata.FunctionName,
-                ApplicationProperties = 
-                {
-                    { "OriginalInvocationId", metadata.InvocationId },
-                    { "OriginalFunction", metadata.FunctionName },
-                    { "OriginalEnqueuedTime", metadata.EnqueuedTime?.ToString("O") ?? "" },
-                    { "ResubmittedAt", DateTime.UtcNow.ToString("O") }
-                }
+                MessageId = messageData.MessageId,
+                CorrelationId = messageData.CorrelationId,
+                Subject = messageData.Subject,
+                ContentType = messageData.ContentType
             };
 
-            await sender.SendMessageAsync(resubmitMessage);
-            _logger.LogInformation("Message sent to resubmit queue - Original MessageId: {MessageId}, Resubmit MessageId: {ResubmitMessageId}", 
-                metadata.MessageId, resubmitMessage.MessageId);
+            // Add custom properties
+            foreach (var prop in messageData.ApplicationProperties)
+            {
+                serviceBusMessage.ApplicationProperties[prop.Key] = prop.Value;
+            }
+
+            foreach (var prop in messageData.UserProperties)
+            {
+                serviceBusMessage.ApplicationProperties[prop.Key] = prop.Value;
+            }
+
+            // Send message to destination
+            if (isTopic)
+            {
+                // Send to topic
+                var topicSender = serviceBusClient.CreateSender(destinationName);
+                await topicSender.SendMessageAsync(serviceBusMessage);
+            }
+            else
+            {
+                // Send to queue
+                var queueSender = serviceBusClient.CreateSender(destinationName);
+                await queueSender.SendMessageAsync(serviceBusMessage);
+            }
+
+            return RebitResult<ResubmitHandlerResponse>.Success(
+                new ResubmitHandlerResponse(storedMessage.Name), 
+                "ServiceBus message resubmitted successfully");
         }
-        finally
+        catch (Exception e)
         {
-            await sender.DisposeAsync();
+            _logger.LogDebug(e, "Unexpected error while resubmitting ServiceBus message");
+            return RebitResult<ResubmitHandlerResponse>.Failure(e.Message);
         }
     }
-}
-
-/// <summary>
-/// Minimal metadata stored in blob for Service Bus resubmission tracking
-/// </summary>
-internal record ResubmitMetadata
-{
-    public string FunctionName { get; init; } = string.Empty;
-    public string InvocationId { get; init; } = string.Empty;
-    public string? MessageId { get; init; }
-    public string? CorrelationId { get; init; }
-    public DateTimeOffset? EnqueuedTime { get; init; }
-    public DateTime ProcessedAt { get; init; }
 }

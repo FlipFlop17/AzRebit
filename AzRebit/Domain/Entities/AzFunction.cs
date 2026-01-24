@@ -1,4 +1,4 @@
-﻿using AzRebit.Domain.Enums;
+using AzRebit.Domain.Enums;
 
 namespace AzRebit.Domain.Entities;
 
@@ -50,6 +50,24 @@ internal sealed class AzFunction(string name, TriggerType triggerType)
     internal string? GetFunctionTriggerQueueName()
     {
         return TriggerMetadata.GetValueOrDefault("trigger-queue");
+    }
+
+    /// <summary>
+    /// Adds the subscription name for service bus topic triggered functions
+    /// </summary>
+    /// <param name="subscriptionName"></param>
+    internal void AddFunctionTriggerSubscriptionName(string subscriptionName)
+    {
+        TriggerMetadata.Add("trigger-subscription", subscriptionName);
+    }
+
+    /// <summary>
+    /// Gets the subscription name of the function
+    /// </summary>
+    /// <returns></returns>
+    internal string? GetFunctionTriggerSubscriptionName()
+    {
+        return TriggerMetadata.GetValueOrDefault("trigger-subscription");
     }
 
 }

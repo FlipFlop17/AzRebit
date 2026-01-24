@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 using AzRebit.Features.HttpTriggered.Model;
 using AzRebit.Infrastructure.FileStorage;
@@ -27,7 +27,7 @@ internal static class TestHelpers
         DateTimeOffset latestCreationTime = DateTimeOffset.MinValue;
 
         // Use efficient await foreach iteration
-        await foreach (BlobItem blobItem in containerClient.GetBlobsAsync(BlobTraits.Metadata))
+        await foreach (BlobItem blobItem in containerClient.GetBlobsAsync(new GetBlobsOptions { Traits = BlobTraits.Metadata }))
         {
             if (blobItem.Properties.CreatedOn.HasValue && blobItem.Properties.CreatedOn.Value > latestCreationTime)
             {

@@ -1,4 +1,4 @@
-﻿using AzRebit.Domain.Entities;
+using AzRebit.Domain.Entities;
 using AzRebit.Features.RebitClientStore;
 using AzRebit.Infrastructure.FileStorage;
 using AzRebit.Infrastructure.StateStorage;
@@ -29,7 +29,7 @@ public static class ResubmitFunctionWorkerExtension
     /// </remarks>
     public const string InternalRebitStorageTable = "RebitStatePersistTable";
     /// <summary>
-    /// Provides options for configuring the resubmit pipeline, including specifying functions to exclude from
+    /// Options for configuring the resubmit pipeline, including specifying functions to exclude from
     /// resubmission.
     /// </summary>
     public class ResubmitOptions
@@ -38,6 +38,12 @@ public static class ResubmitFunctionWorkerExtension
         /// Names of functions to be excluded from the resubmit pipeline.
         /// </summary>
         public HashSet<string> ExcludedFunctionNames { get; set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        
+        /// <summary>
+        /// Enable automatic deadlettering for ServiceBus messages on failure.
+        /// When enabled, failed ServiceBus messages will be automatically moved to the deadletter queue.
+        /// </summary>
+        public bool EnableServiceBusDeadLetter { get; set; } = true;
     }
 
     /// <summary>

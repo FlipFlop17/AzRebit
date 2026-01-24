@@ -4,7 +4,7 @@ using AzRebit.Features.ServiceBusTriggered.SaveRequestMiddleware;
 using AzRebit.Infrastructure.FileStorage;
 
 using Azure.Messaging.ServiceBus;
-using Azure.Messaging.ServiceBus.Administration;
+using Azure.Storage.Blobs;
 
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,17 +18,15 @@ internal class ServiceBusTriggerServiceCollection : ITriggersServiceCollection
     {
         services.AddTransient<IResubmitHandler>(sp =>
             new ServiceBusResubmitHandler(
-                sp.GetRequiredService<ILogger<ServiceBusResubmitHandler>>(),
+                sp.GetRequiredService<IResubmitStorage>(),
                 sp.GetRequiredService<IAzureClientFactory<ServiceBusClient>>(),
-                sp.GetRequiredService<IResubmitStorage>()
+                sp.GetRequiredService<ILogger<ServiceBusResubmitHandler>>()
             ));
-        
         services.AddSingleton<ISavePayloadHandler>(sp =>
             new ServiceBusMiddlewareHandler(
                 sp.GetRequiredService<ILogger<ServiceBusMiddlewareHandler>>(),
-                sp.GetRequiredService<IResubmitStorage>(),
-                sp.GetRequiredService<ServiceBusClient>(),
-                sp.GetRequiredService<ServiceBusAdministrationClient>()
+                sp.GetRequiredService<IAzureClientFactory<BlobServiceClient>>(),
+                sp.GetRequiredService<IResubmitStorage>()
             ));
     }
 }

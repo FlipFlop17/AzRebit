@@ -33,7 +33,8 @@ With this nuget package you can enrich your monitoring by integrating the ``/res
 
 - **Automatic Function Discovery** - Automatically discovers and catalogs all functions in your application
 - **Authentication** - Endpoint being added is again an azure function which is using the built-in auth via Function.Key
-- **Simple HTTP Interface** - RESTful endpoint for triggering resubmissions
+- **Simple HTTP Interface** - RESTful endpoint for triggering resubmissions (HTTP, Blob, Queue, Timer)
+- **Native ServiceBus Integration** - Leverages Azure ServiceBus native deadlettering for failed messages
 - **Invocation Tracking** - Track resubmissions using invocation IDs
 - **Isolated Worker Compatible** - Seamless integration with Azure Functions isolated worker model
 - **Zero Configuration** - Works out of the box with sensible defaults
@@ -81,13 +82,35 @@ builder.AddResubmitEndpoint();
 builder.Build().Run();
 ```
 
+### Advanced Configuration
+
+You can configure the resubmit behavior with options:
+
+```csharp
+builder.AddResubmitEndpoint(options =>
+{
+    // Exclude specific functions from resubmit functionality
+    options.ExcludedFunctionNames.Add("FunctionToSkip");
+    
+    // Enable ServiceBus deadlettering (documentation only - ServiceBus uses native deadlettering)
+    options.EnableServiceBusDeadLetter = true;
+});
+```
+
+> **ServiceBus Configuration**: For ServiceBus triggers, configure deadlettering directly in Azure Portal or through ServiceBus trigger attributes. The `EnableServiceBusDeadLetter` option serves as documentation that ServiceBus should use native deadlettering instead of the custom `/resubmit` endpoint.
+
 #### Supported Triggers
 You can use this package if your azure function is triggered by:
 
 - `HttpTrigger` --> saves incoming to `http-resubmits`
-- `BlobTrigger` -->saves incoming to `blob-resubmits`
+- `BlobTrigger` --> saves incoming to `blob-resubmits`
+- `QueueTrigger` --> saves incoming to `queue-resubmits`
+- `TimerTrigger` --> saves incoming to `timer-resubmits`
+- `ServiceBusTrigger` --> **Uses native Azure ServiceBus deadlettering**
 
-Every function in your project, with these listed trigger atributes,will have a resubmit functionality.
+> **Note**: For ServiceBus triggers, failed messages are automatically moved to the deadletter queue by Azure ServiceBus. Configure deadlettering through Azure Portal or ServiceBus trigger attributes. The `EnableServiceBusDeadLetter` option in the configuration serves as documentation that ServiceBus should use native deadlettering.
+
+Every function in your project, with these listed trigger attributes, will have appropriate resubmit functionality.
 
 ### Recommendation
 

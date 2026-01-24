@@ -11,26 +11,28 @@
     <PackageIcon>azrebit-logo-socials (Small).png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
-    <VersionPrefix>2.0.7</VersionPrefix>
+    <VersionPrefix>2.0.9</VersionPrefix>
     <VersionSuffix>alpha</VersionSuffix>
     <RepositoryUrl>https://github.com/FlipFlop17/AzRebit</RepositoryUrl>
     <PackageTags>azrebit;azurefunctionretry;azfuncresubmit;isolated-worker</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <UserSecretsId>b1da1667-cc56-4d6f-a9e4-5afbcdc7ea0f</UserSecretsId>
   </PropertyGroup>
 
 <ItemGroup>
-    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.19.1" />
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.26.0" />
-    <PackageReference Include="Azure.Storage.Queues" Version="12.24.0" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Core" Version="2.2.0" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
+
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
+    <PackageReference Include="Azure.Storage.Queues" Version="12.25.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.51.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Core" Version="2.51.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.13.2" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.24.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" Version="6.8.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.5.3" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Tables" Version="1.5.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.10" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
   </ItemGroup>
 
   <ItemGroup>

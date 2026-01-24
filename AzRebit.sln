@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzRebit.Tests", "AzRebit.Tests\AzRebit.Tests.csproj", "{DB87448B-B37C-284E-C7AE-D0C8BD7AA8A7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzRebit.Tests", "AzRebitTests\AzRebitTests.csproj", "{DB87448B-B37C-284E-C7AE-D0C8BD7AA8A7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzRebit", "AzRebit\AzRebit.csproj", "{D649642F-EEE0-8BAC-4291-543F982FA636}"
 EndProject
