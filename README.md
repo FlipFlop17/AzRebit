@@ -26,7 +26,15 @@ With this nuget package you can enrich your monitoring by integrating the ``/res
 ### How it works
 ![Diagram overview](https://raw.githubusercontent.com/FlipFlop17/AzRebit/main/resources/diagram.png)
 
->The inspiration for this package came from the 🔄 Resubmit  feature in Logic apps.
+## How It Works
+
+The diagram above shows the basic flow of AzRebit. Here's what happens:
+
+1. **Install AzRebit** - Add the NuGet package to your Azure Function project
+2. **Automatic Integration** - AzRebit automatically discovers your functions and registers middleware
+3. **Request Capture** - When your function runs, the incoming request is saved to Azure Functions storage
+4. **Resubmit Endpoint** - AzRebit exposes a Resubmit HTTP endpoint that can re-trigger any captured function
+5. **Simple Resubmission** - Call the endpoint with function name and invocation ID to resubmit any request
 
 
 ## How It Works
