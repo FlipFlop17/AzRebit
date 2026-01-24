@@ -265,7 +265,7 @@ Server error occurred while processing the request.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+For now I am not accepting contributions.
 
 ## License
 
@@ -273,4 +273,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Support
 
+The package is not yet fully tested on production. If you notice any issues feel free to open one.
 For issues, feature requests, or questions, please open an issue on [GitHub](https://github.com/FlipFlop17/azure-functions-resubmit-endpoint/issues).
