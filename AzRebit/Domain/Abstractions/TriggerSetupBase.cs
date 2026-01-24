@@ -1,0 +1,26 @@
+﻿using AzRebit.Domain.Entities;
+using AzRebit.Domain.Enums;
+
+using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+
+
+
+namespace AzRebit.Domain.Abstractions;
+
+internal abstract class TriggerSetupBase
+{
+    public abstract TriggerType TriggerName { get; }
+    public abstract Type TriggerAttribute { get; }
+
+    /// <summary>
+    /// Tries to create a ne AzFunction object based on the trigger params and Function implementation atributes
+    /// </summary>
+    /// <param name="functionName"></param>
+    /// <param name="triggerAtribute"></param>
+    /// <param name="services"></param>
+    /// <returns>AzFunction</returns>
+    public abstract AzFunction TryCreateAzFunction(string functionName, TriggerBindingAttribute triggerAtribute, IServiceCollection services);
+
+
+}

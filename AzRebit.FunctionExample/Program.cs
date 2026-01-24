@@ -1,8 +1,12 @@
 using AzRebit;
+using AzRebit.FunctionExample.Infra;
+
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -10,10 +14,33 @@ builder.ConfigureFunctionsWebApplication();
 
 builder.Services
     .AddApplicationInsightsTelemetryWorkerService()
-    .ConfigureFunctionsApplicationInsights();
+    .ConfigureFunctionsApplicationInsights()
+    .AddHttpClient();
 
-builder.AddResubmitEndpoint()
-    .UseResubmitMiddleware();
 
+builder.Services.AddAzureClients(clients =>
+{
+    clients.AddQueueServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"))
+    .WithName("function-output-queue").ConfigureOptions(c =>
+    {
+        c.MessageEncoding = Azure.Storage.Queues.QueueMessageEncoding.Base64;
+    });
+});
+
+builder.Services.AddSingleton<IFunctionOutput, QueueStorage>();
+builder.AddResubmitEndpoint();
+
+if (builder.Environment.IsDevelopment())
+{
+    var seqServerUrl = Environment.GetEnvironmentVariable("SEQ_SERVER_URL") ?? "http://localhost:5341";
+    Console.WriteLine($"Configuring Seq logging to: {seqServerUrl}");
+    builder.Logging.SetMinimumLevel( LogLevel.Debug );
+    builder.Logging.AddSeq(seqServerUrl);
+};
+
+builder.Logging.AddFilter("Azure.Core", LogLevel.Error);
+builder.Logging.AddFilter("Azure.Storage", LogLevel.Error);
+builder.Logging.AddFilter("Host.General", LogLevel.Warning);
+builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
 
 builder.Build().Run();

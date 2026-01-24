@@ -5,11 +5,7 @@
   <h1 style="font-size: 3.5em; margin: 0.2em 0;">AzRebit</h1>
   
   ### 🔄 A powerful NuGet package for Azure Functions request resubmission
-  
-  [![NuGet](https://img.shields.io/badge/NuGet-AzFunctionResubmit-blue?style=flat-square&logo=nuget)](https://www.nuget.org/packages/AzFunctionResubmit)
-  [![Azure Functions](https://img.shields.io/badge/Azure%20Functions-Isolated%20Worker-0078d4?style=flat-square&logo=microsoft-azure)](https://docs.microsoft.com/en-us/azure/azure-functions/)
-  [![.NET](https://img.shields.io/badge/.NET-8.0-512bd4?style=flat-square&logo=dotnet)](https://dotnet.microsoft.com/)
-  
+
   *Easily integrate request resubmission capability into your Azure Functions applications with minimal configuration*
   
 </div>
@@ -18,17 +14,30 @@
 
 ## Overview
 
-This package adds a `/resubmit` HTTP endpoint to your Azure Functions application, allowing you to programmatically trigger resubmission of failed or pending function executions. Perfect for implementing retry logic, handling transient failures, or integrating with external monitoring and alerting systems.
+This package adds a `/resubmit` HTTP endpoint to your Azure Functions application, allowing you to programmatically trigger resubmission of failed or pending function executions. 
+Perfect for implementing retry logic, handling transient failures, or integrating with external monitoring and alerting systems.
+
+### Problem statement
+Azure Functions can fail. No mattter the retry mechanisms in place. We also might have sensitive apps and we want the ability to resubmit a failed request manually.
+
+We might run different dashboards, workbooks that are showing our apps run status. 
+With this nuget package you can enrich your monitoring by integrating the ``/resubmit`` endpoint to be called directly from your dashboard.
+
+### Example use case
+--Drawio of azure diagram with logs
+
+>The inspiration for this package came from the 🔄 Resubmit  feature in Logic apps.
+
 
 ## Features
 
 - **Automatic Function Discovery** - Automatically discovers and catalogs all functions in your application
 - **Authentication** - Endpoint being added is again an azure function which is using the built-in auth via Function.Key
-- **Simple HTTP Interface** - RESTful endpoint for triggering resubmissions
+- **Simple HTTP Interface** - RESTful endpoint for triggering resubmissions (HTTP, Blob, Queue, Timer)
+- **Native ServiceBus Integration** - Leverages Azure ServiceBus native deadlettering for failed messages
 - **Invocation Tracking** - Track resubmissions using invocation IDs
 - **Isolated Worker Compatible** - Seamless integration with Azure Functions isolated worker model
 - **Zero Configuration** - Works out of the box with sensible defaults
-- **Configurable** - Customize storage cleanup days etc.
 
 ## Requirements
 
@@ -67,56 +76,73 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 
-//just add without configuration:
+//just add
 builder.AddResubmitEndpoint();
-//optionally add this if you want to configure
-builder.AddResubmitEndpoint(options =>
-{
-    options.DaysToKeepRequests = "10"; // function will automatically delete stored request to save on storage space: defaults to "3"
-});
-
-
-//then add the middleware
-builder.UseResubmitMiddleware();
 
 builder.Build().Run();
 ```
 
-Currently supported trigger attributes are:
+### Advanced Configuration
+
+You can configure the resubmit behavior with options:
+
+```csharp
+builder.AddResubmitEndpoint(options =>
+{
+    // Exclude specific functions from resubmit functionality
+    options.ExcludedFunctionNames.Add("FunctionToSkip");
+    
+    // Enable ServiceBus deadlettering (documentation only - ServiceBus uses native deadlettering)
+    options.EnableServiceBusDeadLetter = true;
+});
+```
+
+> **ServiceBus Configuration**: For ServiceBus triggers, configure deadlettering directly in Azure Portal or through ServiceBus trigger attributes. The `EnableServiceBusDeadLetter` option serves as documentation that ServiceBus should use native deadlettering instead of the custom `/resubmit` endpoint.
+
+#### Supported Triggers
+You can use this package if your azure function is triggered by:
 
 - `HttpTrigger` --> saves incoming to `http-resubmits`
-- `BlobTrigger` -->saves incoming to `blob-resubmits`
+- `BlobTrigger` --> saves incoming to `blob-resubmits`
+- `QueueTrigger` --> saves incoming to `queue-resubmits`
+- `TimerTrigger` --> saves incoming to `timer-resubmits`
+- `ServiceBusTrigger` --> **Uses native Azure ServiceBus deadlettering**
 
-After configuring all functions with listed trigger atributes will automatically save incoming requests to a storage account of the function app.
+> **Note**: For ServiceBus triggers, failed messages are automatically moved to the deadletter queue by Azure ServiceBus. Configure deadlettering through Azure Portal or ServiceBus trigger attributes. The `EnableServiceBusDeadLetter` option in the configuration serves as documentation that ServiceBus should use native deadlettering.
+
+Every function in your project, with these listed trigger attributes, will have appropriate resubmit functionality.
 
 ### Recommendation
 
-The function is using `DaysToKeepRequests` counter after which it will clean up requests older than specified days. Since the resubmition is best used just for failed requests, keeping successfull runs might increase storage size. You can delete the saved request manually from your function in case of a successfull execution.
+Since the resubmition is best used just for failed requests, keeping successfull runs might increase storage size. You can delete the saved request within your function by using the provided `AzRebitBlobExtensions.DeleteSavedBlobAsync()` method in case of a successfull execution.
 
 ```csharp
 //optional - delete the save request. Usually you would want this iy your function runned successfuly
-await AzRebitBlobExtensions.DeleteSavedBlobAsync(funcContext.InvocationId.ToString());
+await AzRebitBlobExtensions.DeleteSavedBlobAsync(uniqueueInvocationIdOfYourFunction);
 ```
+Additionaly you can setup a Lifecycle Management policy on your storage account to automatically delete blobs older than a certain number of days.
 
 ## How It Works
 
 1. **Function Discovery** - On startup, the package automatically scans assemblies and discovers all methods decorated with the `[Function]` attribute
 2. **Registration** - Discovered function names alonside its trigger data are cached
-3. **Middleware** - Before your function starts a middleware will save the incoming request to a local storage account and tag it with the unique (InvocationId) derived the function context.
+3. **Middleware** - Before your function starts, middleware ``IFunctionsWorkerMiddleware`` will be invoked to save the incoming request to a local storage account and tag it with the unique (InvocationId) derived the function context.
 4. **Resubmit Handling** - Incoming requests to `/resubmit` are crossreferenced with the triggers we support and accordingly the payload is pulled from its saved location and sent again to the Function's trigger.
 
 ## Making a Resubmit Request
 
-Making a resubmit request depends on two important parameters:
-**functionName** and \***\*invocationId**
+Making a resubmit request depends on two important query params:
+**functionName** and **invocationId**
 
 `functionName` --> Name of Azure function as defined inside `[Function()]`  
-`invocationId` -->Each function run has a uniqueuId which the package is using to tag and locate the payload to resubmit.
-To locate what is the unique id of you run you need to inspect your logs and search for InvocationId. [InvocationIdProperty](https://learn.microsoft.com/en-us/dotnet/api/microsoft.azure.functions.worker.functioncontext.invocationid?view=azure-dotnet)
+`invocationId` -->Each function run has a uniqueId coming from the ``FunctionContext``. That Id is used to tag and locate the payload to resubmit.
+To locate what is the unique id of you run you need to inspect your logs and search for InvocationId property. [InvocationIdProperty](https://learn.microsoft.com/en-us/dotnet/api/microsoft.azure.functions.worker.functioncontext.invocationid?view=azure-dotnet)
 
 ```bash
 curl -X POST "http://localhost:7071/api/resubmit?functionName=MyFunction&invocationId=abc-123-def-456" \
 ```
+
+>In case of **HTTP triggers** the invocationid can be a custom. If you add a header ``x-azrebit-invocationid`` with a custom value **that value will be used as invocationId**.
 
 ## API Reference
 
