@@ -73,6 +73,17 @@ graph TB
 >The inspiration for this package came from the 🔄 Resubmit  feature in Logic apps.
 
 
+## How It Works
+
+The diagram above shows the basic flow of AzRebit. Here's what happens:
+
+1. **Install AzRebit** - Add the NuGet package to your Azure Function project
+2. **Automatic Integration** - AzRebit automatically discovers your functions and registers middleware
+3. **Request Capture** - When your function runs, the incoming request is saved to Azure Functions storage
+4. **Resubmit Endpoint** - AzRebit exposes a Resubmit HTTP endpoint that can re-trigger any captured function
+5. **Simple Resubmission** - Call the endpoint with function name and invocation ID to resubmit any request
+
+
 ## Features
 
 - **Automatic Function Discovery** - Automatically discovers and catalogs all functions in your application
@@ -150,15 +161,41 @@ Every function in your project, with these listed trigger attributes, will have 
 
 ### Recommendation
 
-Since the resubmition is best used just for failed requests, keeping successfull runs might increase storage size. You can delete the saved request within your function by using the provided `AzRebitBlobExtensions.DeleteSavedBlobAsync()` method in case of a successfull execution.
+Since the resubmition is best used just for failed requests, keeping successfull runs might increase storage size. You can delete the saved request within your function by injecting `IRebitStoreOperations` and calling `DeleteResubmitFile()` method in case of a successful execution.
 
 ```csharp
-//optional - delete the save request. Usually you would want this iy your function runned successfuly
-await AzRebitBlobExtensions.DeleteSavedBlobAsync(uniqueueInvocationIdOfYourFunction);
-```
-Additionaly you can setup a Lifecycle Management policy on your storage account to automatically delete blobs older than a certain number of days.
+//optional - delete the saved request. Usually you would want this if your function runs successfully
+public class MyFunction
+{
+    private readonly IRebitStoreOperations _rebitStore;
 
-## How It Works
+    public MyFunction(IRebitStoreOperations rebitStore)
+    {
+        _rebitStore = rebitStore;
+    }
+
+    [Function("MyFunction")]
+    public async Task Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequest req)
+    {
+        try
+        {
+            // Your function logic here
+            await ProcessRequest(req);
+            
+            // If successful, delete the saved request
+            var invocationId = req.FunctionContext.InvocationId;
+            await _rebitStore.DeleteResubmitFile(invocationId);
+        }
+        catch (Exception)
+        {
+            // If failed, keep the saved request for potential resubmission
+            throw;
+        }
+    }
+}
+```
+
+Additionaly you can setup a Lifecycle Management policy on your storage account to automatically delete blobs older than a certain number of days.
 
 The diagram above illustrates the complete flow of AzRebit. Here's the step-by-step process:
 
@@ -280,7 +317,7 @@ Server error occurred while processing the request.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+For now I am not accepting contributions.
 
 ## License
 
@@ -288,4 +325,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Support
 
+The package is not yet fully tested on production. If you notice any issues feel free to open one.
 For issues, feature requests, or questions, please open an issue on [GitHub](https://github.com/FlipFlop17/azure-functions-resubmit-endpoint/issues).
