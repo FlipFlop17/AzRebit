@@ -12,7 +12,7 @@
 
 ---
 
-## Overview
+## Overview 
 
 This package adds a `/resubmit` HTTP endpoint to your Azure Functions application, allowing you to programmatically trigger resubmission of failed or pending function executions. 
 Perfect for implementing retry logic, handling transient failures, or integrating with external monitoring and alerting systems.
