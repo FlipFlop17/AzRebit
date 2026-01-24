@@ -1,10 +1,10 @@
 <div align="center">
   
-  <img src="./resources/azrebit-logo.png" alt="Azure Functions Resubmit Logo" width="250"/>
+  <img src="resources/azrebit-logo.png" alt="Azure Functions Resubmit Logo" width="250"/>
   
   <h1 style="font-size: 3.5em; margin: 0.2em 0;">AzRebit</h1>
   
-  ### 🔄 A powerful NuGet package for Azure Functions request resubmission
+  <strong>🔄 A powerful NuGet package for Azure Functions request resubmission</strong>
 
   *Easily integrate request resubmission capability into your Azure Functions applications with minimal configuration*
   
@@ -23,52 +23,8 @@ Azure Functions can fail. No mattter the retry mechanisms in place. We also migh
 We might run different dashboards, workbooks that are showing our apps run status. 
 With this nuget package you can enrich your monitoring by integrating the ``/resubmit`` endpoint to be called directly from your dashboard.
 
-### Example use case
-
-> **📊 Architecture Diagrams**: The following diagrams are rendered using Mermaid. If you're viewing this README in an environment that doesn't support Mermaid rendering, you can view the live version on GitHub or use a Mermaid-compatible viewer.
-
-```mermaid
-graph TB
-    subgraph "Azure Function Application"
-        A[Function App] --> B[AzRebit Package]
-        B --> C[Function Discovery]
-        B --> D[Middleware Registration]
-        B --> E[\/resubmit Endpoint]
-        
-        C --> C1[Scan Assemblies]
-        C1 --> C2[Find [Function] Methods]
-        C2 --> C3[Cache Trigger Data]
-        
-        D --> D1[IFunctionsWorkerMiddleware]
-        D1 --> D2[Save Incoming Request]
-        D2 --> D3[Store in Blob Storage]
-        D3 --> D4[Tag with InvocationId]
-        
-        E --> E1[POST /resubmit]
-        E1 --> E2[Lookup Function]
-        E2 --> E3[Fetch Saved Payload]
-        E3 --> E4[Re-trigger Function]
-    end
-    
-    subgraph "Azure Storage Account"
-        D3 --> F[Blob Container]
-        F --> F1[http-resubmits/]
-        F --> F2[queue-resubmits/]
-        F --> F3[blob-resubmits/]
-        F --> F4[timer-resubmits/]
-    end
-    
-    subgraph "External Systems"
-        G[Monitoring Dashboard] --> E
-        H[Logic Apps] --> E
-        I[Application Insights] --> E
-    end
-    
-    style A fill:#e1f5fe
-    style B fill:#f3e5f5
-    style E fill:#e8f5e8
-    style F fill:#fff3e0
-```
+### How it works
+![Diagram overview](resources/diagram.png)
 
 >The inspiration for this package came from the 🔄 Resubmit  feature in Logic apps.
 
@@ -89,9 +45,7 @@ The diagram above shows the basic flow of AzRebit. Here's what happens:
 - **Automatic Function Discovery** - Automatically discovers and catalogs all functions in your application
 - **Authentication** - Endpoint being added is again an azure function which is using the built-in auth via Function.Key
 - **Simple HTTP Interface** - RESTful endpoint for triggering resubmissions (HTTP, Blob, Queue, Timer)
-- **Native ServiceBus Integration** - Leverages Azure ServiceBus native deadlettering for failed messages
 - **Invocation Tracking** - Track resubmissions using invocation IDs
-- **Isolated Worker Compatible** - Seamless integration with Azure Functions isolated worker model
 - **Zero Configuration** - Works out of the box with sensible defaults
 
 ## Requirements
@@ -155,7 +109,7 @@ You can use this package if your azure function is triggered by:
 - `BlobTrigger` --> saves incoming to `blob-resubmits`
 - `QueueTrigger` --> saves incoming to `queue-resubmits`
 - `TimerTrigger` --> Not yet available - in progress
-- `ServiceBusTrigger` --> > Not yet available - in progress
+- `ServiceBusTrigger` --> > Not available. You should use built-in deadlettering
 
 Every function in your project, with these listed trigger attributes, will have appropriate resubmit functionality.
 
