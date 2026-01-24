@@ -1,0 +1,101 @@
+<mxfile host="65bd71144e">
+    <diagram id="lcbtEubIkVxFN4ScKU5x" name="Page-1">
+        <mxGraphModel dx="998" dy="728" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="9" value="" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="230" y="120" width="150" height="220" as="geometry"/>
+                </mxCell>
+                <mxCell id="25" style="edgeStyle=none;html=1;" edge="1" parent="1" source="23" target="2">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="26" value="1. Triggers on" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="25">
+                    <mxGeometry x="-0.5348" y="2" relative="1" as="geometry">
+                        <mxPoint x="12" y="-8" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="23" value="" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="44.74" y="100" width="118" height="290" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" style="edgeStyle=none;html=1;" edge="1" parent="1" source="2" target="4">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="10" value="2. Checks all incoming trigger data" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="7">
+                    <mxGeometry x="0.1212" y="2" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="31" style="edgeStyle=none;html=1;" edge="1" parent="1" source="2" target="6">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="32" value="1. Request for resubmit" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="31">
+                    <mxGeometry x="0.356" y="1" relative="1" as="geometry">
+                        <mxPoint y="-7" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="2" value="Users Az Function" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/compute/Function_Apps.svg;" vertex="1" parent="1">
+                    <mxGeometry x="270" y="240" width="68" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="AzRebit nuget package" style="verticalLabelPosition=bottom;html=1;verticalAlign=top;align=center;strokeColor=none;fillColor=#00BEF2;shape=mxgraph.azure.cloud_service_package_file;" vertex="1" parent="1">
+                    <mxGeometry x="286.38" y="150" width="37.25" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="8" style="edgeStyle=none;html=1;" edge="1" parent="1" source="4" target="5">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" value="3. Saves the incoming data" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="8">
+                    <mxGeometry x="-0.1885" y="-3" relative="1" as="geometry">
+                        <mxPoint y="32" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="12" style="edgeStyle=none;html=1;" edge="1" parent="1" source="4">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="780" y="265" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="13" value="4. Function continues to execute" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="12">
+                    <mxGeometry x="0.4102" y="-2" relative="1" as="geometry">
+                        <mxPoint x="5" y="-2" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="4" value="AzRebit&amp;nbsp;&lt;div&gt;IFunctionWorkerMiddleware&lt;/div&gt;" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;spacingTop=3;image=img/lib/active_directory/input_output_filter.svg;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="240" width="33.5" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="5" value="resubmit storage&lt;div&gt;functions local storage&lt;/div&gt;" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/mscae/BlobBlock.svg;" vertex="1" parent="1">
+                    <mxGeometry x="740" y="370" width="50" height="42" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" value="/resubmit" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/networking/Private_Endpoint.svg;" vertex="1" parent="1">
+                    <mxGeometry x="440" y="430" width="72" height="66" as="geometry"/>
+                </mxCell>
+                <mxCell id="19" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/general/Storage_Queue.svg;" vertex="1" parent="1">
+                    <mxGeometry x="70" y="120" width="64" height="52" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" value="" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/mscae/BlobBlock.svg;" vertex="1" parent="1">
+                    <mxGeometry x="72.24" y="210" width="59.52" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="21" value="" style="outlineConnect=0;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;shape=mxgraph.aws3.http_protocol;fillColor=#5294CF;gradientColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="72.24000000000001" y="300" width="63" height="66" as="geometry"/>
+                </mxCell>
+                <mxCell id="27" value="" style="endArrow=classic;startArrow=classic;html=1;" edge="1" parent="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="530" y="450" as="sourcePoint"/>
+                        <mxPoint x="710" y="410" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="28" value="2. Get stored data for resubmision" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="27">
+                    <mxGeometry x="0.0275" y="2" relative="1" as="geometry">
+                        <mxPoint x="-1" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="29" style="edgeStyle=none;html=1;entryX=0.884;entryY=1.007;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="6" target="23">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="30" value="3. Add data to functions trigger" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="29">
+                    <mxGeometry x="-0.4848" y="-2" relative="1" as="geometry">
+                        <mxPoint x="-76" y="-7" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
