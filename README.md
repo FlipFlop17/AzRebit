@@ -33,7 +33,7 @@ graph TB
         A[Function App] --> B[AzRebit Package]
         B --> C[Function Discovery]
         B --> D[Middleware Registration]
-        B --> E[/resubmit Endpoint]
+        B --> E[\/resubmit Endpoint]
         
         C --> C1[Scan Assemblies]
         C1 --> C2[Find [Function] Methods]
@@ -176,7 +176,7 @@ sequenceDiagram
     participant FunctionApp as Azure Function App
     participant Middleware as AzRebit Middleware
     participant Storage as Azure Blob Storage
-    participant Resubmit as /resubmit Endpoint
+    participant Resubmit as \/resubmit Endpoint
     
     Client->>FunctionApp: Invoke Function
     FunctionApp->>Middleware: Pass Request
@@ -187,7 +187,7 @@ sequenceDiagram
     
     Note over Client,Resubmit: Later, when resubmission is needed:
     
-    Client->>Resubmit: POST /resubmit?functionName=MyFunction&invocationId=123
+    Client->>Resubmit: POST \/resubmit?functionName=MyFunction&invocationId=123
     Resubmit->>Storage: Fetch Saved Payload
     Storage-->>Resubmit: Return Payload
     Resubmit->>FunctionApp: Re-invoke Function
